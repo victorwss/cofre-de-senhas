@@ -1,241 +1,335 @@
-from typing import Protocol, Tuple, TypeVar
+from typing import Any, Callable, cast, Iterator, Literal, overload, Protocol, runtime_checkable, Self, Sequence, TypeVar, TYPE_CHECKING
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, fields
+from dataclass_type_validator import dataclass_validate
+from dacite import from_dict
+from types import TracebackType
+from functools import wraps
+from enum import Enum
+import threading
 
-TypeCode = STRING | BINARY | NUMBER | DATETIME | ROWID | None
+if TYPE_CHECKING:
+    class STRING: pass
+    class BINARY: pass
+    class NUMBER: pass
+    class DATETIME: pass
+    class ROWID: pass
+    TypeCode = STRING | BINARY | NUMBER | DATETIME | ROWID | None
+else:
+    TypeCode = Any
 
-T = TypeVar("T")
-
-Descriptor = Tuple[
-    str,        # name
-    TypeCode,   # type_code
-    int | None, # display_size
-    int | None, # internal_size
-    int | None, # precision
-    int | None, # scale
-    bool | None # null_ok
+__all__ = [
+    "row_to_dict", "row_to_dict_opt", "rows_to_dicts", "row_to_class", "row_to_class_opt", "rows_to_classes",
+    "TypeCode", "ColumnDescriptor", "Descriptor", "ScrollMode",
+    "SimpleConnection", "TransactedConnection", "TransactionNotActiveException",
+    "STRING", "BINARY", "NUMBER", "DATETIME", "ROWID"
 ]
 
-class SupportsClose(Protocol):
+T = TypeVar("T")
+C = TypeVar("C", bound = Callable[..., Any])
 
-    def close(self) -> None:
-        ...
+@dataclass_validate(strict = True)
+@dataclass(frozen = True)
+class ColumnDescriptor:
+    name         : str
+    type_code    : TypeCode
+    display_size : int | None
+    internal_size: int | None
+    precision    : int | None
+    scale        : int | None
+    null_ok      : bool | None
 
-class Cursor(SupportsClose, Protocol):
+class ScrollMode(Enum):
+    Relative = "relative"
+    Absolute = "absolute"
 
-    def fetchone(self) -> Tuple[...] | None:
-        ...
+Descriptor = list[ColumnDescriptor]
 
-    def fetchall(self) -> list[Tuple[...]]:
-        ...
-
-    def fetchmany(self, size: int = 0) -> list[Tuple[...]]:
-        ...
-
-    def callproc(self, name: str, *parameters: Any) -> Tuple[...] | None:
-        ...
-
-    def execute(self, name: str, *parameters: Any) -> Tuple[...] | None:
-        ...
-
-    def executemany(self, name: str, *parameters: Any) -> Tuple[...] | None:
-        ...
-
-    @property
-    def arraysize(self) -> int:
-        ...
-
-    @property
-    def rowcount(self) -> int:
-        ...
-
-    @property
-    def description(self) -> Descriptor:
-        ...
-
-    @property
-    def rownumber(self) -> int:
-        ...
-
-    @property
-    def lastrowid(self) -> int:
-        ...
-
-    @property
-    def autocommit(self) -> bool:
-        ...
-
-    @property
-    def connection(self) -> 'Connection':
-        ...
-
-    @property
-    def messages(self) -> list[str]:
-        ...
-
-    @messages.deleter
-    def messages(self) -> None:
-        ...
-
-    def scroll(self, value: int, mode: str = "relative") -> None:
-        ...
-
-class Connection(SupportsClose, Protocol):
-
-    def commit(self) -> None:
-        ...
-
-    def rollback(self) -> None:
-        ...
-
-    @property
-    def cursor(self) -> Cursor:
-        ...
-
-# Converte uma linha em um dicionário.
-def row_to_dict(description: Descriptor, row: Tuple[...]) -> dict[str, Any]:
-    if row is None: return None
+def row_to_dict(description: Descriptor, row: tuple[Any, ...]) -> dict[str, Any]:
     d = {}
     for i in range(0, len(row)):
-        d[description[i][0]] = row[i]
+        d[description[i].name] = row[i]
     return d
 
-# Converte uma lista de linhas em um lista de dicionários.
-def rows_to_dict(description: Descriptor, rows: list[Tuple[...]]) -> list[dict[str, Any]]:
+def row_to_dict_opt(description: Descriptor, row: tuple[Any, ...] | None) -> dict[str, Any] | None:
+    if row is None: return None
+    return row_to_dict(description, row)
+
+def rows_to_dicts(description: Descriptor, rows: list[tuple[Any, ...]]) -> list[dict[str, Any]]:
     result = []
     for row in rows:
         result.append(row_to_dict(description, row))
     return result
 
-# Fonte: https://stackoverflow.com/a/54769644
-def dict_to_class(klass: Callable[..., T], d: dict[str, Any]) -> T:
-    try:
-        fieldtypes = {f.name: f.type for f in dataclasses.fields(klass)}
-        return klass(**{f: dataclass_from_dict(fieldtypes[f], d[f]) for f in d})
-    except:
-        return d # Not a dataclass field
+def row_to_class(klass: type[T], description: Descriptor, row: tuple[Any, ...]) -> T:
+    return from_dict(data_class = klass, data = row_to_dict(description, row))
 
-def row_to_class(klass: Callable[..., T], description: Descriptor, row: Tuple[...]):
-    dict_to_class(klass, row_to_dict(description, row))
+def row_to_class_opt(klass: type[T], description: Descriptor, row: tuple[Any, ...] | None) -> T | None:
+    if row is None: return None
+    return row_to_class(klass, description, row)
 
-def rows_to_classes(klass: Callable[..., T], description: Descriptor, rows: list[Tuple[...]]):
+def rows_to_classes(klass: type[T], description: Descriptor, rows: list[tuple[Any, ...]]) -> list[T]:
     result = []
     for row in rows:
         result.append(row_to_class(klass, description, row))
     return result
 
-class ConexaoSimples(Connection, Cursor):
+class SimpleConnection(ABC):
 
-    def __init__(self, conn: Connection) -> None:
-        self.__conn: Connection = conn
-        self.__curr: Cursor = conn.cursor
-
-    def close(self) -> None:
-        self.__conn.close()
-        self.__curr.close()
-
+    @abstractmethod
     def commit(self) -> None:
-        self.__curr.commit()
+        ...
 
+    @abstractmethod
     def rollback(self) -> None:
-        self.__curr.rollback()
+        ...
 
-    def fetchone(self) -> Tuple[...] | None:
-        return self.__curr.fetchone()
+    @abstractmethod
+    def close(self) -> None:
+        ...
 
-    def fetchall(self) -> list[Tuple[...]]:
-        return self.__curr.fetchall()
+    @abstractmethod
+    def fetchone(self) -> tuple[Any, ...] | None:
+        ...
 
-    def fetchmany(self, size: int = 0) -> list[Tuple[...]]:
-        return self.__curr.fetchmany(size)
+    @abstractmethod
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        ...
 
-    def callproc(self, name: str, *parameters: Any) -> Tuple[...] | None:
-        return self.__curr.callproc(name, parameters)
+    @abstractmethod
+    def fetchmany(self, size: int = 0) -> list[tuple[Any, ...]]:
+        ...
 
-    def execute(self, name: str, *parameters: Any) -> Tuple[...] | None:
-        return self.__curr.execute(name, parameters)
+    def fetchone_dict(self) -> dict[str, Any] | None:
+        return row_to_dict_opt(self.description, self.fetchone())
 
-    def executemany(self, name: str, *parameters: Any) -> Tuple[...] | None:
-        return self.__curr.executemany(name, parameters)
+    def fetchall_dict(self) -> list[dict[str, Any]]:
+        return rows_to_dicts(self.description, self.fetchall())
 
-    def scroll(self, value: int, mode: str = "relative") -> None:
-        self.scroll(value, mode)
+    def fetchmany_dict(self, size: int = 0) -> list[dict[str, Any]]:
+        return rows_to_dicts(self.description, self.fetchmany(size))
+
+    def fetchone_class(self, klass: type[T]) -> T | None:
+        return row_to_class_opt(klass, self.description, self.fetchone())
+
+    def fetchall_class(self, klass: type[T]) -> list[T]:
+        return rows_to_classes(klass, self.description, self.fetchall())
+
+    def fetchmany_class(self, klass: type[T], size: int = 0) -> list[T]:
+        return rows_to_classes(klass, self.description, self.fetchmany(size))
+
+    @abstractmethod
+    def callproc(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
+        ...
+
+    @abstractmethod
+    def execute(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
+        ...
+
+    @abstractmethod
+    def executemany(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
+        ...
+
+    @abstractmethod
+    def executescript(self, sql: str) -> Self:
+        ...
 
     @property
+    @abstractmethod
     def arraysize(self) -> int:
-        return self.__curr.arraysize
+        ...
 
     @property
+    @abstractmethod
     def rowcount(self) -> int:
-        return self.__curr.rowcount
+        ...
 
     @property
+    @abstractmethod
     def description(self) -> Descriptor:
-        return self.__curr.description
+        ...
 
     @property
-    def rownumber(self) -> int:
-        return self.__curr.rownumber
+    @abstractmethod
+    def rownumber(self) -> int | None:
+        ...
 
     @property
-    def lastrowid(self) -> int:
-        return self.__curr.lastrowid
+    @abstractmethod
+    def lastrowid(self) -> int | None:
+        ...
 
     @property
+    @abstractmethod
     def autocommit(self) -> bool:
-        return self.__curr.autocommit
+        ...
+
+    @abstractmethod
+    def scroll(self, value: int, mode: ScrollMode = ...) -> None:
+        ...
 
     @property
-    def connection(self) -> Connection:
-        return self.__conn
-
-    @property
-    def cursor(self) -> Cursor:
-        return self.__curr
-
-    @property
-    def messages(self) -> list[str]:
-        return self.__conn.messages + self.__curr.messages
+    def messages(self) -> Sequence[str]:
+        return self._get_messages()
 
     @messages.deleter
     def messages(self) -> None:
-        del self.__conn.messages
-        del self.__curr.messages
+        self._delete_messages()
+
+    @abstractmethod
+    def _get_messages(self) -> Sequence[str]:
+        ...
+
+    @abstractmethod
+    def _delete_messages(self) -> None:
+        ...
+
+    def next(self) -> tuple[Any, ...] | None:
+        return self.fetchone()
+
+    def __next__(self) -> tuple[Any, ...] | None:
+        return self.fetchone()
+
+    def __iter__(self) -> Iterator[tuple[Any, ...] | None]:
+        yield self.fetchone()
+
+class TransactionNotActiveException(Exception):
+    pass
+
+class TransactedConnection(SimpleConnection):
+    def __init__(self, activate: Callable[[], SimpleConnection]) -> None:
+        self.__activate: Callable[[], SimpleConnection] = activate
+        self.__local = threading.local()
+        self.__count: int = 0
+
+    def __enter__(self) -> Self:
+        if self.__count == 0:
+            self.__local.con = self.__activate()
+        self.__count += 1
+        return self
+
+    def close(self) -> None:
+        self.__count -= 1
+        if self.__count == 0:
+            self.__wrapped.close()
+            del self.__local.con
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> Literal[False]:
+        self.close()
+        return False
 
     @property
-    def connection_messages(self) -> list[str]:
-        return self.__conn.messages
-
-    @connection_messages.deleter
-    def connection_messages(self) -> None:
-        del self.__conn.messages
+    def reenter_count(self) -> int:
+        return self.__count
 
     @property
-    def cursor_messages(self) -> list[str]:
-        return self.__curr.messages
+    def is_active(self) -> bool:
+        return self.__count > 0
 
-    @cursor_messages.deleter
-    def cursor_messages(self) -> None:
-        del self.__curr.messages
+    def transact(self, operation: C) -> C:
+        @wraps(operation)
+        def transacted_operation(*args: Any, **kwargs: Any) -> Any:
+            with self as xxx:
+                try:
+                    return operation(*args, **kwargs)
+                except BaseException as x:
+                    self.rollback()
+                    raise x
+                else:
+                    self.commit()
+        return cast(C, transacted_operation)
 
-    def fetchone_dict(self) -> dict[str, Any]:
-        row = self.fetchone()
-        return row_to_dict(self.description, row)
+    @property
+    def __wrapped(self) -> SimpleConnection:
+        try:
+            return cast(SimpleConnection, self.__local.con)
+        except AttributeError as x:
+            raise TransactionNotActiveException()
+
+    def force_close(self) -> None:
+        self.__wrapped.close()
+
+    def commit(self) -> None:
+        self.__wrapped.commit()
+
+    def rollback(self) -> None:
+        self.__wrapped.rollback()
+
+    def fetchone(self) -> tuple[Any, ...] | None:
+        return self.__wrapped.fetchone()
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        return self.__wrapped.fetchall()
+
+    def fetchmany(self, size: int = 0) -> list[tuple[Any, ...]]:
+        return self.__wrapped.fetchmany(size)
+
+    def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+        self.__wrapped.callproc(sql, parameters)
+        return self
+
+    def execute(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+        self.__wrapped.execute(sql, parameters)
+        return self
+
+    def executemany(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+        self.__wrapped.executemany(sql, parameters)
+        return self
+
+    def executescript(self, sql: str) -> Self:
+        self.__wrapped.executescript(sql)
+        return self
+
+    def fetchone_dict(self) -> dict[str, Any] | None:
+        return self.__wrapped.fetchone_dict()
 
     def fetchall_dict(self) -> list[dict[str, Any]]:
-        rows = self.fetchall()
-        return rows_to_dict(self.description, rows)
+        return self.__wrapped.fetchall_dict()
 
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, Any]]:
-        rows = self.fetchmany(size)
-        return rows_to_dict(self.description, rows)
+        return self.__wrapped.fetchmany_dict(size)
 
-    def fetchone_class(self, klass: Callable[..., T]) -> T:
-        row = self.fetchone()
-        return row_to_class(klass, self.description, row)
+    def fetchone_class(self, klass: type[T]) -> T | None:
+        return self.__wrapped.fetchone_class(klass)
 
-    def fetchall_class(self, klass: Callable[..., T]) -> list[T]:
-        rows = self.fetchall()
-        return rows_to_classes(klass, self.description, rows)
+    def fetchall_class(self, klass: type[T]) -> list[T]:
+        return self.__wrapped.fetchall_class(klass)
 
-    def fetchmany_class(self, klass: Callable[..., T], size: int = 0) -> list[T]:
-        rows = self.fetchmany(size)
-        return rows_to_classes(klass, self.description, rows)
+    def fetchmany_class(self, klass: type[T], size: int = 0) -> list[T]:
+        return self.__wrapped.fetchmany_class(klass, size)
+
+    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> None:
+        self.__wrapped.scroll(value, mode)
+
+    @property
+    def arraysize(self) -> int:
+        return self.__wrapped.arraysize
+
+    @property
+    def rowcount(self) -> int:
+        return self.__wrapped.rowcount
+
+    @property
+    def description(self) -> Descriptor:
+        return self.__wrapped.description
+
+    @property
+    def rownumber(self) -> int | None:
+        return self.__wrapped.rownumber
+
+    @property
+    def lastrowid(self) -> int | None:
+        return self.__wrapped.lastrowid
+
+    @property
+    def autocommit(self) -> bool:
+        return self.__wrapped.autocommit
+
+    def _get_messages(self) -> Sequence[str]:
+        return self.__wrapped.messages
+
+    def _delete_messages(self) -> None:
+        del self.__wrapped.messages
+
+del C
+del T
