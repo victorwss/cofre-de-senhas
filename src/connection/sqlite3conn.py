@@ -1,12 +1,12 @@
 from typing import Any, cast, Self, Sequence, TypeVar
-from conn import ColumnDescriptor, Descriptor, ScrollMode, SimpleConnection
+from .conn import ColumnDescriptor, Descriptor, ScrollMode, SimpleConnection, TypeCode
 from sqlite3 import Cursor, Connection, NotSupportedError
 
-__all__ = ["Sqlite3Connection"]
+__all__ = ["Sqlite3ConnectionWrapper"]
 
 T = TypeVar("T")
 
-class Sqlite3Connection(SimpleConnection):
+class Sqlite3ConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: Connection) -> None:
         self.__conn: Connection = conn
@@ -47,7 +47,7 @@ class Sqlite3Connection(SimpleConnection):
         self.__curr.executescript(sql)
         return self
 
-    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> None:
+    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> Self:
         raise NotSupportedError()
 
     @property
@@ -60,7 +60,7 @@ class Sqlite3Connection(SimpleConnection):
 
     @property
     def description(self) -> Descriptor:
-        return [ColumnDescriptor(*k) for k in self.__curr.description]
+        return [ColumnDescriptor.create(name = k[0], type_code = TypeCode.UNSPECIFIED) for k in self.__curr.description]
 
     @property
     def rownumber(self) -> int | None:

@@ -2,8 +2,10 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS nivel_acesso (
     pk_nivel_acesso INTEGER PRIMARY KEY,
-        xsdfgbhdescricao TEXT NOT NULL
-) STRICT, WITHOUT ROWID;53c mnllps cv\INSERT INTO nivel_acesso (pk_nivel_acesso, descricao) VALUES
+    descricao TEXT NOT NULL
+) STRICT, WITHOUT ROWID;
+
+INSERT INTO nivel_acesso (pk_nivel_acesso, descricao) VALUES
     (0, 'Banido'),
     (1, 'Normal'),
     (2, 'Chaveiro deus supremo');

@@ -1,6 +1,6 @@
 from typing import Any, Callable, cast, Iterator, Literal, overload, Protocol, runtime_checkable, Self, Sequence, TypeVar, TYPE_CHECKING
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from dataclass_type_validator import dataclass_validate
 from dacite import from_dict
 from types import TracebackType
@@ -8,25 +8,32 @@ from functools import wraps
 from enum import Enum
 import threading
 
-if TYPE_CHECKING:
-    class STRING: pass
-    class BINARY: pass
-    class NUMBER: pass
-    class DATETIME: pass
-    class ROWID: pass
-    TypeCode = STRING | BINARY | NUMBER | DATETIME | ROWID | None
-else:
-    TypeCode = Any
-
 __all__ = [
     "row_to_dict", "row_to_dict_opt", "rows_to_dicts", "row_to_class", "row_to_class_opt", "rows_to_classes",
     "TypeCode", "ColumnDescriptor", "Descriptor", "ScrollMode",
     "SimpleConnection", "TransactedConnection", "TransactionNotActiveException",
-    "STRING", "BINARY", "NUMBER", "DATETIME", "ROWID"
 ]
 
 T = TypeVar("T")
 C = TypeVar("C", bound = Callable[..., Any])
+
+class ScrollMode(Enum):
+    Relative = "relative"
+    Absolute = "absolute"
+
+class TypeCode(Enum):
+    STRING = "STRING"
+    BINARY = "BINARY"
+    BOOL = "BOOL"
+    INTEGER = "INTEGER"
+    FLOAT = "FLOAT"
+    DATE = "DATE"
+    TIME = "TIME"
+    DATETIME = "DATETIME"
+    ROWID = "ROWID"
+    NULL = "NULL"
+    OTHER = "OTHER"
+    UNSPECIFIED = "UNSPECIFIED"
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -39,9 +46,17 @@ class ColumnDescriptor:
     scale        : int | None
     null_ok      : bool | None
 
-class ScrollMode(Enum):
-    Relative = "relative"
-    Absolute = "absolute"
+    @staticmethod
+    def create( \
+            name: str, \
+            type_code: TypeCode, \
+            display_size: int | None = None, \
+            internal_size: int | None = None, \
+            precision: int | None = None, \
+            scale: int | None = None, \
+            null_ok: bool | None = None, \
+    ) -> ColumnDescriptor:
+        return ColumnDescriptor(name, type_code, display_size, internal_size, precision, scale, null_ok)
 
 Descriptor = list[ColumnDescriptor]
 
@@ -165,7 +180,7 @@ class SimpleConnection(ABC):
         ...
 
     @abstractmethod
-    def scroll(self, value: int, mode: ScrollMode = ...) -> None:
+    def scroll(self, value: int, mode: ScrollMode = ...) -> Self:
         ...
 
     @property
@@ -298,8 +313,9 @@ class TransactedConnection(SimpleConnection):
     def fetchmany_class(self, klass: type[T], size: int = 0) -> list[T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
-    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> None:
+    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> Self:
         self.__wrapped.scroll(value, mode)
+        return self
 
     @property
     def arraysize(self) -> int:

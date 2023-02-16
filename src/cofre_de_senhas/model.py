@@ -14,15 +14,33 @@ class NivelAcesso(Enum):
     NORMAL = 1,
     CHAVEIRO_DEUS_SUPREMO = 2
 
+    @staticmethod
+    def por_codigo(codigo: int) -> NivelAcesso:
+        for n in NivelAcesso:
+            if n.value == codigo: return n
+        raise IndexError(f"O código {codigo} não existe em NivelAcesso.")
+
 class TipoPermissao(Enum):
     SOMENTE_LEITURA = 1,
     LEITURA_E_ESCRITA = 2,
     PROPRIETARIO = 3
 
+    @staticmethod
+    def por_codigo(codigo: int) -> TipoPermissao:
+        for n in TipoPermissao:
+            if n.value == codigo: return n
+        raise IndexError(f"O código {codigo} não existe em TipoPermissao.")
+
 class TipoSegredo(Enum):
     PUBLICO = 1,
     ENCONTRAVEL = 2,
     CONFIDENCIAL = 3
+
+    @staticmethod
+    def por_codigo(codigo: int) -> TipoSegredo:
+        for n in TipoSegredo:
+            if n.value == codigo: return n
+        raise IndexError(f"O código {codigo} não existe em TipoSegredo.")
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -44,6 +62,12 @@ class UsuarioPK:
 class LoginUsuario:
     login: str
     senha: str
+
+@dataclass_validate(strict = True)
+@dataclass(frozen = True)
+class DadosLogin:
+    fk_nivel_acesso: NivelAcesso
+    hash_com_sal: str
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -76,7 +100,7 @@ class SegredoSemPK:
     tipo: TipoSegredo
     campos: dict[str, str]
     categorias: list[str]
-    usuarios: list[str]
+    usuarios: dict[str, TipoPermissao]
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -87,7 +111,7 @@ class SegredoComPK:
     tipo: TipoSegredo
     campos: dict[str, str]
     categorias: list[str]
-    usuarios: list[str]
+    usuarios: dict[str, TipoPermissao]
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -145,7 +169,7 @@ class SegredoNaoExisteException(Exception):
 class CofreDeSenhas(ABC):
 
     @abstractmethod
-    def login(self, quem_faz: LoginUsuario) -> None:
+    def login(self, quem_faz: LoginUsuario) -> NivelAcesso:
         pass
 
     # Pode lançar PermissaoNegadaException, UsuarioJaExisteException
