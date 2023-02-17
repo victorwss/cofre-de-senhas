@@ -4,10 +4,8 @@ from enum import Enum
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
-from dataclass_type_validator import dataclass_validate
+from dataclass_type_validator import dataclass_validate  # pip install dataclass_type_validator
 from dataclass_type_validator import TypeValidationError
-
-# pip install dataclass_type_validator
 
 class NivelAcesso(Enum):
     BANIDO = 0,
@@ -165,7 +163,6 @@ class SegredoNaoExisteException(Exception):
     pass
 
 # Todos os métodos podem lançar SenhaErradaException ou UsuarioBanidoException.
-
 class CofreDeSenhas(ABC):
 
     @abstractmethod

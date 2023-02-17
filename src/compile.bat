@@ -1,4 +1,7 @@
 python -m mypy --strict --install-types ^
+    .\decorators\__init__.py ^
+    .\decorators\for_all.py ^
+    .\decorators\tracer.py ^
     .\connection\__init__.py ^
     .\connection\conn.py ^
     .\connection\mysqlconn.py ^

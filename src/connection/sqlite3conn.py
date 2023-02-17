@@ -1,10 +1,8 @@
-from typing import Any, cast, Self, Sequence, TypeVar
+from typing import Any, cast, Self, Sequence
 from .conn import ColumnDescriptor, Descriptor, ScrollMode, SimpleConnection, TypeCode
 from sqlite3 import Cursor, Connection, NotSupportedError
 
 __all__ = ["Sqlite3ConnectionWrapper"]
-
-T = TypeVar("T")
 
 class Sqlite3ConnectionWrapper(SimpleConnection):
 
@@ -79,5 +77,3 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
 
     def _delete_messages(self) -> None:
         pass
-
-del T

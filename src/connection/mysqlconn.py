@@ -4,11 +4,9 @@ from mysql.connector import NotSupportedError
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
 from dataclasses import dataclass
-from dataclass_type_validator import dataclass_validate
+from dataclass_type_validator import dataclass_validate # pip install dataclass_type_validator
 
 __all__ = ["MySQLConnectionWrapper"]
-
-T = TypeVar("T")
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -140,5 +138,3 @@ class MySQLConnectionWrapper(SimpleConnection):
 
     def _delete_messages(self) -> None:
         pass
-
-del T

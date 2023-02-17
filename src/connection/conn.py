@@ -1,7 +1,7 @@
-from typing import Any, Callable, cast, Iterator, Literal, overload, Protocol, runtime_checkable, Self, Sequence, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, cast, Iterator, Literal, Self, Sequence, TypeVar
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from dataclass_type_validator import dataclass_validate
+from dataclass_type_validator import dataclass_validate # pip install dataclass_type_validator
 from dacite import from_dict
 from types import TracebackType
 from functools import wraps
