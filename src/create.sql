@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS nivel_acesso (
-    pk_nivel_acesso INTEGER PRIMARY KEY,
+    pk_nivel_acesso INTEGER PRIMARY KEY NOT NULL,
     descricao TEXT NOT NULL
 ) STRICT, WITHOUT ROWID;
 
@@ -11,7 +11,7 @@ INSERT INTO nivel_acesso (pk_nivel_acesso, descricao) VALUES
     (2, 'Chaveiro deus supremo');
 
 CREATE TABLE IF NOT EXISTS tipo_permissao (
-    pk_tipo_permissao INTEGER PRIMARY KEY,
+    pk_tipo_permissao INTEGER PRIMARY KEY NOT NULL,
     descricao TEXT NOT NULL
 ) STRICT, WITHOUT ROWID;
 
@@ -21,7 +21,7 @@ INSERT INTO tipo_permissao (pk_tipo_permissao, descricao) VALUES
     (3, 'Proprietário');
 
 CREATE TABLE IF NOT EXISTS tipo_segredo (
-    pk_tipo_segredo INTEGER PRIMARY KEY,
+    pk_tipo_segredo INTEGER PRIMARY KEY NOT NULL,
     nome TEXT NOT NULL,
     descricao TEXT NOT NULL
 ) STRICT, WITHOUT ROWID;
@@ -32,7 +32,7 @@ INSERT INTO tipo_segredo (pk_tipo_segredo, nome, descricao) VALUES
     (3, 'Confidencial', 'Usuários sem permissão explícita não são informados nem mesmo acerca da existência do segredo.');
 
 CREATE TABLE IF NOT EXISTS usuario (
-    pk_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+    pk_usuario INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     login TEXT NOT NULL UNIQUE,
     fk_nivel_acesso INTEGER NOT NULL,
     hash_com_sal TEXT NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS usuario (
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS segredo (
-    pk_segredo INTEGER PRIMARY KEY AUTOINCREMENT,
+    pk_segredo INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     nome TEXT NOT NULL,
     descricao TEXT NOT NULL,
     fk_tipo_segredo INTEGER NOT NULL,
@@ -49,10 +49,11 @@ CREATE TABLE IF NOT EXISTS segredo (
 
 CREATE TABLE IF NOT EXISTS campo_segredo (
     pfk_segredo INTEGER NOT NULL,
-    pk_descricao TEXT NOT NULL,
+    pk_chave TEXT NOT NULL,
     valor TEXT NOT NULL,
+    PRIMARY KEY (pfk_segredo, pk_chave),
     FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE
-) STRICT;
+) STRICT, WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS permissao (
     pfk_usuario INTEGER NOT NULL,
@@ -65,7 +66,7 @@ CREATE TABLE IF NOT EXISTS permissao (
 ) STRICT, WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS categoria (
-    pk_categoria INTEGER PRIMARY KEY AUTOINCREMENT,
+    pk_categoria INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     nome TEXT NOT NULL UNIQUE
 ) STRICT;
 

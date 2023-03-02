@@ -100,6 +100,9 @@ class SegredoSemPK:
     categorias: list[str]
     usuarios: dict[str, TipoPermissao]
 
+    def com_pk(self, pk: SegredoPK) -> "SegredoComPK":
+        return SegredoComPK(pk, self.nome, self.descricao, self.tipo, self.campos, self.categoria, self.usuarios)
+
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
 class SegredoComPK:
@@ -110,6 +113,9 @@ class SegredoComPK:
     campos: dict[str, str]
     categorias: list[str]
     usuarios: dict[str, TipoPermissao]
+
+    def sem_pk(self, pk: SegredoPK) -> "SegredoSemPK":
+        return SegredoSemPK(self.nome, self.descricao, self.tipo, self.campos, self.categoria, self.usuarios)
 
 @dataclass_validate(strict = True)
 @dataclass(frozen = True)
@@ -137,6 +143,12 @@ class ResultadoPesquisa:
 @dataclass(frozen = True)
 class ResultadoUsuario:
     segredos: list[UsuarioComNivel]
+
+@dataclass_validate(strict = True)
+@dataclass(frozen = True)
+class VerificacaoSegredo:
+    login: str
+    pk_segredo: SegredoPK
 
 class SenhaErradaException(Exception):
     pass
@@ -210,6 +222,11 @@ class CofreDeSenhas(ABC):
 
     @abstractmethod
     def listar_segredos(self, quem_faz: LoginUsuario) -> ResultadoPesquisa:
+        pass
+
+    # Pode lançar SegredoNaoExisteException
+    @abstractmethod
+    def buscar_segredo(self, pk: SegredoPK) -> SegredoComPK:
         pass
 
     # Pode lançar CategoriaNaoExisteException
