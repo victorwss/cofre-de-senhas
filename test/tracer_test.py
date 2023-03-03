@@ -1,12 +1,7 @@
-from .context import tracer
-from tracer import Call, Logger
-
-def assert_error(which: type[BaseException], where: Callable[[], None]) -> None:
-    try:
-        where()
-        assert False
-    except as x:
-        assert type(x) == which
+from .context import prepare_imports
+prepare_imports()
+from decorators.tracer import Call, Logger
+import pytest
 
 def some_fn(x: str, y: int) -> float:
     return 42.0
@@ -15,21 +10,58 @@ def other_fn(x: str, y: int) -> float:
     return 27.0
 
 def test_call_is_strong_typed() -> None:
-    assert_error(BaseException, lambda: Call("a", ("x", 13), {"foo": 123, "bar": 321}))
-    assert_error(BaseException, lambda: Call(some_fn, "xxx", {"foo": 123, "bar": 321}))
-    assert_error(BaseException, lambda: Call(some_fn, ("x", 13), "xxx")
+    with pytest.raises(BaseException) as xxx1: Call("a", ("x", 13), {"foo": 123, "bar": 321})
+    with pytest.raises(BaseException) as xxx2: Call(some_fn, "xxx", {"foo": 123, "bar": 321})
+    with pytest.raises(BaseException) as xxx3: Call(some_fn, ("x", 13), "xxx")
 
 def test_call_is_immutable() -> None:
     c = Call(some_fn, ("x", 13), {"foo": 123, "bar": 321})
 
-    assert c.caller == some_fn
-    assert_error(BaseException, lambda: c.caller = other_fn)
-    assert c.caller == some_fn
+    assert c.callee == some_fn
+    with pytest.raises(BaseException) as xxx1: c.callee = other_fn
+    assert c.callee == some_fn
 
     assert c.args == ("x", 13)
-    assert_error(BaseException, lambda: c.args = ("y", 19))
+    with pytest.raises(BaseException) as xxx2: c.args = ("y", 19)
     assert c.args == ("x", 13)
 
     assert c.kwargs == {"foo": 123, "bar": 321}
-    assert_error(BaseException, lambda: c.kwargs = {"far": 789, "boo": 987})
+    with pytest.raises(BaseException) as xxx3: c.kwargs = {"far": 789, "boo": 987}
     assert c.kwargs == {"foo": 123, "bar": 321}
+
+def test_tracer_simple():
+    x = []
+    def foo(y):
+        global x
+        x += y
+
+    log = Logger.for_print_fn(foo)
+
+    @log.trace
+    def bar():
+        foo("Foo Foo")
+        return "Sbrubbles"
+
+    bar()
+
+    assert x[0] == "Calling test_tracer.<locals>.bar - Args: () - Kwargs: {}."
+    assert x[1] == "Foo Foo"
+    assert x[2] == "Call on test_tracer.<locals>.bar - returned Sbrubbles."
+
+def test_tracer_raise():
+    x = []
+    def foo(y):
+        global x
+        x += y
+
+    log = Logger.for_print_fn(foo)
+
+    @log.trace
+    def bar():
+        raise Exception("Muffles")
+
+    bar()
+
+    assert x[0] == "Calling test_tracer.<locals>.bar - Args: () - Kwargs: {}."
+    assert x[1] == "Foo Foo"
+    assert x[2] == "Call on test_tracer.<locals>.bar - raised Muffles."
