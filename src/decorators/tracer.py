@@ -1,20 +1,20 @@
 from typing import Any, Callable, cast, TypeVar
 from functools import wraps
 from dataclasses import dataclass
-from dataclass_type_validator import dataclass_validate # pip install dataclass_type_validator
+from validator import dataclass_validate
 
 __all__ = ["Call", "Logger"]
 
 FuncT = TypeVar("FuncT", bound = Callable[..., Any])
 
-@dataclass_validate(strict = True)
+@dataclass_validate
 @dataclass(frozen = True)
 class Call:
     callee: Callable[..., Any]
     args: tuple[Any, ...]
     kwargs: dict[str, Any]
 
-@dataclass_validate(strict = True)
+@dataclass_validate
 @dataclass(frozen = True)
 class Logger:
     on_enter : Callable[[Call               ], None]
@@ -44,19 +44,3 @@ class Logger:
         on_raise : Callable[[Call, BaseException], None] = \
                 lambda call, exc: printer(f"Call on {call.callee.__qualname__} raised {exc}.")
         return Logger(on_enter, on_return, on_raise)
-
-#del FuncT
-
-def test_tracer():
-    print("Hello World!")
-    def foo(x):
-        print(x)
-    log = Logger.for_print_fn(foo)
-
-    @log.trace
-    def bar():
-        print("Hi")
-
-    bar()
-
-test_tracer()

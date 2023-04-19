@@ -1,5 +1,5 @@
 from typing import Any, cast, Self, Sequence
-from .conn import ColumnDescriptor, Descriptor, ScrollMode, SimpleConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, SimpleConnection, Tribool, TypeCode
 from sqlite3 import Cursor, Connection, NotSupportedError
 
 __all__ = ["Sqlite3ConnectionWrapper"]
@@ -9,7 +9,6 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
     def __init__(self, conn: Connection) -> None:
         self.__conn: Connection = conn
         self.__curr: Cursor = conn.cursor()
-        self.__count: int = 0
 
     def commit(self) -> None:
         self.__conn.commit()
@@ -24,11 +23,11 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
     def fetchone(self) -> tuple[Any, ...] | None:
         return cast(tuple[Any, ...], self.__curr.fetchone())
 
-    def fetchall(self) -> list[tuple[Any, ...]]:
-        return cast(list[tuple[Any, ...]], self.__curr.fetchall())
+    def fetchall(self) -> Sequence[tuple[Any, ...]]:
+        return self.__curr.fetchall()
 
-    def fetchmany(self, size: int = 0) -> list[tuple[Any, ...]]:
-        return cast(list[tuple[Any, ...]], self.__curr.fetchmany(size))
+    def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
+        return self.__curr.fetchmany(size)
 
     def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
         raise NotSupportedError()
@@ -45,9 +44,6 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
         self.__curr.executescript(sql)
         return self
 
-    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> Self:
-        raise NotSupportedError()
-
     @property
     def arraysize(self) -> int:
         return self.__curr.arraysize
@@ -56,24 +52,27 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
     def rowcount(self) -> int:
         return self.__curr.rowcount
 
-    @property
-    def description(self) -> Descriptor:
-        return [ColumnDescriptor.create(name = k[0], type_code = TypeCode.UNSPECIFIED) for k in self.__curr.description]
+    def __make_descriptor(self, k: tuple[str, None, None, None, None, None, None]) -> ColumnDescriptor:
+        return ColumnDescriptor.create( \
+                name = k[0], \
+                type_code = TypeCode.UNSPECIFIED,
+                column_type_name = "Unspecified",
+                null_ok = Tribool.DONT_KNOW
+        )
 
     @property
-    def rownumber(self) -> int | None:
-        return None
+    def description(self) -> Descriptor:
+        if self.__curr.description is None: return []
+        return [self.__make_descriptor(k) for k in self.__curr.description]
 
     @property
     def lastrowid(self) -> int | None:
         return self.__curr.lastrowid
 
     @property
-    def autocommit(self) -> bool:
-        return False
+    def raw_connection(self) -> Connection:
+        return self.__conn
 
-    def _get_messages(self) -> Sequence[str]:
-        return ()
-
-    def _delete_messages(self) -> None:
-        pass
+    @property
+    def raw_cursor(self) -> Cursor:
+        return self.__curr

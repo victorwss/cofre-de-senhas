@@ -1,11 +1,12 @@
-from typing import Any, Self, Sequence, TypeVar
+from typing import Any, Callable, Self, Sequence, TypeVar
 from .conn import ColumnDescriptor, Descriptor, SimpleConnection, Tribool, TypeCode
-from mysql.connector.connection import MySQLConnection
-from mysql.connector.cursor import MySQLCursor
+from mariadb.connections import Connection as MariaDBConnection
+from mariadb.cursors import Cursor as MariaDBCursor
+from mariadb.constants import FIELD_FLAG, FIELD_TYPE
 from dataclasses import dataclass
 from validator import dataclass_validate
 
-__all__ = ["MySQLConnectionWrapper"]
+__all__ = ["MariaDBConnectionWrapper"]
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -64,11 +65,47 @@ __codemap: dict[int, InternalCode] = {code.value: code for code in __codes}
 def __find_code(code: int) -> InternalCode:
     return __codemap.get(code, InternalCode("Unknown", code, TypeCode.OTHER))
 
-class MySQLConnectionWrapper(SimpleConnection):
+@dataclass_validate
+@dataclass(frozen = True)
+class Flag:
+    name: str
+    test: Callable[[int], bool]
 
-    def __init__(self, conn: MySQLConnection) -> None:
-        self.__conn: MySQLConnection = conn
-        self.__curr: MySQLCursor = conn.cursor()
+__flags: list[Flag] = [
+    Flag("Not Null"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) != 0),
+    Flag("Nullable"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) == 0),
+    Flag("Primary Key"  , lambda x: (x & FIELD_FLAG.PRIMARY_KEY   ) != 0),
+    Flag("Unique Key"   , lambda x: (x & FIELD_FLAG.UNIQUE_KEY    ) != 0),
+    Flag("Multiple Key" , lambda x: (x & FIELD_FLAG.MULTIPLE_KEY  ) != 0),
+    Flag("Blob"         , lambda x: (x & FIELD_FLAG.BLOB          ) != 0),
+    Flag("Unsigned"     , lambda x: (x & FIELD_FLAG.UNSIGNED      ) != 0),
+    Flag("Zero fill"    , lambda x: (x & FIELD_FLAG.ZEROFILL      ) != 0),
+    Flag("Binary"       , lambda x: (x & FIELD_FLAG.BINARY        ) != 0),
+    Flag("Enum"         , lambda x: (x & FIELD_FLAG.ENUM          ) != 0),
+    Flag("Autoincrement", lambda x: (x & FIELD_FLAG.AUTO_INCREMENT) != 0),
+    Flag("Timestamp"    , lambda x: (x & FIELD_FLAG.TIMESTAMP     ) != 0),
+    Flag("Set"          , lambda x: (x & FIELD_FLAG.SET           ) != 0),
+    Flag("No default"   , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) != 0),
+    Flag("Has default"  , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) == 0),
+    Flag("On update now", lambda x: (x & FIELD_FLAG.ON_UPDATE_NOW ) != 0),
+    Flag("Numeric"      , lambda x: (x & FIELD_FLAG.NUMERIC       ) != 0),
+   #Flag("Unique"       , lambda x: (x & FIELD_FLAG.UNIQUE        ) != 0),
+    Flag("Part of key"  , lambda x: (x & FIELD_FLAG.PART_OF_KEY   ) != 0),
+    Flag("Signed"       , lambda x: (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0)
+]
+
+def __find_flags(code: int) -> set[Flag]:
+    result: list[Flag] = []
+    for f in __flags:
+        if f.test(code):
+            result.append(f)
+    return set(result)
+
+class MariaDBConnectionWrapper(SimpleConnection):
+
+    def __init__(self, conn: MariaDBConnection) -> None:
+        self.__conn: MariaDBConnection = conn
+        self.__curr: MariaDBCursor = conn.cursor()
 
     def commit(self) -> None:
         self.__conn.commit()
@@ -102,8 +139,9 @@ class MySQLConnectionWrapper(SimpleConnection):
         return self
 
     def executescript(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
-        self.__curr.execute(sql, parameters, multi = True)
-        return self
+        raise TypeError("Sorry. Not implemented yet.")
+        #self.__curr.execute(sql, parameters, multi = True)
+        #return self
 
     @property
     def arraysize(self) -> int:
@@ -113,12 +151,20 @@ class MySQLConnectionWrapper(SimpleConnection):
     def rowcount(self) -> int:
         return self.__curr.rowcount
 
-    def __make_descriptor(self, k: tuple[str, int, None, None, None, None, bool | int, int, int]) -> ColumnDescriptor:
+    def __make_descriptor(self, k: tuple[str, int, int, int, int, int, int, int, str, str, str]) -> ColumnDescriptor:
         return ColumnDescriptor.create( \
                 name = k[0], \
                 type_code = __find_code(k[1]).type, \
                 column_type_name = __find_code(k[1]).name, \
-                null_ok = Tribool.YES if k[6] not in [False, 0] else Tribool.NO, \
+                display_size = k[2], \
+                internal_size = k[3], \
+                precision = k[4], \
+                scale = k[5], \
+                null_ok = Tribool.YES if k[6] != 0 else Tribool.NO, \
+                field_flags = k[7], \
+                table_name = k[8], \
+                original_column_name = k[9], \
+                original_table_name = k[10] \
         )
 
     @property
@@ -131,9 +177,9 @@ class MySQLConnectionWrapper(SimpleConnection):
         return self.__curr.lastrowid
 
     @property
-    def raw_connection(self) -> MySQLConnection:
+    def raw_connection(self) -> MariaDBConnection:
         return self.__conn
 
     @property
-    def raw_cursor(self) -> MySQLCursor:
+    def raw_cursor(self) -> MariaDBCursor:
         return self.__curr

@@ -1,7 +1,7 @@
 from typing import Any, Callable, cast, Iterator, Literal, Self, Sequence, TypeVar
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from dataclass_type_validator import dataclass_validate # pip install dataclass_type_validator
+from validator import dataclass_validate
 from dacite import from_dict
 from types import TracebackType
 from functools import wraps
@@ -10,16 +10,12 @@ import threading
 
 __all__ = [
     "row_to_dict", "row_to_dict_opt", "rows_to_dicts", "row_to_class", "row_to_class_opt", "rows_to_classes",
-    "TypeCode", "ColumnDescriptor", "Descriptor", "ScrollMode",
+    "TypeCode", "ColumnDescriptor", "Descriptor",
     "SimpleConnection", "TransactedConnection", "TransactionNotActiveException",
 ]
 
 T = TypeVar("T")
 C = TypeVar("C", bound = Callable[..., Any])
-
-class ScrollMode(Enum):
-    Relative = "relative"
-    Absolute = "absolute"
 
 class TypeCode(Enum):
     STRING = "STRING"
@@ -35,28 +31,57 @@ class TypeCode(Enum):
     OTHER = "OTHER"
     UNSPECIFIED = "UNSPECIFIED"
 
-@dataclass_validate(strict = True)
+class Tribool(Enum):
+    YES = "Yes"
+    NO = "No"
+    DONT_KNOW = "Don't know"
+
+@dataclass_validate
 @dataclass(frozen = True)
 class ColumnDescriptor:
-    name         : str
-    type_code    : TypeCode
-    display_size : int | None
-    internal_size: int | None
-    precision    : int | None
-    scale        : int | None
-    null_ok      : bool | None
+    name                : str
+    type_code           : TypeCode
+    column_type_name    : str
+    display_size        : int  | None
+    internal_size       : int  | None
+    precision           : int  | None
+    scale               : int  | None
+    null_ok             : Tribool
+    field_flags         : int  | None
+    table_name          : str  | None
+    original_column_name: str  | None
+    original_table_name : str  | None
 
     @staticmethod
     def create( \
-            name: str, \
-            type_code: TypeCode, \
-            display_size: int | None = None, \
-            internal_size: int | None = None, \
-            precision: int | None = None, \
-            scale: int | None = None, \
-            null_ok: bool | None = None, \
+            *, \
+            name                : str, \
+            type_code           : TypeCode, \
+            column_type_name    : str, \
+            display_size        : int  | None = None, \
+            internal_size       : int  | None = None, \
+            precision           : int  | None = None, \
+            scale               : int  | None = None, \
+            null_ok             : Tribool, \
+            field_flags         : int  | None = None, \
+            table_name          : str  | None = None, \
+            original_column_name: str  | None = None, \
+            original_table_name : str  | None = None, \
     ) -> ColumnDescriptor:
-        return ColumnDescriptor(name, type_code, display_size, internal_size, precision, scale, null_ok)
+        return ColumnDescriptor( \
+                name, \
+                type_code, \
+                column_type_name, \
+                display_size, \
+                internal_size, \
+                precision, \
+                scale, \
+                null_ok, \
+                field_flags, \
+                table_name, \
+                original_column_name, \
+                original_table_name
+        )
 
 Descriptor = list[ColumnDescriptor]
 
@@ -70,7 +95,7 @@ def row_to_dict_opt(description: Descriptor, row: tuple[Any, ...] | None) -> dic
     if row is None: return None
     return row_to_dict(description, row)
 
-def rows_to_dicts(description: Descriptor, rows: list[tuple[Any, ...]]) -> list[dict[str, Any]]:
+def rows_to_dicts(description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[dict[str, Any]]:
     result = []
     for row in rows:
         result.append(row_to_dict(description, row))
@@ -83,7 +108,7 @@ def row_to_class_opt(klass: type[T], description: Descriptor, row: tuple[Any, ..
     if row is None: return None
     return row_to_class(klass, description, row)
 
-def rows_to_classes(klass: type[T], description: Descriptor, rows: list[tuple[Any, ...]]) -> list[T]:
+def rows_to_classes(klass: type[T], description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[T]:
     result = []
     for row in rows:
         result.append(row_to_class(klass, description, row))
@@ -108,11 +133,11 @@ class SimpleConnection(ABC):
         ...
 
     @abstractmethod
-    def fetchall(self) -> list[tuple[Any, ...]]:
+    def fetchall(self) -> Sequence[tuple[Any, ...]]:
         ...
 
     @abstractmethod
-    def fetchmany(self, size: int = 0) -> list[tuple[Any, ...]]:
+    def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         ...
 
     def fetchone_dict(self) -> dict[str, Any] | None:
@@ -166,37 +191,7 @@ class SimpleConnection(ABC):
 
     @property
     @abstractmethod
-    def rownumber(self) -> int | None:
-        ...
-
-    @property
-    @abstractmethod
     def lastrowid(self) -> int | None:
-        ...
-
-    @property
-    @abstractmethod
-    def autocommit(self) -> bool:
-        ...
-
-    @abstractmethod
-    def scroll(self, value: int, mode: ScrollMode = ...) -> Self:
-        ...
-
-    @property
-    def messages(self) -> Sequence[str]:
-        return self._get_messages()
-
-    @messages.deleter
-    def messages(self) -> None:
-        self._delete_messages()
-
-    @abstractmethod
-    def _get_messages(self) -> Sequence[str]:
-        ...
-
-    @abstractmethod
-    def _delete_messages(self) -> None:
         ...
 
     def next(self) -> tuple[Any, ...] | None:
@@ -207,6 +202,16 @@ class SimpleConnection(ABC):
 
     def __iter__(self) -> Iterator[tuple[Any, ...] | None]:
         yield self.fetchone()
+
+    @property
+    @abstractmethod
+    def raw_connection(self) -> object:
+        ...
+
+    @property
+    @abstractmethod
+    def raw_cursor(self) -> object:
+        ...
 
 class TransactionNotActiveException(Exception):
     pass
@@ -273,10 +278,10 @@ class TransactedConnection(SimpleConnection):
     def fetchone(self) -> tuple[Any, ...] | None:
         return self.__wrapped.fetchone()
 
-    def fetchall(self) -> list[tuple[Any, ...]]:
+    def fetchall(self) -> Sequence[tuple[Any, ...]]:
         return self.__wrapped.fetchall()
 
-    def fetchmany(self, size: int = 0) -> list[tuple[Any, ...]]:
+    def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__wrapped.fetchmany(size)
 
     def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
@@ -313,10 +318,6 @@ class TransactedConnection(SimpleConnection):
     def fetchmany_class(self, klass: type[T], size: int = 0) -> list[T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
-    def scroll(self, value: int, mode: ScrollMode = ScrollMode.Relative) -> Self:
-        self.__wrapped.scroll(value, mode)
-        return self
-
     @property
     def arraysize(self) -> int:
         return self.__wrapped.arraysize
@@ -330,22 +331,16 @@ class TransactedConnection(SimpleConnection):
         return self.__wrapped.description
 
     @property
-    def rownumber(self) -> int | None:
-        return self.__wrapped.rownumber
-
-    @property
     def lastrowid(self) -> int | None:
         return self.__wrapped.lastrowid
 
     @property
-    def autocommit(self) -> bool:
-        return self.__wrapped.autocommit
+    def raw_connection(self) -> object:
+        return self.__wrapped.raw_connection
 
-    def _get_messages(self) -> Sequence[str]:
-        return self.__wrapped.messages
-
-    def _delete_messages(self) -> None:
-        del self.__wrapped.messages
+    @property
+    def raw_cursor(self) -> object:
+        return self.__wrapped.raw_cursor
 
 del C
 del T
