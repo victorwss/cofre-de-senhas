@@ -44,3 +44,5 @@ class Logger:
         on_raise : Callable[[Call, BaseException], None] = \
                 lambda call, exc: printer(f"Call on {call.callee.__qualname__} raised {exc}.")
         return Logger(on_enter, on_return, on_raise)
+
+del FuncT

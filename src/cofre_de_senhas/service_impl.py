@@ -5,9 +5,10 @@ from connection.sqlite3conn import Sqlite3ConnectionWrapper
 from .model import *
 from .service import *
 from .dao import *
-from .dao_impl import CofreDeSenhasDAOImpl
+from .dao_impl import CofreDeSenhasDAOImpl, CategoriaDAOImpl
 from decorators.tracer import Logger
 from decorators.for_all import for_all_methods
+from dataclasses import replace
 
 def string_random() -> str:
     import random
@@ -26,6 +27,7 @@ def comparar_hash(senha: str, hash: str) -> bool:
 log = Logger.for_print_fn()
 cf = TransactedConnection(lambda: Sqlite3ConnectionWrapper(sqlite3.connect("banco.db")))
 dao = CofreDeSenhasDAOImpl(cf)
+cdao = CategoriaDAOImpl(cf)
 
 # Todos os métodos podem lançar SenhaErradaException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
@@ -52,13 +54,13 @@ class CofreDeSenhasImpl(CofreDeSenhas):
         u: int | None = dao.buscar_pk_usuario_por_login(quem)
         if u is not None: raise UsuarioJaExisteException()
 
-    def __confirmar_que_categoria_ja_existe(self, nome: str) -> int:
-        u: int | None = dao.buscar_pk_categoria_por_nome(nome)
+    def __confirmar_que_categoria_ja_existe(self, nome: str) -> DadosCategoria:
+        u: DadosCategoria | None = cdao.buscar_por_nome(nome)
         if u is None: raise CategoriaNaoExisteException()
         return u
 
     def __confirmar_que_categoria_nao_existe(self, nome: str) -> None:
-        u: int | None = dao.buscar_pk_categoria_por_nome(nome)
+        u: DadosCategoria | None = cdao.buscar_por_nome(nome)
         if u is not None: raise CategoriaJaExisteException()
 
     def __confirmar_que_segredo_ja_existe(self, pk: SegredoPK) -> int:
@@ -103,13 +105,11 @@ class CofreDeSenhasImpl(CofreDeSenhas):
             pk_usuarios[login] = self.__confirmar_que_usuario_ja_existe(login)
         return pk_usuarios
 
-    def __mapear_categorias(self, nomes: set[str]) -> dict[str, int]:
-        pk_categorias: dict[str, int] = {}
-        for nome in nomes:
-            pk_categorias[nome] = self.__confirmar_que_categoria_ja_existe(nome)
-        return pk_categorias
+    # BUG N + 1 queries
+    def __mapear_categorias(self, nomes: set[str]) -> dict[str, DadosCategoria]:
+        return {nome: self.__confirmar_que_categoria_ja_existe(nome) for nome in nomes}
 
-    def __alterar_dados_segredo(self, dados: SegredoComPK, pk_usuarios: dict[str, int], pk_categorias: dict[str, int]) -> None:
+    def __alterar_dados_segredo(self, dados: SegredoComPK, pk_usuarios: dict[str, int], categorias: dict[str, DadosCategoria]) -> None:
 
         dao.limpar_segredo(dados.pk.valor)
 
@@ -123,7 +123,7 @@ class CofreDeSenhasImpl(CofreDeSenhas):
             dao.criar_permissao(pk_usuario, dados.pk.valor, permissao.value)
 
         for nome in dados.categorias:
-            pk_categoria = pk_categorias[nome]
+            pk_categoria = categorias[nome].pk_categoria
             dao.criar_categoria_segredo(dados.pk.valor, pk_categoria)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
@@ -133,12 +133,12 @@ class CofreDeSenhasImpl(CofreDeSenhas):
         if dados.usuarios[quem_faz.login] != TipoPermissao.PROPRIETARIO: raise PermissaoNegadaException
 
         pk_usuarios: dict[str, int] = self.__mapear_usuarios({*dados.usuarios})
-        pk_categorias: dict[str, int] = self.__mapear_categorias(dados.categorias)
+        categorias: dict[str, DadosCategoria] = self.__mapear_categorias(dados.categorias)
 
         rowid: int = dao.criar_segredo(dados.nome, dados.descricao, dados.tipo.value)
         assert rowid is not None
 
-        self.__alterar_dados_segredo(dados.com_pk(SegredoPK(rowid)), pk_usuarios, pk_categorias)
+        self.__alterar_dados_segredo(dados.com_pk(SegredoPK(rowid)), pk_usuarios, categorias)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException, PermissaoNegadaException
     def alterar_segredo(self, quem_faz: LoginUsuario, dados: SegredoComPK) -> None:
@@ -146,11 +146,11 @@ class CofreDeSenhasImpl(CofreDeSenhas):
 
         self.__confirmar_que_segredo_ja_existe(dados.pk) # Pode lançar SegredoNaoExisteException
         pk_usuarios: dict[str, int] = self.__mapear_usuarios({*dados.usuarios})
-        pk_categorias: dict[str, int] = self.__mapear_categorias(dados.categorias)
+        categorias: dict[str, DadosCategoria] = self.__mapear_categorias(dados.categorias)
 
         dao.alterar_segredo(dados.pk.valor, dados.nome, dados.descricao, dados.tipo.value)
 
-        self.__alterar_dados_segredo(dados, pk_usuarios, pk_categorias)
+        self.__alterar_dados_segredo(dados, pk_usuarios, categorias)
 
     # Pode lançar SegredoNaoExisteException, PermissaoNegadaException
     def excluir_segredo(self, quem_faz: LoginUsuario, dados: SegredoPK) -> None:
@@ -192,7 +192,7 @@ class CofreDeSenhasImpl(CofreDeSenhas):
         tipo: TipoSegredo = TipoSegredo.por_codigo(cabecalho.fk_tipo_segredo)
 
         campos: dict[str, str] = {elemento.chave: elemento.valor for elemento in dao.ler_campos_segredo(valor_pk)}
-        categorias: set[str] = {elemento.nome for elemento in dao.ler_nomes_categorias(valor_pk)}
+        categorias: set[str] = {elemento.nome for elemento in cdao.listar_por_segredo(valor_pk)}
         usuarios: dict[str, TipoPermissao] = {elemento.login: TipoPermissao.por_codigo(elemento.permissao) for elemento in dao.ler_login_com_permissoes(valor_pk)}
 
         if acesso != NivelAcesso.CHAVEIRO_DEUS_SUPREMO and quem_faz.login not in usuarios: raise SegredoNaoExisteException()
@@ -208,17 +208,55 @@ class CofreDeSenhasImpl(CofreDeSenhas):
     def criar_categoria(self, quem_faz: LoginUsuario, dados: NomeCategoria) -> None:
         self.login_admin(quem_faz)
         self.__confirmar_que_categoria_nao_existe(dados.nome)
-        dao.criar_categoria(dados.nome)
+        cdao.criar(DadosCategoriaSemPK(dados.nome))
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
     def renomear_categoria(self, quem_faz: LoginUsuario, dados: RenomeCategoria) -> None:
         self.login_admin(quem_faz)
-        self.__confirmar_que_categoria_ja_existe(dados.antigo)
+        antigo: DadosCategoria = self.__confirmar_que_categoria_ja_existe(dados.antigo)
         self.__confirmar_que_categoria_nao_existe(dados.novo)
-        dao.renomear_categoria(dados.antigo, dados.novo)
+        cdao.salvar(DadosCategoria(antigo.pk_categoria, dados.novo))
 
     # Pode lançar CategoriaNaoExisteException
     def excluir_categoria(self, quem_faz: LoginUsuario, dados: NomeCategoria) -> None:
         self.login_admin(quem_faz)
         self.__confirmar_que_categoria_ja_existe(dados.nome)
-        dao.deletar_categoria(dados.nome)
+        cdao.deletar_por_nome(dados.nome)
+
+@for_all_methods(cf.transact)
+class Categoria:
+
+    def __init__(self, pk: int, nome: str) -> None:
+        self.__pk: int = pk
+        self.__nome: str = nome
+
+    def renomear(self, novo_nome: str) -> None:
+        self.__nome = novo_nome
+        cdao.salvar(DadosCategoria(self.__pk, novo_nome))
+
+    def excluir(self) -> None:
+        cdao.deletar_por_nome(self.__nome)
+
+    #@staticmethod
+    #def encontrar_por_pk(pk: int) -> Categoria:
+    #    nome: str | None = dao.buscar_pk_categoria_por_pk(pk)
+    #    if nome is None: raise CategoriaNaoExisteException()
+    #    return Categoria(pk, nome)
+
+    @staticmethod
+    def encontrar_por_nome(nome: str) -> Categoria | None:
+        d: DadosCategoria | None = cdao.buscar_por_nome(nome)
+        if d is None: return None
+        return Categoria(d.pk_categoria, d.nome)
+
+    @staticmethod
+    def encontrar_existente_por_nome(nome: str) -> Categoria:
+        c: Categoria | None = Categoria.encontrar_por_nome(nome)
+        if c is None: raise CategoriaNaoExisteException()
+        return c
+
+    @staticmethod
+    def criar(nome: str) -> Categoria:
+        if Categoria.encontrar_por_nome(nome) is not None: raise CategoriaJaExisteException()
+        pk = cdao.criar(DadosCategoriaSemPK(nome))
+        return Categoria(pk, nome)

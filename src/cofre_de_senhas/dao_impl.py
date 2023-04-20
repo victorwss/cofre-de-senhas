@@ -5,8 +5,6 @@ from .dao import *
 
 T = TypeVar("T")
 
-cf = TransactedConnection(lambda: Sqlite3ConnectionWrapper(sqlite3.connect("banco.db")))
-
 def __assert_not_null(thing: T | None) -> T:
     assert thing is not None
     return thing
@@ -31,12 +29,6 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
     def buscar_pk_segredo(self, pk: int) -> int | None:
         self.__cf.execute("SELECT pk_segredo FROM segredo WHERE pk_segredo = ?", [pk])
-        tupla = self.__cf.fetchone()
-        if tupla is None: return None
-        return int(tupla[0])
-
-    def buscar_pk_categoria_por_nome(self, nome: str) -> int | None:
-        self.__cf.execute("SELECT nome FROM categoria WHERE nome = ?", [nome])
         tupla = self.__cf.fetchone()
         if tupla is None: return None
         return int(tupla[0])
@@ -99,16 +91,6 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
     def deletar_segredo(self, segredo: int) -> None:
         self.__cf.execute("DELETE FROM segredo WHERE pk_segredo = ?", [segredo]) # Deleta nas outras tabelas graças ao ON DELETE CASCADE.
 
-    def criar_categoria(self, nome: str) -> int:
-        self.__cf.execute("INSERT INTO categoria (nome) VALUES (?)", [nome])
-        return __assert_not_null(self.__cf.lastrowid)
-
-    def renomear_categoria(self, antigo: str, novo: str) -> None:
-        self.__cf.execute("UPDATE categoria SET nome = ? WHERE nome = ?", [novo, antigo])
-
-    def deletar_categoria(self, nome: str) -> None:
-        self.__cf.execute("DELETE categoria WHERE nome = ?", [nome])
-
     def ler_cabecalho_segredo(self, pk_segredo: int) -> CabecalhoDeSegredo | None:
         self.__cf.execute("SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo = ?", [pk_segredo])
         return self.__cf.fetchone_class(CabecalhoDeSegredo)
@@ -117,10 +99,40 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
         self.__cf.execute("SELECT c.pk_chave AS chave, c.valor FROM campo_segredo WHERE pfk_segredo = ?", [pk_segredo])
         return self.__cf.fetchall_class(CampoDeSegredo)
 
-    def ler_nomes_categorias(self, pk_segredo: int) -> list[NomeDeCategoria]:
-        self.__cf.execute("SELECT c.nome FROM categoria c INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria WHERE cs.pfk_segredo = ?", [pk_segredo])
-        return self.__cf.fetchall_class(NomeDeCategoria)
-
     def ler_login_com_permissoes(self, pk_segredo: int) -> list[LoginComPermissao]:
         self.__cf.execute("SELECT u.login, p.fk_tipo_permissao AS permissao FROM permissao p INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario WHERE p.pfk_segredo = ?", [pk_segredo])
         return self.__cf.fetchall_class(LoginComPermissao)
+
+class CategoriaDAOImpl(CategoriaDAO):
+
+    def __init__(self, transacted_conn: TransactedConnection) -> None:
+        self.__cf: TransactedConnection = transacted_conn
+
+    def buscar_por_pk(self, pk_categoria: int) -> DadosCategoria | None:
+        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE pk_categoria = ?", [pk_categoria])
+        return self.__cf.fetchone_class(DadosCategoria)
+
+    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
+        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE nome = ?", [nome])
+        return self.__cf.fetchone_class(DadosCategoria)
+
+    def listar(self) -> list[DadosCategoria]:
+        self.__cf.execute("SELECT c.pk_categoria, c.nome FROM categoria c")
+        return self.__cf.fetchall_class(DadosCategoria)
+
+    def listar_por_segredo(self, pk_segredo: int) -> list[DadosCategoria]:
+        self.__cf.execute("SELECT c.pk_categoria, c.nome FROM categoria c INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria WHERE cs.pfk_segredo = ?", [pk_segredo])
+        return self.__cf.fetchall_class(DadosCategoria)
+
+    def criar(self, dados: DadosCategoriaSemPK) -> int:
+        self.__cf.execute("INSERT INTO categoria (nome) VALUES (?)", [dados.nome])
+        return __assert_not_null(self.__cf.lastrowid)
+
+    def salvar(self, dados: DadosCategoria) -> None:
+        self.__cf.execute("UPDATE categoria SET pk_categoria = ?, nome = ? WHERE pk_categoria = ?", [dados.pk_categoria, dados.nome, dados.pk_categoria])
+
+    def deletar_por_nome(self, nome: str) -> None:
+        self.__cf.execute("DELETE categoria WHERE nome = ?", [nome])
+
+    def deletar_por_pk(self, pk_categoria: int) -> None:
+        self.__cf.execute("DELETE categoria WHERE pk_categoria = ?", [pk_categoria])

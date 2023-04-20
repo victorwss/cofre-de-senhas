@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 T = TypeVar("T")
-C = TypeVar("C", bound = Callable[..., Any])
+TRANS = TypeVar("TRANS", bound = Callable[..., Any])
 
 class TypeCode(Enum):
     STRING = "STRING"
@@ -101,12 +101,25 @@ def rows_to_dicts(description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> l
         result.append(row_to_dict(description, row))
     return result
 
+def row_to_class_lambda(ctor: Callable[[dict[str, Any]], T], description: Descriptor, row: tuple[Any, ...]) -> T:
+    return ctor(row_to_dict(description, row))
+
 def row_to_class(klass: type[T], description: Descriptor, row: tuple[Any, ...]) -> T:
-    return from_dict(data_class = klass, data = row_to_dict(description, row))
+    return row_to_class_lambda(lambda d: from_dict(data_class = klass, data = d), description, row)
+
+def row_to_class_lambda_opt(ctor: Callable[[dict[str, Any]], T], description: Descriptor, row: tuple[Any, ...] | None) -> T | None:
+    if row is None: return None
+    return row_to_class_lambda(ctor, description, row)
 
 def row_to_class_opt(klass: type[T], description: Descriptor, row: tuple[Any, ...] | None) -> T | None:
     if row is None: return None
     return row_to_class(klass, description, row)
+
+def rows_to_classes_lambda(ctor: Callable[[dict[str, Any]], T], description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[T]:
+    result = []
+    for row in rows:
+        result.append(row_to_class_lambda(ctor, description, row))
+    return result
 
 def rows_to_classes(klass: type[T], description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[T]:
     result = []
@@ -157,6 +170,15 @@ class SimpleConnection(ABC):
 
     def fetchmany_class(self, klass: type[T], size: int = 0) -> list[T]:
         return rows_to_classes(klass, self.description, self.fetchmany(size))
+
+    def fetchone_class_lambda(self, ctor: Callable[[dict[str, Any]], T]) -> T | None:
+        return row_to_class_lambda_opt(ctor, self.description, self.fetchone())
+
+    def fetchall_class_lambda(self, ctor: Callable[[dict[str, Any]], T]) -> list[T]:
+        return rows_to_classes_lambda(ctor, self.description, self.fetchall())
+
+    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, Any]], T], size: int = 0) -> list[T]:
+        return rows_to_classes_lambda(ctor, self.description, self.fetchmany(size))
 
     @abstractmethod
     def callproc(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
@@ -246,7 +268,7 @@ class TransactedConnection(SimpleConnection):
     def is_active(self) -> bool:
         return self.__count > 0
 
-    def transact(self, operation: C) -> C:
+    def transact(self, operation: TRANS) -> TRANS:
         @wraps(operation)
         def transacted_operation(*args: Any, **kwargs: Any) -> Any:
             with self as xxx:
@@ -257,7 +279,7 @@ class TransactedConnection(SimpleConnection):
                     raise x
                 else:
                     self.commit()
-        return cast(C, transacted_operation)
+        return cast(TRANS, transacted_operation)
 
     @property
     def __wrapped(self) -> SimpleConnection:
@@ -318,6 +340,15 @@ class TransactedConnection(SimpleConnection):
     def fetchmany_class(self, klass: type[T], size: int = 0) -> list[T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
+    def fetchone_class_lambda(self, ctor: Callable[[dict[str, Any]], T]) -> T | None:
+        return self.__wrapped.fetchone_class_lambda(ctor)
+
+    def fetchall_class_lambda(self, ctor: Callable[[dict[str, Any]], T]) -> list[T]:
+        return self.__wrapped.fetchall_class_lambda(ctor)
+
+    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, Any]], T], size: int = 0) -> list[T]:
+        return self.__wrapped.fetchmany_class_lambda(ctor, size)
+
     @property
     def arraysize(self) -> int:
         return self.__wrapped.arraysize
@@ -342,5 +373,5 @@ class TransactedConnection(SimpleConnection):
     def raw_cursor(self) -> object:
         return self.__wrapped.raw_cursor
 
-del C
+del TRANS
 del T

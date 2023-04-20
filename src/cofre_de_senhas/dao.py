@@ -55,10 +55,6 @@ class CofreDeSenhasDAO(ABC):
         ...
 
     @abstractmethod
-    def buscar_pk_categoria_por_nome(self, nome: str) -> int | None:
-        ...
-
-    @abstractmethod
     def login(self, login: str) -> DadosLogin | None:
         ...
 
@@ -119,18 +115,6 @@ class CofreDeSenhasDAO(ABC):
         ...
 
     @abstractmethod
-    def criar_categoria(self, nome: str) -> int:
-        ...
-
-    @abstractmethod
-    def renomear_categoria(self, antigo: str, novo: str) -> None:
-        ...
-
-    @abstractmethod
-    def deletar_categoria(self, nome: str) -> None:
-        ...
-
-    @abstractmethod
     def ler_cabecalho_segredo(self, pk_segredo: int) -> CabecalhoDeSegredo | None:
         ...
 
@@ -139,9 +123,50 @@ class CofreDeSenhasDAO(ABC):
         ...
 
     @abstractmethod
-    def ler_nomes_categorias(self, pk_segredo: int) -> list[NomeDeCategoria]:
+    def ler_login_com_permissoes(self, pk_segredo: int) -> list[LoginComPermissao]:
+        ...
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosCategoriaSemPK:
+    nome: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosCategoria:
+    pk_categoria: int
+    nome: str
+
+class CategoriaDAO:
+
+    @abstractmethod
+    def buscar_por_pk(self, pk_categoria: int) -> DadosCategoria | None:
         ...
 
     @abstractmethod
-    def ler_login_com_permissoes(self, pk_segredo: int) -> list[LoginComPermissao]:
+    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
+        ...
+
+    @abstractmethod
+    def listar(self) -> list[DadosCategoria]:
+        ...
+
+    @abstractmethod
+    def listar_por_segredo(self, pk_segredo: int) -> list[DadosCategoria]:
+        ...
+
+    @abstractmethod
+    def criar(self, dados: DadosCategoriaSemPK) -> int:
+        ...
+
+    @abstractmethod
+    def salvar(self, dados: DadosCategoria) -> None:
+        ...
+
+    @abstractmethod
+    def deletar_por_pk(self, pk_categoria: int) -> None:
+        ...
+
+    @abstractmethod
+    def deletar_por_nome(self, nome: str) -> None:
         ...

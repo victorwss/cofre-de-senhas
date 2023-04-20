@@ -5,6 +5,7 @@ python -m mypy --strict --install-types ^
     .\decorators\tracer.py ^
     .\connection\__init__.py ^
     .\connection\conn.py ^
+    .\connection\sqlfactory.py ^
     .\connection\mysqlconn.py ^
     .\connection\mariadbconn.py ^
     .\mariadb\__init__.pyi ^
