@@ -1,5 +1,6 @@
 from typing import TypeVar
 from connection.conn import TransactedConnection
+from connection.sqlfactory import SQLFactory
 from validator import dataclass_validate
 from .dao import *
 
@@ -21,34 +22,16 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
     def criar_bd(self) -> None:
         self.__cf.executescript(self.sql_criar_bd())
 
-    def buscar_pk_usuario_por_login(self, login: str) -> int | None:
-        self.__cf.execute("SELECT pk_usuario FROM usuario WHERE login = ?", [login])
-        tupla = self.__cf.fetchone()
-        if tupla is None: return None
-        return int(tupla[0])
+class SegredoDAOImpl(SegredoDAO):
+
+    def __init__(self, transacted_conn: TransactedConnection) -> None:
+        self.__cf: TransactedConnection = transacted_conn
 
     def buscar_pk_segredo(self, pk: int) -> int | None:
         self.__cf.execute("SELECT pk_segredo FROM segredo WHERE pk_segredo = ?", [pk])
         tupla = self.__cf.fetchone()
         if tupla is None: return None
         return int(tupla[0])
-
-    def login(self, login: str) -> DadosLogin | None:
-        self.__cf.execute("SELECT fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = ?", [login])
-        return self.__cf.fetchone_class(DadosLogin)
-
-    def criar_usuario(self, login: str, nivel_acesso: int, hash_com_sal: str) -> None:
-        self.__cf.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)", [login, nivel_acesso, hash_com_sal])
-
-    def trocar_senha(self, login: str, hash_com_sal: str) -> None:
-        self.__cf.execute("UPDATE usuario SET hash_com_sal = ? WHERE login = ?", [hash_com_sal, login])
-
-    def alterar_nivel_de_acesso(self, login: str, nivel_acesso: int) -> None:
-        self.__cf.execute("UPDATE usuario SET fk_nivel_acesso = ? WHERE login = ?", [nivel_acesso, login])
-
-    def listar_usuarios(self) -> list[DadosNivel]:
-        self.__cf.execute("SELECT login, fk_nivel_acesso FROM usuario")
-        return self.__cf.fetchall_class(DadosNivel)
 
     def limpar_segredo(self, segredo: int) -> None:
         self.__cf.execute("DELETE FROM campo_segredo WHERE pfk_segredo = ?", [segredo])
@@ -108,31 +91,64 @@ class CategoriaDAOImpl(CategoriaDAO):
     def __init__(self, transacted_conn: TransactedConnection) -> None:
         self.__cf: TransactedConnection = transacted_conn
 
-    def buscar_por_pk(self, pk_categoria: int) -> DadosCategoria | None:
-        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE pk_categoria = ?", [pk_categoria])
-        return self.__cf.fetchone_class(DadosCategoria)
-
-    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
-        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE nome = ?", [nome])
+    def buscar_por_pk(self, pk: CategoriaPK) -> DadosCategoria | None:
+        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE pk_categoria = ?", [pk.pk_categoria])
         return self.__cf.fetchone_class(DadosCategoria)
 
     def listar(self) -> list[DadosCategoria]:
         self.__cf.execute("SELECT c.pk_categoria, c.nome FROM categoria c")
         return self.__cf.fetchall_class(DadosCategoria)
 
-    def listar_por_segredo(self, pk_segredo: int) -> list[DadosCategoria]:
-        self.__cf.execute("SELECT c.pk_categoria, c.nome FROM categoria c INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria WHERE cs.pfk_segredo = ?", [pk_segredo])
-        return self.__cf.fetchall_class(DadosCategoria)
-
-    def criar(self, dados: DadosCategoriaSemPK) -> int:
+    def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
         self.__cf.execute("INSERT INTO categoria (nome) VALUES (?)", [dados.nome])
-        return __assert_not_null(self.__cf.lastrowid)
+        return CategoriaPK(__assert_not_null(self.__cf.lastrowid))
 
     def salvar(self, dados: DadosCategoria) -> None:
-        self.__cf.execute("UPDATE categoria SET pk_categoria = ?, nome = ? WHERE pk_categoria = ?", [dados.pk_categoria, dados.nome, dados.pk_categoria])
+        sql = "UPDATE categoria SET pk_categoria = ?, nome = ? WHERE pk_categoria = ?"
+        self.__cf.execute(sql, [dados.pk_categoria, dados.nome, dados.pk_categoria])
 
-    def deletar_por_nome(self, nome: str) -> None:
-        self.__cf.execute("DELETE categoria WHERE nome = ?", [nome])
+    def deletar_por_pk(self, pk: CategoriaPK) -> None:
+        self.__cf.execute("DELETE categoria WHERE pk_categoria = ?", [pk.pk_categoria])
 
-    def deletar_por_pk(self, pk_categoria: int) -> None:
-        self.__cf.execute("DELETE categoria WHERE pk_categoria = ?", [pk_categoria])
+    def listar_por_segredo(self, pk: SegredoPK) -> list[DadosCategoria]:
+        sql = "SELECT c.pk_categoria, c.nome FROM categoria c INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria WHERE cs.pfk_segredo = ?"
+        self.__cf.execute(sql, [pk.pk_segredo])
+        return self.__cf.fetchall_class(DadosCategoria)
+
+    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
+        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE nome = ?", [nome])
+        return self.__cf.fetchone_class(DadosCategoria)
+
+    #def deletar_por_nome(self, nome: str) -> None:
+    #    self.__cf.execute("DELETE categoria WHERE nome = ?", [nome])
+
+class UsuarioDAOImpl(UsuarioDAO):
+
+    def __init__(self, transacted_conn: TransactedConnection) -> None:
+        self.__cf: TransactedConnection = transacted_conn
+
+    def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = ?", [pk.pk_usuario])
+        return self.__cf.fetchone_class(DadosUsuario)
+
+    def listar(self) -> list[DadosUsuario]:
+        self.__cf.execute("SELECT c.pk_usuario, c.login, c.fk_nivel_acesso, c.hash_com_sal FROM usuario c")
+        return self.__cf.fetchall_class(DadosUsuario)
+
+    def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
+        self.__cf.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)", [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
+        return UsuarioPK(__assert_not_null(self.__cf.lastrowid))
+
+    def salvar(self, dados: DadosUsuario) -> None:
+        sql = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
+        self.__cf.execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
+
+    def deletar_por_pk(self, pk: UsuarioPK) -> None:
+        self.__cf.execute("DELETE usuario WHERE pk_usuario = ?", [pk.pk_usuario])
+
+    def buscar_por_login(self, login: str) -> DadosUsuario | None:
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = ?", [login])
+        return self.__cf.fetchone_class(DadosUsuario)
+
+    #def deletar_por_login(self, login: str) -> None:
+    #    self.__cf.execute("DELETE usuario WHERE login = ?", [login])

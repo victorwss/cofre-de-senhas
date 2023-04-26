@@ -1,6 +1,6 @@
-from abc import ABC
-from abc import abstractmethod
-from dataclasses import dataclass
+from typing import Generic
+from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
 
 @dataclass_validate
@@ -46,32 +46,15 @@ class CofreDeSenhasDAO(ABC):
     def criar_bd(self) -> None:
         ...
 
-    @abstractmethod
-    def buscar_pk_usuario_por_login(self, login: str) -> int | None:
-        ...
+@dataclass_validate
+@dataclass(frozen = True)
+class SegredoPK:
+    pk_segredo: int
+
+class SegredoDAO(ABC):
 
     @abstractmethod
     def buscar_pk_segredo(self, pk: int) -> int | None:
-        ...
-
-    @abstractmethod
-    def login(self, login: str) -> DadosLogin | None:
-        ...
-
-    @abstractmethod
-    def criar_usuario(self, login: str, nivel_acesso: int, hash_com_sal: str) -> None:
-        ...
-
-    @abstractmethod
-    def trocar_senha(self, login: str, hash_com_sal: str) -> None:
-        ...
-
-    @abstractmethod
-    def alterar_nivel_de_acesso(self, login: str, nivel_acesso: int) -> None:
-        ...
-
-    @abstractmethod
-    def listar_usuarios(self) -> list[DadosNivel]:
         ...
 
     @abstractmethod
@@ -128,6 +111,11 @@ class CofreDeSenhasDAO(ABC):
 
 @dataclass_validate
 @dataclass(frozen = True)
+class CategoriaPK:
+    pk_categoria: int
+
+@dataclass_validate
+@dataclass(frozen = True)
 class DadosCategoriaSemPK:
     nome: str
 
@@ -140,11 +128,7 @@ class DadosCategoria:
 class CategoriaDAO:
 
     @abstractmethod
-    def buscar_por_pk(self, pk_categoria: int) -> DadosCategoria | None:
-        ...
-
-    @abstractmethod
-    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
+    def buscar_por_pk(self, pk_categoria: CategoriaPK) -> DadosCategoria | None:
         ...
 
     @abstractmethod
@@ -152,11 +136,7 @@ class CategoriaDAO:
         ...
 
     @abstractmethod
-    def listar_por_segredo(self, pk_segredo: int) -> list[DadosCategoria]:
-        ...
-
-    @abstractmethod
-    def criar(self, dados: DadosCategoriaSemPK) -> int:
+    def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
         ...
 
     @abstractmethod
@@ -164,9 +144,67 @@ class CategoriaDAO:
         ...
 
     @abstractmethod
-    def deletar_por_pk(self, pk_categoria: int) -> None:
+    def deletar_por_pk(self, pk_categoria: CategoriaPK) -> None:
         ...
 
     @abstractmethod
-    def deletar_por_nome(self, nome: str) -> None:
+    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
         ...
+
+    @abstractmethod
+    def listar_por_segredo(self, pk_segredo: SegredoPK) -> list[DadosCategoria]:
+        ...
+
+    #@abstractmethod
+    #def deletar_por_nome(self, nome: str) -> None:
+    #    ...
+
+@dataclass_validate
+@dataclass(frozen = True)
+class UsuarioPK:
+    pk_usuario: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosUsuario:
+    pk_usuario: int
+    login: str
+    fk_nivel_acesso: int
+    hash_com_sal: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosUsuarioSemPK:
+    login: str
+    fk_nivel_acesso: int
+    hash_com_sal: str
+
+class UsuarioDAO:
+
+    @abstractmethod
+    def buscar_por_pk(self, pk_usuario: UsuarioPK) -> DadosUsuario | None:
+        ...
+
+    @abstractmethod
+    def listar(self) -> list[DadosUsuario]:
+        ...
+
+    @abstractmethod
+    def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
+        ...
+
+    @abstractmethod
+    def salvar(self, dados: DadosUsuario) -> None:
+        ...
+
+    @abstractmethod
+    def deletar_por_pk(self, pk_usuario: UsuarioPK) -> None:
+        ...
+
+    @abstractmethod
+    def buscar_por_login(self, login: str) -> DadosUsuario | None:
+        ...
+
+    #@abstractmethod
+    #def deletar_por_login(self, login: str) -> None:
+    #    ...

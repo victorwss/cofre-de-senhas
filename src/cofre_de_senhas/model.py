@@ -40,17 +40,22 @@ class TipoSegredo(Enum):
 
 @dataclass_validate
 @dataclass(frozen = True)
-class SegredoPK:
+class SegredoChave:
     valor: int
 
 @dataclass_validate
 @dataclass(frozen = True)
-class CampoSegredoPK:
+class CampoSegredoChave:
     valor: int
 
 @dataclass_validate
 @dataclass(frozen = True)
-class UsuarioPK:
+class UsuarioChave:
+    valor: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CategoriaChave:
     valor: int
 
 @dataclass_validate
@@ -74,6 +79,13 @@ class UsuarioComNivel:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class UsuarioComChave:
+    chave: UsuarioChave
+    login: str
+    nivel_acesso: NivelAcesso
+
+@dataclass_validate
+@dataclass(frozen = True)
 class NovaSenha:
     senha: str
 
@@ -84,7 +96,7 @@ class ResetLoginUsuario:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class SegredoSemPK:
+class SegredoSemChave:
     nome: str
     descricao: str
     tipo: TipoSegredo
@@ -92,13 +104,13 @@ class SegredoSemPK:
     categorias: set[str]
     usuarios: dict[str, TipoPermissao]
 
-    def com_pk(self, pk: SegredoPK) -> "SegredoComPK":
-        return SegredoComPK(pk, self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
+    def com_chave(self, chave: SegredoChave) -> "SegredoComChave":
+        return SegredoComChave(chave, self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 
 @dataclass_validate
 @dataclass(frozen = True)
-class SegredoComPK:
-    pk: SegredoPK
+class SegredoComChave:
+    chave: SegredoChave
     nome: str
     descricao: str
     tipo: TipoSegredo
@@ -106,13 +118,13 @@ class SegredoComPK:
     categorias: set[str]
     usuarios: dict[str, TipoPermissao]
 
-    def sem_pk(self, pk: SegredoPK) -> "SegredoSemPK":
-        return SegredoSemPK(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
+    def sem_chave(self, chave: SegredoChave) -> "SegredoSemChave":
+        return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 
 @dataclass_validate
 @dataclass(frozen = True)
-class CabecalhoSegredoComPK:
-    pk: SegredoPK
+class CabecalhoSegredoComChave:
+    chave: SegredoChave
     nome: str
     descricao: str
     tipo: TipoSegredo
@@ -136,21 +148,35 @@ class RenomeCategoria:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class CategoriaComChave:
+    chave: CategoriaChave
+    nome: str
+
+@dataclass_validate
+@dataclass(frozen = True)
 class ResultadoPesquisaDeSegredos:
-    segredos: list[CabecalhoSegredoComPK]
+    segredos: list[CabecalhoSegredoComChave]
 
 @dataclass_validate
 @dataclass(frozen = True)
 class ResultadoListaDeUsuarios:
-    lista: list[UsuarioComNivel]
+    lista: list[UsuarioComChave]
+
+@dataclass_validate
+@dataclass(frozen = True)
+class ResultadoListaDeCategorias:
+    lista: list[CategoriaComChave]
 
 @dataclass_validate
 @dataclass(frozen = True)
 class VerificacaoSegredo:
     login: str
-    pk_segredo: SegredoPK
+    chave: SegredoChave
 
 class SenhaErradaException(Exception):
+    pass
+
+class UsuarioNaoLogadoException(Exception):
     pass
 
 class UsuarioBanidoException(Exception):
@@ -173,3 +199,10 @@ class CategoriaNaoExisteException(Exception):
 
 class SegredoNaoExisteException(Exception):
     pass
+
+@dataclass_validate
+@dataclass(frozen = True)
+class Erro:
+    mensagem: str
+    tipo: str
+    status: int

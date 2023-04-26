@@ -20,4 +20,5 @@ python -m mypy --strict --install-types ^
     .\cofre_de_senhas\dao.py ^
     .\cofre_de_senhas\service.py ^
     .\cofre_de_senhas\dao_impl.py ^
-    .\cofre_de_senhas\service_impl.py
+    .\cofre_de_senhas\service_impl.py ^
+    .\cofre_de_senhas\controller.py
