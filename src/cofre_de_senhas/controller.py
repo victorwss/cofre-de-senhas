@@ -2,7 +2,7 @@ from typing import Any, Callable, cast, TypeVar
 from flask import Flask, jsonify, request, session
 from flask.wrappers import Response
 from functools import wraps
-from .model import *
+from .cofre_enum import *
 from .service import *
 from .service_impl import *
 
@@ -32,9 +32,6 @@ codigos: dict[type[BaseException], int] = {
     SegredoNaoExisteException: 404
 }
 
-gl: GerenciadorLogin = GerenciadorLoginImpl()
-cofre: CofreDeSenhas = CofreDeSenhasImpl(gl)
-
 FuncE = TypeVar("FuncE", bound = Callable[..., Response | tuple[Response, int]])
 def handler(decorate: FuncE) -> FuncE:
     @wraps(decorate)
@@ -49,15 +46,20 @@ def handler(decorate: FuncE) -> FuncE:
 app: Flask = Flask(__name__)
 app.secret_key = "Senha super-secreta que ninguém pode saber qual é" # TO DO: Colocar isso dentro do próprio cofre de senhas.
 
+gl: GerenciadorLogin = GerenciadorLoginImpl()
+su: ServicoUsuario = ServicoUsuarioImpl(gl)
+sc: ServicoCategoria = ServicoCategoriaImpl(gl)
+ss: ServicoSegredo = ServicoSegredoImpl(gl)
+
 @app.route("/categorias/<pk_categoria:int>")
 @handler
 def buscar_categoria(pk_categoria: int) -> Response:
-    return jsonify(cofre.listar_categorias())
+    return jsonify(sc.listar_categorias())
 
 @app.route("/categorias")
 @handler
 def listar_categorias() -> Response:
-    return jsonify(cofre.listar_categorias())
+    return jsonify(sc.listar_categorias())
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0", port = 5000)

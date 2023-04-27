@@ -2,6 +2,7 @@ from typing import Generic
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
+from .cofre_enum import *
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -9,7 +10,7 @@ class CabecalhoDeSegredo:
     pk_segredo: int
     nome: str
     descricao: str
-    fk_tipo_segredo: int
+    fk_tipo_segredo: TipoSegredo
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -19,26 +20,9 @@ class CampoDeSegredo:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class NomeDeCategoria:
-    nome: str
-
-@dataclass_validate
-@dataclass(frozen = True)
 class LoginComPermissao:
     login: str
-    permissao: int
-
-@dataclass_validate
-@dataclass(frozen = True)
-class DadosLogin:
-    fk_nivel_acesso: int
-    hash_com_sal: str
-
-@dataclass_validate
-@dataclass(frozen = True)
-class DadosNivel:
-    login: str
-    fk_nivel_acesso: int
+    permissao: TipoPermissao
 
 class CofreDeSenhasDAO(ABC):
 
@@ -54,31 +38,31 @@ class SegredoPK:
 class SegredoDAO(ABC):
 
     @abstractmethod
-    def buscar_pk_segredo(self, pk: int) -> int | None:
+    def buscar_pk_segredo(self, pk: SegredoPK) -> SegredoPK | None:
         ...
 
     @abstractmethod
-    def limpar_segredo(self, segredo: int) -> None:
+    def limpar_segredo(self, pk: SegredoPK) -> None:
         ...
 
     @abstractmethod
-    def criar_campo_segredo(self, segredo: int, descricao: str, valor: str) -> int:
+    def criar_campo_segredo(self, pk: SegredoPK, descricao: str, valor: str) -> int:
         ...
 
     @abstractmethod
-    def criar_permissao(self, usuario: int, segredo: int, tipo_permissao: int) -> int:
+    def criar_permissao(self, upk: UsuarioPK, spk: SegredoPK, tipo_permissao: TipoPermissao) -> int:
         ...
 
     @abstractmethod
-    def criar_categoria_segredo(self, segredo: int, categoria: int) -> int:
+    def criar_categoria_segredo(self, spk: SegredoPK, cpk: CategoriaPK) -> int:
         ...
 
     @abstractmethod
-    def criar_segredo(self, nome: str, descricao: str, tipo_segredo: int) -> int:
+    def criar_segredo(self, nome: str, descricao: str, tipo_segredo: TipoSegredo) -> SegredoPK:
         ...
 
     @abstractmethod
-    def alterar_segredo(self, segredo: int, nome: str, descricao: str, tipo_segredo: int) -> None:
+    def alterar_segredo(self, pk: SegredoPK, nome: str, descricao: str, tipo_segredo: TipoSegredo) -> None:
         ...
 
     @abstractmethod
@@ -90,23 +74,23 @@ class SegredoDAO(ABC):
         ...
 
     @abstractmethod
-    def buscar_permissao(self, segredo: int, login: str) -> int | None:
+    def buscar_permissao(self, pk: SegredoPK, login: str) -> int | None:
         ...
 
     @abstractmethod
-    def deletar_segredo(self, segredo: int) -> None:
+    def deletar_segredo(self, pk: SegredoPK) -> None:
         ...
 
     @abstractmethod
-    def ler_cabecalho_segredo(self, pk_segredo: int) -> CabecalhoDeSegredo | None:
+    def ler_cabecalho_segredo(self, pk: SegredoPK) -> CabecalhoDeSegredo | None:
         ...
 
     @abstractmethod
-    def ler_campos_segredo(self, pk_segredo: int) -> list[CampoDeSegredo]:
+    def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
         ...
 
     @abstractmethod
-    def ler_login_com_permissoes(self, pk_segredo: int) -> list[LoginComPermissao]:
+    def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:
         ...
 
 @dataclass_validate
@@ -176,7 +160,7 @@ class DadosUsuario:
 @dataclass(frozen = True)
 class DadosUsuarioSemPK:
     login: str
-    fk_nivel_acesso: int
+    fk_nivel_acesso: NivelAcesso
     hash_com_sal: str
 
 class UsuarioDAO:

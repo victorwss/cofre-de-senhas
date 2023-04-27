@@ -1,7 +1,132 @@
 from abc import ABC, abstractmethod
-from .model import *
 from dataclasses import dataclass
 from validator import dataclass_validate
+from .cofre_enum import *
+from .erro import *
+
+@dataclass_validate
+@dataclass(frozen = True)
+class UsuarioChave:
+    valor: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class ResetLoginUsuario:
+    login: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class SegredoChave:
+    valor: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class SegredoSemChave:
+    nome: str
+    descricao: str
+    tipo: TipoSegredo
+    campos: dict[str, str]
+    categorias: set[str]
+    usuarios: dict[str, TipoPermissao]
+
+    def com_chave(self, chave: SegredoChave) -> "SegredoComChave":
+        return SegredoComChave(chave, self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
+
+@dataclass_validate
+@dataclass(frozen = True)
+class SegredoComChave:
+    chave: SegredoChave
+    nome: str
+    descricao: str
+    tipo: TipoSegredo
+    campos: dict[str, str]
+    categorias: set[str]
+    usuarios: dict[str, TipoPermissao]
+
+#    def sem_chave(self, chave: SegredoChave) -> "SegredoSemChave":
+#        return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
+
+@dataclass_validate
+@dataclass(frozen = True)
+class NomeCategoria:
+    nome: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class RenomeCategoria:
+    antigo: str
+    novo: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class LoginUsuario:
+    login: str
+    senha: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class UsuarioNovo:
+    login: str
+    nivel_acesso: NivelAcesso
+    senha: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class NovaSenha:
+    senha: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class UsuarioComNivel:
+    login: str
+    nivel_acesso: NivelAcesso
+
+@dataclass_validate
+@dataclass(frozen = True)
+class UsuarioComChave:
+    chave: UsuarioChave
+    login: str
+    nivel_acesso: NivelAcesso
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CategoriaChave:
+    valor: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CabecalhoSegredoComChave:
+    chave: SegredoChave
+    nome: str
+    descricao: str
+    tipo: TipoSegredo
+
+@dataclass_validate
+@dataclass(frozen = True)
+class ResultadoPesquisaDeSegredos:
+    segredos: list[CabecalhoSegredoComChave]
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CategoriaComChave:
+    chave: CategoriaChave
+    nome: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class ResultadoListaDeCategorias:
+    lista: list[CategoriaComChave]
+
+@dataclass_validate
+@dataclass(frozen = True)
+class ResultadoListaDeUsuarios:
+    lista: list[UsuarioComChave]
+
+@dataclass_validate
+@dataclass(frozen = True)
+class PesquisaSegredos:
+    nome: str
+    categorias: list[str]
 
 class GerenciadorLogin(ABC):
 
@@ -21,7 +146,7 @@ class GerenciadorLogin(ABC):
         pass
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
-class CofreDeSenhas(ABC):
+class ServicoUsuario(ABC):
 
     # Pode lançar SenhaErradaException
     @abstractmethod
@@ -66,6 +191,8 @@ class CofreDeSenhas(ABC):
     def listar_usuarios(self) -> ResultadoListaDeUsuarios:
         pass
 
+class ServicoSegredo(ABC):
+
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     @abstractmethod
     def criar_segredo(self, dados: SegredoSemChave) -> None:
@@ -90,10 +217,12 @@ class CofreDeSenhas(ABC):
     def buscar_segredo_por_chave(self, chave: SegredoChave) -> SegredoComChave:
         pass
 
-    # Pode lançar CategoriaNaoExisteException
+    # Não implementado ainda! Pode lançar SegredoNaoExisteException
     @abstractmethod
     def pesquisar_segredos(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         pass
+
+class ServicoCategoria(ABC):
 
     # Pode lançar CategoriaNaoExisteException
     @abstractmethod
