@@ -6,13 +6,13 @@ import sys
 from typing import Any, Callable, cast, ForwardRef, Self, Type, TypeVar
 
 GlobalNS_T = dict[str, Any]
-U = TypeVar("U")
+_U = TypeVar("_U")
 
 class TypeValidationError(Exception):
     """Exception raised on type validation errors.
     """
 
-    def __init__(self: Self, *args: Any, target: U, errors: dict[str, str]) -> None:
+    def __init__(self: Self, *args: Any, target: _U, errors: dict[str, str]) -> None:
         super(TypeValidationError, self).__init__(*args)
         self.class_ = target.__class__
         self.errors = errors
@@ -169,7 +169,7 @@ def dataclass_type_validator(target: Any) -> None:
         )
 
 
-def dataclass_validate(cls: Type[U] | None = None) -> Type[U] | Callable[[Type[U]], Type[U]]:
+def dataclass_validate(cls: Type[_U] | None = None) -> Type[_U] | Callable[[Type[_U]], Type[_U]]:
     """Dataclass decorator to automatically add validation to a dataclass.
     So you don't have to add a __post_init__ method, or if you have one, you don't have
     to remember to add the dataclass_type_validator(self) call to it; just decorate your
@@ -179,7 +179,7 @@ def dataclass_validate(cls: Type[U] | None = None) -> Type[U] | Callable[[Type[U
     return _dataclass_full_validate(cls)
 
 
-def _dataclass_full_validate(cls: Type[U]) -> Type[U]:
+def _dataclass_full_validate(cls: Type[_U]) -> Type[_U]:
 
     if not hasattr(cls, "__post_init__"):
         # No post-init method, so no processing.  Wrap the constructor instead.

@@ -1,3 +1,3 @@
-python -m venv cofre
+python -m venv pyenv
 
-source ./cofre/Scripts/activate
+source ./pyenv/Scripts/activate

@@ -114,8 +114,8 @@ class MariaDBConnectionWrapper(SimpleConnection):
         self.__conn.rollback()
 
     def close(self) -> None:
-        self.__conn.close()
         self.__curr.close()
+        self.__conn.close()
 
     def fetchone(self) -> tuple[Any, ...] | None:
         return self.__curr.fetchone()

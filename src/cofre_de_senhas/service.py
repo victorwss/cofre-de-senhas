@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from .cofre_enum import *
-from .erro import *
+from cofre_de_senhas.cofre_enum import NivelAcesso, TipoPermissao, TipoSegredo
+from cofre_de_senhas.erro import *
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -140,9 +140,15 @@ class GerenciadorLogin(ABC):
         pass
 
     # Pode lançar UsuarioNaoLogadoException.
-    @abstractmethod
     @property
+    @abstractmethod
     def usuario_logado(self) -> UsuarioChave:
+        pass
+
+class ServicoBD(ABC):
+
+    @abstractmethod
+    def criar_bd(self) -> None:
         pass
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.

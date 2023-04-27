@@ -2,7 +2,48 @@ from typing import Generic
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
-from .cofre_enum import *
+from cofre_de_senhas.cofre_enum import TipoSegredo, NivelAcesso, TipoPermissao
+
+@dataclass_validate
+@dataclass(frozen = True)
+class UsuarioPK:
+    pk_usuario: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosUsuario:
+    pk_usuario: int
+    login: str
+    fk_nivel_acesso: int
+    hash_com_sal: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosUsuarioSemPK:
+    login: str
+    fk_nivel_acesso: int
+    hash_com_sal: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CategoriaPK:
+    pk_categoria: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosCategoriaSemPK:
+    nome: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class DadosCategoria:
+    pk_categoria: int
+    nome: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class SegredoPK:
+    pk_segredo: int
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -10,30 +51,25 @@ class CabecalhoDeSegredo:
     pk_segredo: int
     nome: str
     descricao: str
-    fk_tipo_segredo: TipoSegredo
+    fk_tipo_segredo: int
 
 @dataclass_validate
 @dataclass(frozen = True)
 class CampoDeSegredo:
-    chave: str
+    pk_chave: str
     valor: str
 
 @dataclass_validate
 @dataclass(frozen = True)
 class LoginComPermissao:
     login: str
-    permissao: TipoPermissao
+    permissao: int
 
 class CofreDeSenhasDAO(ABC):
 
     @abstractmethod
     def criar_bd(self) -> None:
         ...
-
-@dataclass_validate
-@dataclass(frozen = True)
-class SegredoPK:
-    pk_segredo: int
 
 class SegredoDAO(ABC):
 
@@ -93,22 +129,6 @@ class SegredoDAO(ABC):
     def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:
         ...
 
-@dataclass_validate
-@dataclass(frozen = True)
-class CategoriaPK:
-    pk_categoria: int
-
-@dataclass_validate
-@dataclass(frozen = True)
-class DadosCategoriaSemPK:
-    nome: str
-
-@dataclass_validate
-@dataclass(frozen = True)
-class DadosCategoria:
-    pk_categoria: int
-    nome: str
-
 class CategoriaDAO:
 
     @abstractmethod
@@ -142,26 +162,6 @@ class CategoriaDAO:
     #@abstractmethod
     #def deletar_por_nome(self, nome: str) -> None:
     #    ...
-
-@dataclass_validate
-@dataclass(frozen = True)
-class UsuarioPK:
-    pk_usuario: int
-
-@dataclass_validate
-@dataclass(frozen = True)
-class DadosUsuario:
-    pk_usuario: int
-    login: str
-    fk_nivel_acesso: int
-    hash_com_sal: str
-
-@dataclass_validate
-@dataclass(frozen = True)
-class DadosUsuarioSemPK:
-    login: str
-    fk_nivel_acesso: NivelAcesso
-    hash_com_sal: str
 
 class UsuarioDAO:
 

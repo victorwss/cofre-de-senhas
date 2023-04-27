@@ -1,32 +1,58 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
 
-class SenhaErradaException(Exception):
-    pass
+class Status(ABC):
 
-class UsuarioNaoLogadoException(Exception):
-    pass
+    @property
+    @abstractmethod
+    def status(self) -> int:
+        pass
 
-class UsuarioBanidoException(Exception):
-    pass
+class SenhaErradaException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 401
 
-class PermissaoNegadaException(Exception):
-    pass
+class UsuarioNaoLogadoException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 401
 
-class UsuarioJaExisteException(Exception):
-    pass
+class UsuarioBanidoException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 403
 
-class UsuarioNaoExisteException(Exception):
-    pass
+class PermissaoNegadaException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 403
 
-class CategoriaJaExisteException(Exception):
-    pass
+class UsuarioJaExisteException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 409
 
-class CategoriaNaoExisteException(Exception):
-    pass
+class UsuarioNaoExisteException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 404
 
-class SegredoNaoExisteException(Exception):
-    pass
+class CategoriaJaExisteException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 409
+
+class CategoriaNaoExisteException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 404
+
+class SegredoNaoExisteException(Exception, Status):
+    @property
+    def status(self) -> int:
+        return 404
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -34,3 +60,7 @@ class Erro:
     mensagem: str
     tipo: str
     status: int
+
+    @staticmethod
+    def criar(e: BaseException) -> "Erro":
+        return Erro(e.__str__(), e.__class__.__name__, e.status if isinstance(e, Status) else 500)

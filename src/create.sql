@@ -1,82 +1,40 @@
 PRAGMA foreign_keys = ON;
 
-CREATE TABLE IF NOT EXISTS nivel_acesso (
+CREATE TABLE IF NOT EXISTS enum_nivel_acesso (
     pk_nivel_acesso INTEGER PRIMARY KEY NOT NULL,
-    descricao TEXT NOT NULL
+    descricao       TEXT                NOT NULL
 ) STRICT, WITHOUT ROWID;
 
-INSERT INTO nivel_acesso (pk_nivel_acesso, descricao) VALUES
-    (0, 'Banido'),
-    (1, 'Normal'),
+INSERT INTO enum_nivel_acesso (pk_nivel_acesso, descricao) VALUES
+    (0, 'Banido'               ),
+    (1, 'Normal'               ),
     (2, 'Chaveiro deus supremo');
 
-CREATE TABLE IF NOT EXISTS tipo_permissao (
+CREATE TABLE IF NOT EXISTS enum_tipo_permissao (
     pk_tipo_permissao INTEGER PRIMARY KEY NOT NULL,
-    descricao TEXT NOT NULL
+    descricao         TEXT                NOT NULL
 ) STRICT, WITHOUT ROWID;
 
-INSERT INTO tipo_permissao (pk_tipo_permissao, descricao) VALUES
-    (1, 'Somente leitura'),
+INSERT INTO enum_tipo_permissao (pk_tipo_permissao, descricao) VALUES
+    (1, 'Somente leitura'  ),
     (2, 'Leitura e escrita'),
-    (3, 'Proprietário');
+    (3, 'Proprietário'     );
 
-CREATE TABLE IF NOT EXISTS tipo_segredo (
+CREATE TABLE IF NOT EXISTS enum_tipo_segredo (
     pk_tipo_segredo INTEGER PRIMARY KEY NOT NULL,
-    nome TEXT NOT NULL,
-    descricao TEXT NOT NULL
+    nome            TEXT                NOT NULL,
+    descricao       TEXT                NOT NULL
 ) STRICT, WITHOUT ROWID;
 
-INSERT INTO tipo_segredo (pk_tipo_segredo, nome, descricao) VALUES
-    (1, 'Público', 'Usuários sem permissão explícita têm acesso de leitura ao segredo e aos seus campos.'),
-    (2, 'Encontrável', 'Usuários sem permissão explícita têm acesso de encontrar o segredo, mas não de visualizar os seus campos.'),
-    (3, 'Confidencial', 'Usuários sem permissão explícita não são informados nem mesmo acerca da existência do segredo.');
-
-CREATE TABLE IF NOT EXISTS usuario (
-    pk_usuario INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    login TEXT NOT NULL UNIQUE,
-    fk_nivel_acesso INTEGER NOT NULL,
-    hash_com_sal TEXT NOT NULL,
-    FOREIGN KEY (fk_nivel_acesso) REFERENCES nivel_acesso (pk_nivel_acesso) ON DELETE RESTRICT ON UPDATE CASCADE
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS segredo (
-    pk_segredo INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    nome TEXT NOT NULL,
-    descricao TEXT NOT NULL,
-    fk_tipo_segredo INTEGER NOT NULL,
-    FOREIGN KEY (fk_tipo_segredo) REFERENCES tipo_segredo (pk_tipo_segredo) ON DELETE RESTRICT ON UPDATE CASCADE
-) STRICT;
-
-CREATE TABLE IF NOT EXISTS campo_segredo (
-    pfk_segredo INTEGER NOT NULL,
-    pk_chave TEXT NOT NULL,
-    valor TEXT NOT NULL,
-    PRIMARY KEY (pfk_segredo, pk_chave),
-    FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE
-) STRICT, WITHOUT ROWID;
-
-CREATE TABLE IF NOT EXISTS permissao (
-    pfk_usuario INTEGER NOT NULL,
-    pfk_segredo INTEGER NOT NULL,
-    fk_tipo_permissao INTEGER NOT NULL,
-    PRIMARY KEY (pfk_usuario, pfk_segredo),
-    FOREIGN KEY (pfk_usuario) REFERENCES usuario (pk_usuario) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (fk_tipo_permissao) REFERENCES tipo_permissao (pk_tipo_permissao) ON DELETE RESTRICT ON UPDATE CASCADE
-) STRICT, WITHOUT ROWID;
+INSERT INTO enum_tipo_segredo (pk_tipo_segredo, nome, descricao) VALUES
+    (1, 'Público'     , 'Usuários sem permissão explícita têm acesso de leitura ao segredo e aos seus campos.'                     ),
+    (2, 'Encontrável' , 'Usuários sem permissão explícita têm acesso de encontrar o segredo, mas não de visualizar os seus campos.'),
+    (3, 'Confidencial', 'Usuários sem permissão explícita não são informados nem mesmo acerca da existência do segredo.'           );
 
 CREATE TABLE IF NOT EXISTS categoria (
     pk_categoria INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    nome TEXT NOT NULL UNIQUE
+    nome         TEXT                              NOT NULL UNIQUE CHECK (LENGTH(nome) <= 50)
 ) STRICT;
-
-CREATE TABLE IF NOT EXISTS categoria_segredo (
-    pfk_segredo INTEGER NOT NULL,
-    pfk_categoria INTEGER NOT NULL,
-    PRIMARY KEY (pfk_segredo, pfk_categoria),
-    FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (pfk_categoria) REFERENCES categoria (pk_categoria) ON DELETE CASCADE ON UPDATE CASCADE
-) STRICT, WITHOUT ROWID;
 
 INSERT INTO categoria (nome) VALUES
     ('Banco de dados'),
@@ -88,3 +46,50 @@ INSERT INTO categoria (nome) VALUES
     ('Desenvolvimento'),
     ('QA'),
     ('Integração');
+
+CREATE TABLE IF NOT EXISTS usuario (
+    pk_usuario      INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    login           TEXT                              NOT NULL UNIQUE CHECK (LENGTH(login) >= 4 AND LENGTH(login) <= 50),
+    fk_nivel_acesso INTEGER                           NOT NULL,
+    hash_com_sal    TEXT                              NOT NULL,
+    FOREIGN KEY (fk_nivel_acesso) REFERENCES enum_nivel_acesso (pk_nivel_acesso) ON DELETE RESTRICT ON UPDATE CASCADE
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS segredo (
+    pk_segredo      INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    nome            TEXT                              NOT NULL CHECK (LENGTH(nome) >= 4 AND LENGTH(nome     ) <= 50 ),
+    descricao       TEXT                              NOT NULL CHECK (                      LENGTH(descricao) <= 500),
+    fk_tipo_segredo INTEGER                           NOT NULL,
+    FOREIGN KEY (fk_tipo_segredo) REFERENCES enum_tipo_segredo (pk_tipo_segredo) ON DELETE RESTRICT ON UPDATE CASCADE
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS campo_segredo (
+    pfk_segredo INTEGER NOT NULL,
+    pk_chave    TEXT    NOT NULL CHECK (LENGTH(pk_chave) >= 0 AND LENGTH(pk_chave) <= 500 ),
+    valor       TEXT    NOT NULL CHECK (                          LENGTH(valor   ) <= 5000),
+    PRIMARY KEY (pfk_segredo, pk_chave),
+    FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE
+) STRICT, WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS permissao (
+    pfk_usuario       INTEGER NOT NULL,
+    pfk_segredo       INTEGER NOT NULL,
+    fk_tipo_permissao INTEGER NOT NULL,
+    PRIMARY KEY (pfk_usuario, pfk_segredo),
+    FOREIGN KEY (pfk_usuario      ) REFERENCES usuario             (pk_usuario       ) ON DELETE CASCADE  ON UPDATE CASCADE,
+    FOREIGN KEY (pfk_segredo      ) REFERENCES segredo             (pk_segredo       ) ON DELETE CASCADE  ON UPDATE CASCADE,
+    FOREIGN KEY (fk_tipo_permissao) REFERENCES enum_tipo_permissao (pk_tipo_permissao) ON DELETE RESTRICT ON UPDATE CASCADE
+) STRICT, WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS categoria_segredo (
+    pfk_segredo   INTEGER NOT NULL,
+    pfk_categoria INTEGER NOT NULL,
+    PRIMARY KEY (pfk_segredo, pfk_categoria),
+    FOREIGN KEY (pfk_segredo  ) REFERENCES segredo   (pk_segredo  ) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (pfk_categoria) REFERENCES categoria (pk_categoria) ON DELETE CASCADE ON UPDATE CASCADE
+) STRICT, WITHOUT ROWID;
+
+-- A senha inicial é 'Super sigiloso, favor mudar.'
+INSERT INTO usuario (pk_usuario, login, fk_nivel_acesso, hash_com_sal) VALUES (-1, 'chaveiro', 2, 'CofreCofreb090a38e59761b45bb9460313a04df611ae8a843d609c5782af7b21e');
+INSERT INTO segredo (pk_segredo, nome, descricao, fk_tipo_segredo) VALUES (-1, 'Cofre de senhas', 'Segredos acerca do guardador de segredos.', 2);
+INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (-1, 'Chave da sessão', 'Valor super secreto, altere isto assim que possível.');

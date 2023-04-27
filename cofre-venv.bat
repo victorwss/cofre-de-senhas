@@ -1,3 +1,3 @@
-python -m venv cofre
+python -m venv pyenv
 
-.\cofre\Scripts\activate.bat
+.\pyenv\Scripts\activate.bat

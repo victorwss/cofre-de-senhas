@@ -5,7 +5,7 @@ from validator import dataclass_validate
 
 __all__ = ["Call", "Logger"]
 
-FuncT = TypeVar("FuncT", bound = Callable[..., Any])
+_FuncT = TypeVar("_FuncT", bound = Callable[..., Any])
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -21,7 +21,7 @@ class Logger:
     on_return: Callable[[Call, Any          ], None]
     on_raise : Callable[[Call, BaseException], None]
 
-    def trace(self, func: FuncT) -> FuncT:
+    def trace(self, func: _FuncT) -> _FuncT:
         @wraps(func)
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             call: Call = Call(func, args, kwargs)
@@ -33,7 +33,7 @@ class Logger:
             except BaseException as x:
                 self.on_raise(call, x)
                 raise x
-        return cast(FuncT, wrapped)
+        return cast(_FuncT, wrapped)
 
     @staticmethod
     def for_print_fn(printer: Callable[[str], None] = print) -> "Logger":
@@ -44,5 +44,3 @@ class Logger:
         on_raise : Callable[[Call, BaseException], None] = \
                 lambda call, exc: printer(f"Call on {call.callee.__qualname__} raised {exc}.")
         return Logger(on_enter, on_return, on_raise)
-
-del FuncT
