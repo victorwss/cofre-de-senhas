@@ -1,0 +1,40 @@
+from typing import TypeVar
+from connection.conn import TransactedConnection
+from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK
+
+T = TypeVar("T")
+
+def __assert_not_null(thing: T | None) -> T:
+    assert thing is not None
+    return thing
+
+class UsuarioDAOImpl(UsuarioDAO):
+
+    def __init__(self, transacted_conn: TransactedConnection) -> None:
+        self.__cf: TransactedConnection = transacted_conn
+
+    def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = ?", [pk.pk_usuario])
+        return self.__cf.fetchone_class(DadosUsuario)
+
+    def listar(self) -> list[DadosUsuario]:
+        self.__cf.execute("SELECT c.pk_usuario, c.login, c.fk_nivel_acesso, c.hash_com_sal FROM usuario c")
+        return self.__cf.fetchall_class(DadosUsuario)
+
+    def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
+        self.__cf.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)", [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
+        return UsuarioPK(__assert_not_null(self.__cf.lastrowid))
+
+    def salvar(self, dados: DadosUsuario) -> None:
+        sql = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
+        self.__cf.execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
+
+    def deletar_por_pk(self, pk: UsuarioPK) -> None:
+        self.__cf.execute("DELETE usuario WHERE pk_usuario = ?", [pk.pk_usuario])
+
+    def buscar_por_login(self, login: str) -> DadosUsuario | None:
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = ?", [login])
+        return self.__cf.fetchone_class(DadosUsuario)
+
+    #def deletar_por_login(self, login: str) -> None:
+    #    self.__cf.execute("DELETE usuario WHERE login = ?", [login])

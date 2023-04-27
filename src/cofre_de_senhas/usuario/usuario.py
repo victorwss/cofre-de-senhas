@@ -1,13 +1,14 @@
 import hashlib
 from typing import Self, TypeGuard
 from dataclasses import dataclass, replace
-from .bd import cf
-from .cofre_enum import *
-from .dao import *
-from .dao_impl import *
-from .service import *
+from cofre_de_senhas.bd.raiz import cf
+from cofre_de_senhas.erro import *
+from cofre_de_senhas.cofre_enum import NivelAcesso
+from cofre_de_senhas.dao import *
+from cofre_de_senhas.service import *
+from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
 
-udao = UsuarioDAOImpl(cf)
+dao = UsuarioDAOImpl(cf)
 
 @dataclass(frozen = True)
 class SenhaAlterada:
@@ -21,18 +22,18 @@ class Usuario:
     nivel_acesso: NivelAcesso
     hash_com_sal: str
 
-    def trocar_senha(self, nova_senha: str) -> Usuario:
+    def trocar_senha(self, nova_senha: str) -> "Usuario":
         return replace(self, hash_com_sal = Usuario.__criar_hash(nova_senha)).__salvar()
 
     def resetar_senha(self) -> SenhaAlterada:
         nova_senha: str = Usuario.__string_random()
         return SenhaAlterada(self.trocar_senha(nova_senha), nova_senha)
 
-    def alterar_nivel_de_acesso(self, novo_nivel_acesso: NivelAcesso) -> Usuario:
+    def alterar_nivel_de_acesso(self, novo_nivel_acesso: NivelAcesso) -> "Usuario":
         return replace(self, nivel_acesso = novo_nivel_acesso).__salvar()
 
     def excluir(self) -> Self:
-        udao.deletar_por_pk(self.pk)
+        dao.deletar_por_pk(self.pk)
         return self
 
     @property
@@ -52,7 +53,7 @@ class Usuario:
         return self
 
     def __salvar(self) -> Self:
-        udao.salvar(self.__down)
+        dao.salvar(self.__down)
         return self
 
     @property
@@ -72,7 +73,7 @@ class Usuario:
         return DadosUsuario(self.pk_usuario, self.login, self.nivel_acesso.value, self.hash_com_sal)
 
     @staticmethod
-    def __promote(dados: DadosUsuario) -> Usuario:
+    def __promote(dados: DadosUsuario) -> "Usuario":
         return Usuario(dados.pk_usuario, dados.login, NivelAcesso.por_codigo(dados.fk_nivel_acesso), dados.hash_com_sal)
 
     @staticmethod
@@ -92,33 +93,33 @@ class Usuario:
         return sal + hashlib.sha3_224((sal + senha).encode("utf-8")).hexdigest() == self.hash_com_sal
 
     @staticmethod
-    def fazer_login(quem_faz: LoginUsuario) -> Usuario:
-        dados: DadosUsuario | None = udao.buscar_por_login(quem_faz.login)
+    def fazer_login(quem_faz: LoginUsuario) -> "Usuario":
+        dados: DadosUsuario | None = dao.buscar_por_login(quem_faz.login)
         if dados is None: raise SenhaErradaException()
         cadastrado: Usuario = Usuario.__promote(dados)
         if not cadastrado.__comparar_hash(quem_faz.senha): raise SenhaErradaException()
         return cadastrado.permitir_acesso()
 
     @staticmethod
-    def encontrar_por_chave(chave: UsuarioChave) -> Usuario | None:
-        dados: DadosUsuario | None = udao.buscar_por_pk(UsuarioPK(chave.valor))
+    def encontrar_por_chave(chave: UsuarioChave) -> "Usuario | None":
+        dados: DadosUsuario | None = dao.buscar_por_pk(UsuarioPK(chave.valor))
         if dados is None: return None
         return Usuario.__promote(dados)
 
     @staticmethod
-    def encontrar_existente_por_chave(chave: UsuarioChave) -> Usuario:
+    def encontrar_existente_por_chave(chave: UsuarioChave) -> "Usuario":
         encontrado: Usuario | None = Usuario.encontrar_por_chave(chave)
         if encontrado is None: raise UsuarioNaoExisteException()
         return encontrado
 
     @staticmethod
-    def encontrar_por_login(login: str) -> Usuario | None:
-        dados: DadosUsuario | None = udao.buscar_por_login(login)
+    def encontrar_por_login(login: str) -> "Usuario | None":
+        dados: DadosUsuario | None = dao.buscar_por_login(login)
         if dados is None: return None
         return Usuario.__promote(dados)
 
     @staticmethod
-    def encontrar_existente_por_login(login: str) -> Usuario:
+    def encontrar_existente_por_login(login: str) -> "Usuario":
         encontrado: Usuario | None = Usuario.encontrar_por_login(login)
         if encontrado is None: raise UsuarioNaoExisteException()
         return encontrado
@@ -129,18 +130,18 @@ class Usuario:
         if talvez is not None: raise UsuarioJaExisteException()
 
     @staticmethod
-    def criar(login: str, nivel: NivelAcesso, senha: str) -> Usuario:
+    def criar(login: str, nivel: NivelAcesso, senha: str) -> "Usuario":
         Usuario.nao_existente_por_login(login)
         hash_com_sal: str = Usuario.__criar_hash(senha)
-        pk: UsuarioPK = udao.criar(DadosUsuarioSemPK(login, nivel.value, hash_com_sal))
+        pk: UsuarioPK = dao.criar(DadosUsuarioSemPK(login, nivel.value, hash_com_sal))
         return Usuario(pk.pk_usuario, login, nivel, hash_com_sal)
 
     @staticmethod
-    def listar() -> list[Usuario]:
-        return [Usuario.__promote(u) for u in udao.listar()]
+    def listar() -> list["Usuario"]:
+        return [Usuario.__promote(u) for u in dao.listar()]
 
     @staticmethod
-    def listar_por_login(logins: set[str]) -> dict[str, Usuario]:
+    def listar_por_login(logins: set[str]) -> dict[str, "Usuario"]:
         def filtragem(p: str) -> TypeGuard[tuple[str, Usuario]]:
             return p in logins
         usuarios: dict[str, Usuario] = {usuario.login: usuario for usuario in Usuario.listar()}
