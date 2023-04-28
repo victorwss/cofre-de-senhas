@@ -3,7 +3,6 @@ from typing import Generic, Self, TypeGuard
 from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace
 from cofre_de_senhas.service import *
-from cofre_de_senhas.dao import CofreDeSenhasDAO, CabecalhoDeSegredo
 from cofre_de_senhas.bd.raiz import cf, log
 from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from cofre_de_senhas.categoria.categoria import Categoria
@@ -93,12 +92,13 @@ class ServicoSegredoImpl(ServicoSegredo):
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     def criar_segredo(self, dados: SegredoSemChave) -> None:
         quem_faz: Usuario = self.__login.usuario_logado
-        Segredo.criar_segredo(quem_faz, dados)
+        Segredo.criar(quem_faz, dados)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException, PermissaoNegadaException
     def alterar_segredo(self, dados: SegredoComChave) -> None:
         self.__login.usuario_logado
         Segredo.alterar_segredo(dados)
+        #Categoria.encontrar_existente_por_nome(dados.antigo).renomear(dados.novo)
 
     # Pode lançar SegredoNaoExisteException, PermissaoNegadaException
     def excluir_segredo(self, dados: SegredoChave) -> None:

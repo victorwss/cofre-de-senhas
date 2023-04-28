@@ -43,6 +43,7 @@ class SegredoComChave:
     categorias: set[str]
     usuarios: dict[str, TipoPermissao]
 
+#    @property
 #    def sem_chave(self, chave: SegredoChave) -> "SegredoSemChave":
 #        return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 

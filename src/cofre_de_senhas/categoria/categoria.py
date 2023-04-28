@@ -1,4 +1,5 @@
 from typing import Self, TypeGuard
+from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.bd.raiz import cf
 from cofre_de_senhas.erro import *
@@ -9,6 +10,7 @@ from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
 
 dao = CategoriaDAOImpl(cf)
 
+@dataclass_validate
 @dataclass(frozen = True)
 class Categoria:
     pk_categoria: int
@@ -47,7 +49,7 @@ class Categoria:
         return Categoria(dados.pk_categoria, dados.nome)
 
     @staticmethod
-    def encontrar_por_chave(chave: CategoriaChave) -> "Categoria | None":
+    def encontrar_por_chave(chave: CategoriaChave) -> "Categoria" | None:
         dados: DadosCategoria | None = dao.buscar_por_pk(CategoriaPK(chave.valor))
         if dados is None: return None
         return Categoria.__promote(dados)
@@ -59,7 +61,7 @@ class Categoria:
         return encontrado
 
     @staticmethod
-    def encontrar_por_nome(nome: str) -> "Categoria | None":
+    def encontrar_por_nome(nome: str) -> "Categoria" | None:
         dados: DadosCategoria | None = dao.buscar_por_nome(nome)
         if dados is None: return None
         return Categoria.__promote(dados)
@@ -86,12 +88,12 @@ class Categoria:
         return [Categoria.__promote(c) for c in dao.listar()]
 
     @staticmethod
-    def listar_por_segredo(pk: SegredoPK) -> list["Categoria"]:
-        return [Categoria.__promote(c) for c in dao.listar_por_segredo(pk)]
+    def listar_por_segredo(pk: SegredoPK) -> dict[str, "Categoria"]:
+        return {c.nome: Categoria.__promote(c) for c in dao.listar_por_segredo(pk)}
 
-    @staticmethod
-    def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
-        def filtragem(p: str) -> TypeGuard[tuple[str, "Categoria"]]:
-            return p in nomes
-        categorias: dict[str, Categoria] = {categoria.nome: categoria for categoria in Categoria.listar()}
-        return dict(filter(filtragem, categorias))
+    #@staticmethod
+    #def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
+    #    def filtragem(p: str) -> TypeGuard[tuple[str, "Categoria"]]:
+    #        return p in nomes
+    #    categorias: dict[str, Categoria] = {categoria.nome: categoria for categoria in Categoria.listar()}
+    #    return dict(filter(filtragem, categorias))
