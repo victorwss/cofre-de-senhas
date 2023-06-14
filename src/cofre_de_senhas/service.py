@@ -149,7 +149,7 @@ class GerenciadorLogin(ABC):
 class ServicoBD(ABC):
 
     @abstractmethod
-    def criar_bd(self) -> None:
+    def criar_bd(self, dados: LoginUsuario) -> None:
         pass
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.

@@ -36,16 +36,16 @@ CREATE TABLE IF NOT EXISTS categoria (
     nome         TEXT    NOT NULL UNIQUE      CHECK (LENGTH(nome) <= 50)
 ) STRICT;
 
-INSERT INTO categoria (nome) VALUES
-    (1, 'Banco de dados'),
-    (2, 'Aplicação'),
-    (3, 'Servidor'),
-    (4, 'API'),
-    (5, 'Produção'),
-    (6, 'Homologação'),
+INSERT INTO categoria (pk_categoria, nome) VALUES
+    (1, 'Banco de dados' ),
+    (2, 'Aplicação'      ),
+    (3, 'Servidor'       ),
+    (4, 'API'            ),
+    (5, 'Produção'       ),
+    (6, 'Homologação'    ),
     (7, 'Desenvolvimento'),
-    (8, 'QA'),
-    (9, 'Integração');
+    (8, 'QA'             ),
+    (9, 'Integração'     );
 UPDATE sqlite_sequence SET seq = 9 WHERE name = 'categoria';
 
 CREATE TABLE IF NOT EXISTS usuario (
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS usuario (
 
 CREATE TABLE IF NOT EXISTS segredo (
     pk_segredo      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    nome            TEXT    NOT NULL             CHECK (LENGTH(nome) >= 4 AND LENGTH(nome     ) <= 50 ),
+    nome            TEXT    NOT NULL             CHECK (LENGTH(nome) >= 4 AND LENGTH(nome     ) <=  50),
     descricao       TEXT    NOT NULL             CHECK (                      LENGTH(descricao) <= 500),
     fk_tipo_segredo INTEGER NOT NULL,
     FOREIGN KEY (fk_tipo_segredo) REFERENCES enum_tipo_segredo (pk_tipo_segredo) ON DELETE RESTRICT ON UPDATE CASCADE
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS segredo (
 
 CREATE TABLE IF NOT EXISTS campo_segredo (
     pfk_segredo INTEGER NOT NULL,
-    pk_chave    TEXT    NOT NULL CHECK (LENGTH(pk_chave) >= 0 AND LENGTH(pk_chave) <= 500 ),
+    pk_chave    TEXT    NOT NULL CHECK (LENGTH(pk_chave) >= 0 AND LENGTH(pk_chave) <=  500),
     valor       TEXT    NOT NULL CHECK (                          LENGTH(valor   ) <= 5000),
     PRIMARY KEY (pfk_segredo, pk_chave),
     FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE
@@ -90,8 +90,6 @@ CREATE TABLE IF NOT EXISTS permissao (
     FOREIGN KEY (fk_tipo_permissao) REFERENCES enum_tipo_permissao (pk_tipo_permissao) ON DELETE RESTRICT ON UPDATE CASCADE
 ) STRICT, WITHOUT ROWID;
 
--- A senha inicial é 'Super sigiloso, favor mudar.'
-INSERT INTO usuario (pk_usuario, login, fk_nivel_acesso, hash_com_sal) VALUES (-1, 'chaveiro', 2, 'CofreCofreb090a38e59761b45bb9460313a04df611ae8a843d609c5782af7b21e');
 INSERT INTO segredo (pk_segredo, nome, descricao, fk_tipo_segredo) VALUES (-1, 'Cofre de senhas', 'Segredos acerca do guardador de segredos.', 2);
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (-1, 'Chave da sessão', 'Valor super secreto, altere isto assim que possível.');
+INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (-1, 'Chave da sessão', HEX(RANDOMBLOB(256)));
 INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (-1, 2);

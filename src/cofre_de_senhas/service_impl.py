@@ -8,6 +8,7 @@ from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from cofre_de_senhas.categoria.categoria import Categoria
 from cofre_de_senhas.usuario.usuario import Usuario, SenhaAlterada
 from cofre_de_senhas.segredo.segredo import Segredo
+from cofre_de_senhas.cofre_enum import NivelAcesso
 
 class ServicoLogin:
 
@@ -29,8 +30,9 @@ class ServicoBDImpl(ServicoBD):
     def __init__(self) -> None:
         self.__dao = CofreDeSenhasDAOImpl(cf)
 
-    def criar_bd(self) -> None:
+    def criar_bd(self, dados: LoginUsuario) -> None:
         self.__dao.criar_bd()
+        Usuario.criar(dados.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO, dados.senha)
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)

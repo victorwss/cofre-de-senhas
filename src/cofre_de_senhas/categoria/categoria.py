@@ -16,7 +16,7 @@ class Categoria:
     pk_categoria: int
     nome: str
 
-    def renomear(self, novo_nome: str) -> "Categoria":
+    def renomear(self, novo_nome: str) -> Self:
         Categoria.nao_existente_por_nome(novo_nome)
         return replace(self, nome = novo_nome).__salvar()
 
@@ -49,7 +49,7 @@ class Categoria:
         return Categoria(dados.pk_categoria, dados.nome)
 
     @staticmethod
-    def encontrar_por_chave(chave: CategoriaChave) -> "Categoria" | None:
+    def encontrar_por_chave(chave: CategoriaChave) -> "Categoria | None":
         dados: DadosCategoria | None = dao.buscar_por_pk(CategoriaPK(chave.valor))
         if dados is None: return None
         return Categoria.__promote(dados)
@@ -61,7 +61,7 @@ class Categoria:
         return encontrado
 
     @staticmethod
-    def encontrar_por_nome(nome: str) -> "Categoria" | None:
+    def encontrar_por_nome(nome: str) -> "Categoria | None":
         dados: DadosCategoria | None = dao.buscar_por_nome(nome)
         if dados is None: return None
         return Categoria.__promote(dados)
@@ -91,9 +91,9 @@ class Categoria:
     def listar_por_segredo(pk: SegredoPK) -> dict[str, "Categoria"]:
         return {c.nome: Categoria.__promote(c) for c in dao.listar_por_segredo(pk)}
 
-    #@staticmethod
-    #def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
-    #    def filtragem(p: str) -> TypeGuard[tuple[str, "Categoria"]]:
-    #        return p in nomes
-    #    categorias: dict[str, Categoria] = {categoria.nome: categoria for categoria in Categoria.listar()}
-    #    return dict(filter(filtragem, categorias))
+    @staticmethod
+    def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
+        def filtragem(p: str) -> TypeGuard[tuple[str, "Categoria"]]:
+            return p in nomes
+        categorias: dict[str, Categoria] = {categoria.nome: categoria for categoria in Categoria.listar()}
+        return dict(filter(filtragem, categorias))

@@ -7,10 +7,13 @@ from cofre_de_senhas.erro import *
 from cofre_de_senhas.cofre_enum import NivelAcesso, TipoPermissao
 from cofre_de_senhas.dao import *
 from cofre_de_senhas.service import *
-from cofre_de_senhas.segredo.segredo import Segredo
 from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
 
 dao = UsuarioDAOImpl(cf)
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from cofre_de_senhas.segredo.segredo import Segredo
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -21,7 +24,7 @@ class SenhaAlterada:
 @dataclass_validate
 @dataclass(frozen = True)
 class Permissao:
-    usuario: Usuario
+    usuario: "Usuario"
     tipo: TipoPermissao
 
 @dataclass_validate
@@ -111,7 +114,7 @@ class Usuario:
         return cadastrado.permitir_acesso()
 
     @staticmethod
-    def encontrar_por_chave(chave: UsuarioChave) -> "Usuario" | None:
+    def encontrar_por_chave(chave: UsuarioChave) -> "Usuario | None":
         dados: DadosUsuario | None = dao.buscar_por_pk(UsuarioPK(chave.valor))
         if dados is None: return None
         return Usuario.__promote(dados)
@@ -123,7 +126,7 @@ class Usuario:
         return encontrado
 
     @staticmethod
-    def encontrar_por_login(login: str) -> "Usuario" | None:
+    def encontrar_por_login(login: str) -> "Usuario | None":
         dados: DadosUsuario | None = dao.buscar_por_login(login)
         if dados is None: return None
         return Usuario.__promote(dados)
@@ -158,7 +161,7 @@ class Usuario:
         return dict(filter(filtragem, usuarios))
 
     @staticmethod
-    def listar_por_permissao(segredo: Segredo) -> dict[str, "Permissao"]:
+    def listar_por_permissao(segredo: "Segredo") -> dict[str, "Permissao"]:
         lista1: list[DadosUsuarioComPermissao] = dao.listar_por_permissao(segredo.pk)
         lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao.por_codigo(dados.fk_tipo_permissao)) for dados in lista1]
         return {permissao.usuario.login: permissao for permissao in lista2}

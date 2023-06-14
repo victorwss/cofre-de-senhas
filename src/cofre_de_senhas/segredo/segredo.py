@@ -43,9 +43,11 @@ class Segredo:
         return CabecalhoSegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo)
 
     @property
-    def up_eager(self) -> CabecalhoSegredoComChave:
-        permissoes: dict[str, TipoPermissao] = {k: self.usuarios[k].tipo for k in self.usuarios.keys()}
-        return SegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo, permissoes, self.categorias.keys(), self.campos)
+    def up_eager(self) -> SegredoComChave:
+        permissoes: dict[str, TipoPermissao] = {} if self.usuarios is None else {k: self.usuarios[k].tipo for k in self.usuarios.keys()}
+        campos: dict[str, str] = {} if self.campos is None else self.campos
+        categorias = {} if self.categorias is None else self.categorias
+        return SegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo, campos, set(categorias.keys()), permissoes)
 
     @property
     def __down(self) -> DadosSegredo:
@@ -64,7 +66,7 @@ class Segredo:
         return Segredo(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo.por_codigo(dados.fk_tipo_segredo), usuarios, categorias, campos)
 
     @staticmethod
-    def encontrar_por_chave(chave: SegredoChave) -> "Segredo" | None:
+    def encontrar_por_chave(chave: SegredoChave) -> "Segredo | None":
         dados: DadosSegredo | None = dao.buscar_por_pk(SegredoPK(chave.valor))
         if dados is None: return None
         return Segredo.__promote_eager(dados)
@@ -94,15 +96,30 @@ class Segredo:
             dao.criar_categoria_segredo(spk, categoria.pk)
 
     @staticmethod
-    def criar(quem_faz: Usuario, dados: SegredoSemChave) -> None:
+    def criar(quem_faz: Usuario, dados: SegredoSemChave) -> "Segredo":
         if not quem_faz.is_admin and dados.usuarios[quem_faz.login] != TipoPermissao.PROPRIETARIO: raise PermissaoNegadaException()
 
-        usuarios: dict[str, Usuario] = Usuario.listar_por_login({*dados.usuarios})
-        categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
+        todos_usuarios: dict[str, Usuario] = Usuario.listar_por_login({*dados.usuarios})
+        permissoes: dict[str, Permissao] = {}
+
+        for k in dados.usuarios:
+            if k not in todos_usuarios:
+                raise UsuarioNaoExisteException()
+            permissoes[k] = Permissao(todos_usuarios[k], dados.usuarios[k])
+
+        todas_categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
+        categorias: dict[str, Categoria] = {}
+
+        for k in dados.categorias:
+            if k not in todas_categorias:
+                raise CategoriaNaoExisteException()
+            categorias[k] = todas_categorias[k]
 
         rowid: SegredoPK = dao.criar(DadosSegredoSemPK(dados.nome, dados.descricao, dados.tipo.value))
+        s: Segredo = Segredo(rowid.pk_segredo, dados.nome, dados.descricao, dados.tipo, permissoes, categorias, dados.campos)
 
-        Segredo.__alterar_dados_segredo(dados.com_chave(SegredoChave(rowid.pk_segredo)), usuarios, categorias)
+        s.__alterar_dados_segredo()
+        return s
 
     @staticmethod
     def listar() -> list["Segredo"]:
@@ -138,8 +155,9 @@ class Segredo:
 
     @staticmethod
     def buscar_segredo(quem_faz: Usuario, chave: SegredoChave) -> SegredoComChave:
-        segredo: Segredo = encontrar_existente_por_chave(chave)
-        if not quem_faz.is_admin and quem_faz.login not in segredo.usuarios.keys(): raise SegredoNaoExisteException()
+        segredo: Segredo = Segredo.encontrar_existente_por_chave(chave)
+        u: dict[str, Permissao] = {} if segredo.usuarios is None else segredo.usuarios
+        if not quem_faz.is_admin and quem_faz.login not in u.keys(): raise SegredoNaoExisteException()
         return segredo.up_eager
 
     @staticmethod

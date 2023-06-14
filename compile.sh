@@ -5,6 +5,7 @@ python -m mypy --strict --install-types ^
     .\src\mariadb\constants\__init__.pyi ^
     .\src\mariadb\constants\FIELD_FLAG.pyi ^
     .\src\mariadb\constants\FIELD_TYPE.pyi ^
+    .\src\admin.py ^
     .\src\cofre.py ^
     .\src\validator.py ^
     .\src\decorators\__init__.py ^

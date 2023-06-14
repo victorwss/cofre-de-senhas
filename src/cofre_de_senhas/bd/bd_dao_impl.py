@@ -7,7 +7,7 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
         self.__cf: TransactedConnection = transacted_conn
 
     def sql_criar_bd(self) -> str:
-        with open("create.sql", "r") as f:
+        with open("src/create.sql", "r") as f:
             return f.read()
 
     def criar_bd(self) -> None:

@@ -1,12 +1,5 @@
-from typing import TypeVar
 from connection.conn import TransactedConnection
 from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, DadosUsuarioComPermissao
-
-_T = TypeVar("_T")
-
-def __assert_not_null(thing: _T | None) -> _T:
-    assert thing is not None
-    return thing
 
 class UsuarioDAOImpl(UsuarioDAO):
 
@@ -25,7 +18,9 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
         self.__cf.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)", [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
-        return UsuarioPK(__assert_not_null(self.__cf.lastrowid))
+        last: int | None = self.__cf.lastrowid
+        assert last is not None
+        return UsuarioPK(last)
 
     def salvar(self, dados: DadosUsuario) -> None:
         sql = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
@@ -46,5 +41,5 @@ class UsuarioDAOImpl(UsuarioDAO):
     # Métodos com joins em outras tabelas
 
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:
-        self.__cf.execute("SELECT u.pk_usuario, u.login, u.fk_nivel_acesso, u.hash_com_sal, p.fk_tipo_permissao FROM usuario u INNER JOIN permissao p WHERE u.pk_usuario = p.pfk_usuario WHERE p.pfk_segredo = ?", [pk.pk_segredo])
+        self.__cf.execute("SELECT u.pk_usuario, u.login, u.fk_nivel_acesso, u.hash_com_sal, p.fk_tipo_permissao FROM usuario u INNER JOIN permissao p ON u.pk_usuario = p.pfk_usuario WHERE p.pfk_segredo = ?", [pk.pk_segredo])
         return self.__cf.fetchall_class(DadosUsuarioComPermissao)
