@@ -1,8 +1,6 @@
 from typing import Any, cast, Self, Sequence
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, Tribool, TypeCode
+from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode
 from sqlite3 import Cursor, Connection, NotSupportedError
-
-__all__ = ["Sqlite3ConnectionWrapper"]
 
 class Sqlite3ConnectionWrapper(SimpleConnection):
 
@@ -57,7 +55,7 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
                 name = k[0], \
                 type_code = TypeCode.UNSPECIFIED,
                 column_type_name = "Unspecified",
-                null_ok = Tribool.DONT_KNOW
+                null_ok = NullStatus.DONT_KNOW
         )
 
     @property

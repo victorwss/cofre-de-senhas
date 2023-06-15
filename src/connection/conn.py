@@ -8,12 +8,6 @@ from functools import wraps
 from enum import Enum
 import threading
 
-__all__ = [
-    "row_to_dict", "row_to_dict_opt", "rows_to_dicts", "row_to_class", "row_to_class_opt", "rows_to_classes",
-    "TypeCode", "ColumnDescriptor", "Descriptor",
-    "SimpleConnection", "TransactedConnection", "TransactionNotActiveException",
-]
-
 _T = TypeVar("_T")
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
@@ -31,10 +25,18 @@ class TypeCode(Enum):
     OTHER = "OTHER"
     UNSPECIFIED = "UNSPECIFIED"
 
-class Tribool(Enum):
+class NullStatus(Enum):
     YES = "Yes"
     NO = "No"
     DONT_KNOW = "Don't know"
+
+@dataclass_validate
+@dataclass(frozen = True)
+class FieldFlags:
+    raw_value: int
+    meanings : frozenset[str]
+
+__empty = FieldFlags(0, frozenset())
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -46,8 +48,8 @@ class ColumnDescriptor:
     internal_size       : int  | None
     precision           : int  | None
     scale               : int  | None
-    null_ok             : Tribool
-    field_flags         : int  | None
+    null_ok             : NullStatus
+    field_flags         : FieldFlags
     table_name          : str  | None
     original_column_name: str  | None
     original_table_name : str  | None
@@ -62,8 +64,8 @@ class ColumnDescriptor:
             internal_size       : int  | None = None, \
             precision           : int  | None = None, \
             scale               : int  | None = None, \
-            null_ok             : Tribool, \
-            field_flags         : int  | None = None, \
+            null_ok             : NullStatus, \
+            field_flags         : FieldFlags = __empty, \
             table_name          : str  | None = None, \
             original_column_name: str  | None = None, \
             original_table_name : str  | None = None, \
@@ -216,6 +218,12 @@ class SimpleConnection(ABC):
     def lastrowid(self) -> int | None:
         ...
 
+    @property
+    def asserted_lastrowid(self) -> int:
+        last: int | None = self.lastrowid
+        assert last is not None
+        return last
+
     def next(self) -> tuple[Any, ...] | None:
         return self.fetchone()
 
@@ -364,6 +372,10 @@ class TransactedConnection(SimpleConnection):
     @property
     def lastrowid(self) -> int | None:
         return self.__wrapped.lastrowid
+
+    @property
+    def asserted_lastrowid(self) -> int:
+        return self.__wrapped.asserted_lastrowid
 
     @property
     def raw_connection(self) -> object:

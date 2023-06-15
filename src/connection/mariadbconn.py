@@ -1,105 +1,103 @@
 from typing import Any, Callable, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, Tribool, TypeCode
+from .conn import ColumnDescriptor, Descriptor, FieldFlags, NullStatus, SimpleConnection, TypeCode
 from mariadb.connections import Connection as MariaDBConnection
 from mariadb.cursors import Cursor as MariaDBCursor
 from mariadb.constants import FIELD_FLAG, FIELD_TYPE
 from dataclasses import dataclass
 from validator import dataclass_validate
 
-__all__ = ["MariaDBConnectionWrapper"]
-
 @dataclass_validate
 @dataclass(frozen = True)
-class InternalCode:
+class _InternalCode:
     name: str
     value: int
     type: TypeCode
 
 # See https://dev.mysql.com/doc/dev/connector-net/6.10/html/T_MySql_Data_MySqlClient_MySqlDbType.htm
 # See https://mariadb-corporation.github.io/mariadb-connector-python/constants.html#module-mariadb.constants.FIELD_TYPE
-__codes: list[InternalCode] = [
-    InternalCode("Decimal"   ,   0, TypeCode.INTEGER ),
-    InternalCode("Byte"      ,   1, TypeCode.INTEGER ), #FIELD_TYPE.TINY
-    InternalCode("Int16"     ,   2, TypeCode.INTEGER ), #FIELD_TYPE.SHORT
-    InternalCode("Int32"     ,   3, TypeCode.INTEGER ), #FIELD_TYPE.LONG
-    InternalCode("Float"     ,   4, TypeCode.FLOAT   ), #FIELD_TYPE.FLOAT
-    InternalCode("Double"    ,   5, TypeCode.FLOAT   ), #FIELD_TYPE.DOUBLE
-    InternalCode("Null"      ,   6, TypeCode.NULL    ), #FIELD_TYPE.NULL
-    InternalCode("Timestamp" ,   7, TypeCode.DATETIME), #FIELD_TYPE.TIMESTAMP
-    InternalCode("Int64"     ,   8, TypeCode.INTEGER ), #FIELD_TYPE.LONGLONG
-    InternalCode("Int24"     ,   9, TypeCode.INTEGER ), #FIELD_TYPE.INT24
-    InternalCode("Date"      ,  10, TypeCode.DATE    ), #FIELD_TYPE.DATE
-    InternalCode("Time"      ,  11, TypeCode.TIME    ), #FIELD_TYPE.TIME
-    InternalCode("Datetime"  ,  12, TypeCode.DATETIME), #FIELD_TYPE.DATETIME
-    InternalCode("Year"      ,  13, TypeCode.INTEGER ), #FIELD_TYPE.YEAR
-    InternalCode("NewDate"   ,  14, TypeCode.DATETIME),
-    InternalCode("VarString" ,  15, TypeCode.STRING  ), #FIELD_TYPE.VARCHAR
-    InternalCode("Bit"       ,  16, TypeCode.INTEGER ), #FIELD_TYPE.BIT
-    InternalCode("Json"      , 245, TypeCode.STRING  ), #FIELD_TYPE.JSON
-    InternalCode("NewDecimal", 246, TypeCode.INTEGER ), #FIELD_TYPE.NEWDECIMAL
-    InternalCode("Enum"      , 247, TypeCode.STRING  ), #FIELD_TYPE.ENUM
-    InternalCode("Set"       , 248, TypeCode.STRING  ), #FIELD_TYPE.SET
-    InternalCode("TinyBlob"  , 249, TypeCode.BINARY  ), #FIELD_TYPE.TINY_BLOB
-    InternalCode("MediumBlob", 250, TypeCode.BINARY  ), #FIELD_TYPE.MEDIUM_BLOB
-    InternalCode("LongBlob"  , 251, TypeCode.BINARY  ), #FIELD_TYPE.LONG_BLOB
-    InternalCode("Blob"      , 252, TypeCode.BINARY  ), #FIELD_TYPE.BLOB
-    InternalCode("Varchar"   , 253, TypeCode.STRING  ), #FIELD_TYPE.VAR_STRING
-    InternalCode("String"    , 254, TypeCode.STRING  ), #FIELD_TYPE.STRING
-    InternalCode("Geometry"  , 255, TypeCode.OTHER   ), #FIELD_TYPE.GEOMETRY
-    InternalCode("UByte"     , 501, TypeCode.INTEGER ),
-    InternalCode("UInt16"    , 502, TypeCode.INTEGER ),
-    InternalCode("UInt32"    , 503, TypeCode.INTEGER ),
-    InternalCode("UInt64"    , 508, TypeCode.INTEGER ),
-    InternalCode("UInt24"    , 509, TypeCode.INTEGER ),
-    InternalCode("Varbinary" , 753, TypeCode.BINARY  ),
-    InternalCode("Binary"    , 754, TypeCode.BINARY  ),
-    InternalCode("TinyText"  , 749, TypeCode.BINARY  ),
-    InternalCode("MediumText", 750, TypeCode.BINARY  ),
-    InternalCode("LongText"  , 751, TypeCode.BINARY  ),
-    InternalCode("Text"      , 752, TypeCode.BINARY  ),
-    InternalCode("Guid"      , 854, TypeCode.STRING  )
+__codes: list[_InternalCode] = [
+    _InternalCode("Decimal"   ,   0, TypeCode.INTEGER ),
+    _InternalCode("Byte"      ,   1, TypeCode.INTEGER ), #FIELD_TYPE.TINY
+    _InternalCode("Int16"     ,   2, TypeCode.INTEGER ), #FIELD_TYPE.SHORT
+    _InternalCode("Int32"     ,   3, TypeCode.INTEGER ), #FIELD_TYPE.LONG
+    _InternalCode("Float"     ,   4, TypeCode.FLOAT   ), #FIELD_TYPE.FLOAT
+    _InternalCode("Double"    ,   5, TypeCode.FLOAT   ), #FIELD_TYPE.DOUBLE
+    _InternalCode("Null"      ,   6, TypeCode.NULL    ), #FIELD_TYPE.NULL
+    _InternalCode("Timestamp" ,   7, TypeCode.DATETIME), #FIELD_TYPE.TIMESTAMP
+    _InternalCode("Int64"     ,   8, TypeCode.INTEGER ), #FIELD_TYPE.LONGLONG
+    _InternalCode("Int24"     ,   9, TypeCode.INTEGER ), #FIELD_TYPE.INT24
+    _InternalCode("Date"      ,  10, TypeCode.DATE    ), #FIELD_TYPE.DATE
+    _InternalCode("Time"      ,  11, TypeCode.TIME    ), #FIELD_TYPE.TIME
+    _InternalCode("Datetime"  ,  12, TypeCode.DATETIME), #FIELD_TYPE.DATETIME
+    _InternalCode("Year"      ,  13, TypeCode.INTEGER ), #FIELD_TYPE.YEAR
+    _InternalCode("NewDate"   ,  14, TypeCode.DATETIME),
+    _InternalCode("VarString" ,  15, TypeCode.STRING  ), #FIELD_TYPE.VARCHAR
+    _InternalCode("Bit"       ,  16, TypeCode.INTEGER ), #FIELD_TYPE.BIT
+    _InternalCode("Json"      , 245, TypeCode.STRING  ), #FIELD_TYPE.JSON
+    _InternalCode("NewDecimal", 246, TypeCode.INTEGER ), #FIELD_TYPE.NEWDECIMAL
+    _InternalCode("Enum"      , 247, TypeCode.STRING  ), #FIELD_TYPE.ENUM
+    _InternalCode("Set"       , 248, TypeCode.STRING  ), #FIELD_TYPE.SET
+    _InternalCode("TinyBlob"  , 249, TypeCode.BINARY  ), #FIELD_TYPE.TINY_BLOB
+    _InternalCode("MediumBlob", 250, TypeCode.BINARY  ), #FIELD_TYPE.MEDIUM_BLOB
+    _InternalCode("LongBlob"  , 251, TypeCode.BINARY  ), #FIELD_TYPE.LONG_BLOB
+    _InternalCode("Blob"      , 252, TypeCode.BINARY  ), #FIELD_TYPE.BLOB
+    _InternalCode("Varchar"   , 253, TypeCode.STRING  ), #FIELD_TYPE.VAR_STRING
+    _InternalCode("String"    , 254, TypeCode.STRING  ), #FIELD_TYPE.STRING
+    _InternalCode("Geometry"  , 255, TypeCode.OTHER   ), #FIELD_TYPE.GEOMETRY
+    _InternalCode("UByte"     , 501, TypeCode.INTEGER ),
+    _InternalCode("UInt16"    , 502, TypeCode.INTEGER ),
+    _InternalCode("UInt32"    , 503, TypeCode.INTEGER ),
+    _InternalCode("UInt64"    , 508, TypeCode.INTEGER ),
+    _InternalCode("UInt24"    , 509, TypeCode.INTEGER ),
+    _InternalCode("Varbinary" , 753, TypeCode.BINARY  ),
+    _InternalCode("Binary"    , 754, TypeCode.BINARY  ),
+    _InternalCode("TinyText"  , 749, TypeCode.BINARY  ),
+    _InternalCode("MediumText", 750, TypeCode.BINARY  ),
+    _InternalCode("LongText"  , 751, TypeCode.BINARY  ),
+    _InternalCode("Text"      , 752, TypeCode.BINARY  ),
+    _InternalCode("Guid"      , 854, TypeCode.STRING  )
 ]
 
-__codemap: dict[int, InternalCode] = {code.value: code for code in __codes}
+__codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
 
-def __find_code(code: int) -> InternalCode:
-    return __codemap.get(code, InternalCode("Unknown", code, TypeCode.OTHER))
+def _find_code(code: int) -> _InternalCode:
+    return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
 
 @dataclass_validate
 @dataclass(frozen = True)
-class Flag:
+class _Flag:
     name: str
     test: Callable[[int], bool]
 
-__flags: list[Flag] = [
-    Flag("Not Null"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) != 0),
-    Flag("Nullable"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) == 0),
-    Flag("Primary Key"  , lambda x: (x & FIELD_FLAG.PRIMARY_KEY   ) != 0),
-    Flag("Unique Key"   , lambda x: (x & FIELD_FLAG.UNIQUE_KEY    ) != 0),
-    Flag("Multiple Key" , lambda x: (x & FIELD_FLAG.MULTIPLE_KEY  ) != 0),
-    Flag("Blob"         , lambda x: (x & FIELD_FLAG.BLOB          ) != 0),
-    Flag("Unsigned"     , lambda x: (x & FIELD_FLAG.UNSIGNED      ) != 0),
-    Flag("Zero fill"    , lambda x: (x & FIELD_FLAG.ZEROFILL      ) != 0),
-    Flag("Binary"       , lambda x: (x & FIELD_FLAG.BINARY        ) != 0),
-    Flag("Enum"         , lambda x: (x & FIELD_FLAG.ENUM          ) != 0),
-    Flag("Autoincrement", lambda x: (x & FIELD_FLAG.AUTO_INCREMENT) != 0),
-    Flag("Timestamp"    , lambda x: (x & FIELD_FLAG.TIMESTAMP     ) != 0),
-    Flag("Set"          , lambda x: (x & FIELD_FLAG.SET           ) != 0),
-    Flag("No default"   , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) != 0),
-    Flag("Has default"  , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) == 0),
-    Flag("On update now", lambda x: (x & FIELD_FLAG.ON_UPDATE_NOW ) != 0),
-    Flag("Numeric"      , lambda x: (x & FIELD_FLAG.NUMERIC       ) != 0),
-   #Flag("Unique"       , lambda x: (x & FIELD_FLAG.UNIQUE        ) != 0),
-    Flag("Part of key"  , lambda x: (x & FIELD_FLAG.PART_OF_KEY   ) != 0),
-    Flag("Signed"       , lambda x: (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0)
+__flags: list[_Flag] = [
+    _Flag("Not Null"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) != 0),
+    _Flag("Nullable"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) == 0),
+    _Flag("Primary Key"  , lambda x: (x & FIELD_FLAG.PRIMARY_KEY   ) != 0),
+    _Flag("Unique Key"   , lambda x: (x & FIELD_FLAG.UNIQUE_KEY    ) != 0),
+    _Flag("Multiple Key" , lambda x: (x & FIELD_FLAG.MULTIPLE_KEY  ) != 0),
+    _Flag("Blob"         , lambda x: (x & FIELD_FLAG.BLOB          ) != 0),
+    _Flag("Unsigned"     , lambda x: (x & FIELD_FLAG.UNSIGNED      ) != 0),
+    _Flag("Zero fill"    , lambda x: (x & FIELD_FLAG.ZEROFILL      ) != 0),
+    _Flag("Binary"       , lambda x: (x & FIELD_FLAG.BINARY        ) != 0),
+    _Flag("Enum"         , lambda x: (x & FIELD_FLAG.ENUM          ) != 0),
+    _Flag("Autoincrement", lambda x: (x & FIELD_FLAG.AUTO_INCREMENT) != 0),
+    _Flag("Timestamp"    , lambda x: (x & FIELD_FLAG.TIMESTAMP     ) != 0),
+    _Flag("Set"          , lambda x: (x & FIELD_FLAG.SET           ) != 0),
+    _Flag("No default"   , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) != 0),
+    _Flag("Has default"  , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) == 0),
+    _Flag("On update now", lambda x: (x & FIELD_FLAG.ON_UPDATE_NOW ) != 0),
+    _Flag("Numeric"      , lambda x: (x & FIELD_FLAG.NUMERIC       ) != 0),
+   #_Flag("Unique"       , lambda x: (x & FIELD_FLAG.UNIQUE        ) != 0),
+    _Flag("Part of key"  , lambda x: (x & FIELD_FLAG.PART_OF_KEY   ) != 0),
+    _Flag("Signed"       , lambda x: (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0)
 ]
 
-def __find_flags(code: int) -> set[Flag]:
-    result: list[Flag] = []
+def find_flags(code: int) -> FieldFlags:
+    result: list[str] = []
     for f in __flags:
         if f.test(code):
-            result.append(f)
-    return set(result)
+            result.append(f.name)
+    return FieldFlags(code, frozenset(result))
 
 class MariaDBConnectionWrapper(SimpleConnection):
 
@@ -152,16 +150,17 @@ class MariaDBConnectionWrapper(SimpleConnection):
         return self.__curr.rowcount
 
     def __make_descriptor(self, k: tuple[str, int, int, int, int, int, int, int, str, str, str]) -> ColumnDescriptor:
+        code: _InternalCode = _find_code(k[1])
         return ColumnDescriptor.create( \
                 name = k[0], \
-                type_code = __find_code(k[1]).type, \
-                column_type_name = __find_code(k[1]).name, \
+                type_code = code.type, \
+                column_type_name = code.name, \
                 display_size = k[2], \
                 internal_size = k[3], \
                 precision = k[4], \
                 scale = k[5], \
-                null_ok = Tribool.YES if k[6] != 0 else Tribool.NO, \
-                field_flags = k[7], \
+                null_ok = NullStatus.YES if k[6] != 0 else NullStatus.NO, \
+                field_flags = find_flags(k[7]), \
                 table_name = k[8], \
                 original_column_name = k[9], \
                 original_table_name = k[10] \

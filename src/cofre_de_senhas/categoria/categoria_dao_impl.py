@@ -1,12 +1,5 @@
-from typing import TypeVar
 from connection.conn import TransactedConnection
 from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK
-
-_T = TypeVar("_T")
-
-def __assert_not_null(thing: _T | None) -> _T:
-    assert thing is not None
-    return thing
 
 class CategoriaDAOImpl(CategoriaDAO):
 
@@ -25,7 +18,7 @@ class CategoriaDAOImpl(CategoriaDAO):
 
     def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
         self.__cf.execute("INSERT INTO categoria (nome) VALUES (?)", [dados.nome])
-        return CategoriaPK(__assert_not_null(self.__cf.lastrowid))
+        return CategoriaPK(self.__cf.asserted_lastrowid)
 
     def salvar(self, dados: DadosCategoria) -> None:
         sql = "UPDATE categoria SET pk_categoria = ?, nome = ? WHERE pk_categoria = ?"

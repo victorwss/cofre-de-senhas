@@ -18,9 +18,7 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
         self.__cf.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)", [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
-        last: int | None = self.__cf.lastrowid
-        assert last is not None
-        return UsuarioPK(last)
+        return UsuarioPK(self.__cf.asserted_lastrowid)
 
     def salvar(self, dados: DadosUsuario) -> None:
         sql = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
