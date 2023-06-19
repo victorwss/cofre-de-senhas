@@ -12,6 +12,11 @@ class UsuarioDAOImpl(UsuarioDAO):
         self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = ?", [pk.pk_usuario])
         return self.__cf.fetchone_class(DadosUsuario)
 
+    def buscar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
+        wildcards: str = ", ".join(["?" for pk in pks])
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario IN (" + wildcards + ")", [pk.pk_usuario for pk in pks])
+        return self.__cf.fetchall_class(DadosUsuario)
+
     def listar(self) -> list[DadosUsuario]:
         self.__cf.execute("SELECT c.pk_usuario, c.login, c.fk_nivel_acesso, c.hash_com_sal FROM usuario c")
         return self.__cf.fetchall_class(DadosUsuario)

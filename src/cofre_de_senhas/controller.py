@@ -1,7 +1,6 @@
-from typing import Any, Callable, cast, TypeVar
-from flask import Flask, jsonify, request, session
-from flask.wrappers import Response
-from functools import wraps
+from typing import cast
+from flask import Flask, request, session
+from cofre_de_senhas.httpwrap import *
 from cofre_de_senhas.cofre_enum import *
 from cofre_de_senhas.service import *
 from cofre_de_senhas.service_impl import *
@@ -40,33 +39,37 @@ su: ServicoUsuario = ServicoUsuarioImpl(gl)
 sc: ServicoCategoria = ServicoCategoriaImpl(gl)
 ss: ServicoSegredo = ServicoSegredoImpl(gl)
 
-_FuncE = TypeVar("_FuncE", bound = Callable[..., Response | tuple[Response, int]])
-def handler(decorate: _FuncE) -> _FuncE:
-    @wraps(decorate)
-    def decorator(*args: Any, **kwargs: Any) -> Response | tuple[Response, int]:
-        try:
-            return decorate(*args, **kwargs)
-        except BaseException as e:
-            erro: Erro = Erro.criar(e)
-            return jsonify(erro), erro.status
-    return cast(_FuncE, decorator)
-
 app.secret_key = ss.buscar_segredo_por_chave(SegredoChave(-1)).campos["Chave da sessão"]
 
 @app.route("/login", methods = ["POST"])
-@handler
-def login() -> Response:
+@empty_json
+def login() -> None:
     raise Exception("TO DO")
 
 @app.route("/categorias/<int:pk_categoria>")
-@handler
-def buscar_categoria(pk_categoria: int) -> Response:
-    return jsonify(sc.listar_categorias())
+@jsoner
+def buscar_categoria_por_chave(pk_categoria: int) -> CategoriaComChave:
+    return sc.buscar_categoria_por_chave(CategoriaChave(pk_categoria))
+
+@app.route("/categorias/<nome>")
+@jsoner
+def buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
+    return sc.buscar_categoria_por_nome(NomeCategoria(nome))
+
+@app.route("/categorias/<nome>", methods = ["PUT"])
+@jsoner
+def criar_categoria(nome: str) -> CategoriaComChave:
+    return sc.criar_categoria(NomeCategoria(nome))
 
 @app.route("/categorias")
-@handler
-def listar_categorias() -> Response:
-    return jsonify(sc.listar_categorias())
+@jsoner
+def listar_categorias() -> ResultadoListaDeCategorias:
+    return sc.listar_categorias()
+
+@app.route("/categorias/<nome>", methods = ["DELETE"])
+@empty_json
+def excluir_categoria(nome: str) -> None:
+    sc.excluir_categoria(NomeCategoria(nome))
 
 def servir() -> None:
     app.run(host = "0.0.0.0", port = 5000)

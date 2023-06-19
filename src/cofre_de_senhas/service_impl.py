@@ -16,12 +16,8 @@ class ServicoLogin:
         self.__gl = gl
 
     @property
-    def usuario_logado(self) -> Usuario:
-        return Usuario.encontrar_existente_por_chave(self.__gl.usuario_logado).permitir_acesso()
-
-    @property
-    def admin_logado(self) -> Usuario:
-        return self.usuario_logado.permitir_admin()
+    def logado(self) -> UsuarioChave:
+        return self.__gl.usuario_logado
 
 @for_all_methods(log.trace)
 @for_all_methods(cf.transact)
@@ -30,9 +26,9 @@ class ServicoBDImpl(ServicoBD):
     def __init__(self) -> None:
         self.__dao = CofreDeSenhasDAOImpl(cf)
 
-    def criar_bd(self, dados: LoginUsuario) -> None:
+    def criar_bd(self, dados: LoginComSenha) -> None:
         self.__dao.criar_bd()
-        Usuario.criar(dados.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO, dados.senha)
+        Usuario.servicos().criar_admin(dados)
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
@@ -44,44 +40,38 @@ class ServicoUsuarioImpl(ServicoUsuario):
         self.__gl: GerenciadorLogin = gl
 
     # Pode lançar SenhaErradaException
-    def login(self, quem_faz: LoginUsuario) -> None:
-        self.__gl.login(Usuario.fazer_login(quem_faz).chave)
+    def login(self, quem_faz: LoginComSenha) -> None:
+        self.__gl.login(Usuario.servicos().fazer_login(quem_faz))
 
     def logout(self) -> None:
         self.__gl.logout()
 
     # Pode lançar PermissaoNegadaException, UsuarioJaExisteException
-    def criar_usuario(self, dados: UsuarioNovo) -> None:
-        self.__login.admin_logado
-        Usuario.criar(dados.login, dados.nivel_acesso, dados.senha)
+    def criar_usuario(self, dados: UsuarioNovo) -> UsuarioComChave:
+        return Usuario.servicos().criar(self.__login.logado, dados)
 
     def trocar_senha(self, dados: NovaSenha) -> None:
-        self.__login.usuario_logado.trocar_senha(dados.senha)
+        Usuario.servicos().redefinir_senha(self.__login.logado, dados)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     def resetar_senha(self, dados: ResetLoginUsuario) -> str:
-        self.__login.admin_logado
-        return Usuario.encontrar_existente_por_login(dados.login).resetar_senha().nova_senha
+        return Usuario.servicos().resetar_senha_por_login(self.__login.logado, dados)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     def alterar_nivel_de_acesso(self, dados: UsuarioComNivel) -> None:
-        self.__login.admin_logado
-        Usuario.encontrar_existente_por_login(dados.login).alterar_nivel_de_acesso(dados.nivel_acesso)
+        Usuario.servicos().alterar_nivel(self.__login.logado, dados)
 
     # Pode lançar UsuarioNaoExisteException
-    def buscar_usuario_por_login(self, login: str) -> UsuarioComChave:
-        self.__login.usuario_logado
-        return Usuario.encontrar_existente_por_login(login).up
+    def buscar_usuario_por_login(self, dados: LoginUsuario) -> UsuarioComChave:
+        return Usuario.servicos().buscar_por_login(self.__login.logado, dados.login)
 
     # Pode lançar UsuarioNaoExisteException
     def buscar_usuario_por_chave(self, chave: UsuarioChave) -> UsuarioComChave:
-        self.__login.usuario_logado
-        return Usuario.encontrar_existente_por_chave(chave).up
+        return Usuario.servicos().buscar_existente_por_chave(self.__login.logado, chave)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     def listar_usuarios(self) -> ResultadoListaDeUsuarios:
-        self.__login.usuario_logado
-        return ResultadoListaDeUsuarios([x.up for x in Usuario.listar()])
+        return Usuario.servicos().listar_todos(self.__login.logado)
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
@@ -92,34 +82,27 @@ class ServicoSegredoImpl(ServicoSegredo):
         self.__login: ServicoLogin = ServicoLogin(gl)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
-    def criar_segredo(self, dados: SegredoSemChave) -> None:
-        quem_faz: Usuario = self.__login.usuario_logado
-        Segredo.criar(quem_faz, dados)
+    def criar_segredo(self, dados: SegredoSemChave) -> SegredoComChave:
+        return Segredo.servicos().criar(self.__login.logado, dados)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException, PermissaoNegadaException
     def alterar_segredo(self, dados: SegredoComChave) -> None:
-        self.__login.usuario_logado
-        Segredo.alterar_segredo(dados)
-        #Categoria.encontrar_existente_por_nome(dados.antigo).renomear(dados.novo)
+        Segredo.servicos().alterar(self.__login.logado, dados)
 
     # Pode lançar SegredoNaoExisteException, PermissaoNegadaException
     def excluir_segredo(self, dados: SegredoChave) -> None:
-        quem_faz: Usuario = self.__login.usuario_logado
-        Segredo.excluir_segredo(quem_faz, dados)
+        Segredo.servicos().excluir(self.__login.logado, dados)
 
     def listar_segredos(self) -> ResultadoPesquisaDeSegredos:
-        quem_faz: Usuario = self.__login.usuario_logado
-        return ResultadoPesquisaDeSegredos([x.up for x in Segredo.listar_segredos(quem_faz)])
+        return Segredo.servicos().listar(self.__login.logado)
 
     # Pode lançar SegredoNaoExisteException
     def buscar_segredo_por_chave(self, chave: SegredoChave) -> SegredoComChave:
-        quem_faz: Usuario = self.__login.usuario_logado
-        return Segredo.buscar_segredo(quem_faz, chave)
+        return Segredo.servicos().buscar(self.__login.logado, chave)
 
-    # Não implementado ainda! Pode lançar SegredoNaoExisteException
+    # Pode lançar SegredoNaoExisteException
     def pesquisar_segredos(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
-        quem_faz: Usuario = self.__login.usuario_logado
-        return Segredo.pesquisar_segredos(quem_faz, dados)
+        return Segredo.servicos().pesquisar(self.__login.logado, dados)
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
@@ -130,30 +113,24 @@ class ServicoCategoriaImpl(ServicoCategoria):
         self.__login: ServicoLogin = ServicoLogin(gl)
 
     # Pode lançar CategoriaNaoExisteException
-    def buscar_categoria_por_nome(self, nome: str) -> CategoriaComChave:
-        self.__login.usuario_logado
-        return Categoria.encontrar_existente_por_nome(nome).up
+    def buscar_categoria_por_nome(self, dados: NomeCategoria) -> CategoriaComChave:
+        return Categoria.servicos().buscar_por_nome(self.__login.logado, dados)
 
     # Pode lançar CategoriaNaoExisteException
     def buscar_categoria_por_chave(self, chave: CategoriaChave) -> CategoriaComChave:
-        self.__login.usuario_logado
-        return Categoria.encontrar_existente_por_chave(chave).up
+        return Categoria.servicos().buscar_por_chave(self.__login.logado, chave)
 
     # Pode lançar CategoriaJaExisteException
-    def criar_categoria(self, dados: NomeCategoria) -> None:
-        self.__login.admin_logado
-        Categoria.criar(dados.nome)
+    def criar_categoria(self, dados: NomeCategoria) -> CategoriaComChave:
+        return Categoria.servicos().criar(self.__login.logado, dados)
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
     def renomear_categoria(self, dados: RenomeCategoria) -> None:
-        self.__login.admin_logado
-        Categoria.encontrar_existente_por_nome(dados.antigo).renomear(dados.novo)
+        Categoria.servicos().renomear(self.__login.logado, dados)
 
     # Pode lançar CategoriaNaoExisteException
     def excluir_categoria(self, dados: NomeCategoria) -> None:
-        self.__login.admin_logado
-        Categoria.encontrar_existente_por_nome(dados.nome).excluir()
+        Categoria.servicos().excluir(self.__login.logado, dados)
 
     def listar_categorias(self) -> ResultadoListaDeCategorias:
-        self.__login.usuario_logado
-        return ResultadoListaDeCategorias([x.up for x in Categoria.listar()])
+        return Categoria.servicos().listar(self.__login.logado)

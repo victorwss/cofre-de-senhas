@@ -1,4 +1,4 @@
-from cofre_de_senhas.service import LoginUsuario
+from cofre_de_senhas.service import LoginComSenha
 from cofre_de_senhas.service_impl import ServicoBDImpl, ServicoUsuarioImpl
 
 def criar_bd() -> None:
@@ -14,6 +14,6 @@ def criar_bd() -> None:
     if senha1 != senha2:
         print("As senhas não conferem")
 
-    ServicoBDImpl().criar_bd(LoginUsuario(login1, senha1))
+    ServicoBDImpl().criar_bd(LoginComSenha(login1, senha1))
 
 criar_bd()

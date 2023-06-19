@@ -12,6 +12,11 @@ class CategoriaDAOImpl(CategoriaDAO):
         self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE pk_categoria = ?", [pk.pk_categoria])
         return self.__cf.fetchone_class(DadosCategoria)
 
+    def buscar_por_pks(self, pks: list[CategoriaPK]) -> list[DadosCategoria]:
+        wildcards: str = ", ".join(["?" for pk in pks])
+        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE pk_categoria IN (" + wildcards + ")", [pk.pk_categoria for pk in pks])
+        return self.__cf.fetchall_class(DadosCategoria)
+
     def listar(self) -> list[DadosCategoria]:
         self.__cf.execute("SELECT c.pk_categoria, c.nome FROM categoria c")
         return self.__cf.fetchall_class(DadosCategoria)

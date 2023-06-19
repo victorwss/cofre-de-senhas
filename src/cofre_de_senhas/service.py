@@ -43,9 +43,9 @@ class SegredoComChave:
     categorias: set[str]
     usuarios: dict[str, TipoPermissao]
 
-#    @property
-#    def sem_chave(self, chave: SegredoChave) -> "SegredoSemChave":
-#        return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
+    @property
+    def sem_chave(self) -> "SegredoSemChave":
+        return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -60,9 +60,17 @@ class RenomeCategoria:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class LoginUsuario:
+class LoginComSenha:
     login: str
     senha: str
+
+    def com_nivel(self, nivel_acesso: NivelAcesso) -> "UsuarioNovo":
+        return UsuarioNovo(self.login, nivel_acesso, self.senha)
+
+@dataclass_validate
+@dataclass(frozen = True)
+class LoginUsuario:
+    login: str
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -101,6 +109,9 @@ class CabecalhoSegredoComChave:
     nome: str
     descricao: str
     tipo: TipoSegredo
+
+    def com_corpo(self, campos: dict[str, str], categorias: set[str], usuarios: dict[str, TipoPermissao]) -> SegredoComChave:
+        return SegredoComChave(self.chave, self.nome, self.descricao, self.tipo, campos, categorias, usuarios)
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -149,7 +160,7 @@ class GerenciadorLogin(ABC):
 class ServicoBD(ABC):
 
     @abstractmethod
-    def criar_bd(self, dados: LoginUsuario) -> None:
+    def criar_bd(self, dados: LoginComSenha) -> None:
         pass
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
@@ -157,7 +168,7 @@ class ServicoUsuario(ABC):
 
     # Pode lançar SenhaErradaException
     @abstractmethod
-    def login(self, quem_faz: LoginUsuario) -> None:
+    def login(self, quem_faz: LoginComSenha) -> None:
         pass
 
     @abstractmethod
@@ -166,7 +177,7 @@ class ServicoUsuario(ABC):
 
     # Pode lançar PermissaoNegadaException, UsuarioJaExisteException
     @abstractmethod
-    def criar_usuario(self, dados: UsuarioNovo) -> None:
+    def criar_usuario(self, dados: UsuarioNovo) -> UsuarioComChave:
         pass
 
     @abstractmethod
@@ -185,7 +196,7 @@ class ServicoUsuario(ABC):
 
     # Pode lançar UsuarioNaoExisteException
     @abstractmethod
-    def buscar_usuario_por_login(self, login: str) -> UsuarioComChave:
+    def buscar_usuario_por_login(self, dados: LoginUsuario) -> UsuarioComChave:
         pass
 
     # Pode lançar UsuarioNaoExisteException
@@ -202,7 +213,7 @@ class ServicoSegredo(ABC):
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     @abstractmethod
-    def criar_segredo(self, dados: SegredoSemChave) -> None:
+    def criar_segredo(self, dados: SegredoSemChave) -> SegredoComChave:
         pass
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException
@@ -233,7 +244,7 @@ class ServicoCategoria(ABC):
 
     # Pode lançar CategoriaNaoExisteException
     @abstractmethod
-    def buscar_categoria_por_nome(self, nome: str) -> CategoriaComChave:
+    def buscar_categoria_por_nome(self, dados: NomeCategoria) -> CategoriaComChave:
         pass
 
     # Pode lançar CategoriaNaoExisteException
@@ -243,7 +254,7 @@ class ServicoCategoria(ABC):
 
     # Pode lançar CategoriaJaExisteException
     @abstractmethod
-    def criar_categoria(self, dados: NomeCategoria) -> None:
+    def criar_categoria(self, dados: NomeCategoria) -> CategoriaComChave:
         pass
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException

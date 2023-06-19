@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from validator import dataclass_validate
 
 class Status(ABC):
-
     @property
     @abstractmethod
     def status(self) -> int:
@@ -53,14 +50,3 @@ class SegredoNaoExisteException(Exception, Status):
     @property
     def status(self) -> int:
         return 404
-
-@dataclass_validate
-@dataclass(frozen = True)
-class Erro:
-    mensagem: str
-    tipo: str
-    status: int
-
-    @staticmethod
-    def criar(e: BaseException) -> "Erro":
-        return Erro(e.__str__(), e.__class__.__name__, e.status if isinstance(e, Status) else 500)

@@ -99,6 +99,10 @@ class SegredoDAO(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
+        pass
+
+    @abstractmethod
     def listar(self) -> list[DadosSegredo]:
         pass
 
@@ -163,6 +167,10 @@ class CategoriaDAO:
         pass
 
     @abstractmethod
+    def buscar_por_pks(self, pks: list[CategoriaPK]) -> list[DadosCategoria]:
+        pass
+
+    @abstractmethod
     def listar(self) -> list[DadosCategoria]:
         pass
 
@@ -200,6 +208,10 @@ class UsuarioDAO:
 
     @abstractmethod
     def buscar_por_pk(self, pk_usuario: UsuarioPK) -> DadosUsuario | None:
+        pass
+
+    @abstractmethod
+    def buscar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
         pass
 
     @abstractmethod

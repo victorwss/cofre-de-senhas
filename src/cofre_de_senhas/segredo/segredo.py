@@ -14,75 +14,50 @@ dao = SegredoDAOImpl(cf)
 @dataclass_validate
 @dataclass(frozen = True)
 class Segredo:
-    pk_segredo: int
-    nome: str
-    descricao: str
-    tipo_segredo: TipoSegredo
-    usuarios: dict[str, Permissao] | None
-    categorias: dict[str, Categoria] | None
-    campos: dict[str, str] | None
+    cabecalho: Segredo.Cabecalho
+    usuarios: dict[str, Permissao]
+    categorias: dict[str, Categoria]
+    campos: dict[str, str]
 
-    def excluir(self) -> Self:
-        dao.deletar_por_pk(self.pk)
-        return self
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class Cabecalho:
+        pk_segredo: int
+        nome: str
+        descricao: str
+        tipo_segredo: TipoSegredo
+
+        def __excluir(self) -> Self:
+            dao.deletar_por_pk(self.pk)
+            return self
+
+        # Exportado para a classe Usuario.
+        @property
+        def pk(self) -> SegredoPK:
+            return SegredoPK(self.pk_segredo)
+
+        @property
+        def __up(self) -> CabecalhoSegredoComChave:
+            return CabecalhoSegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo)
+
+        @property
+        def __down(self) -> DadosSegredo:
+            return DadosSegredo(self.pk_segredo, self.nome, self.descricao, self.tipo_segredo.value)
+
+        @staticmethod
+        def __promote(dados: DadosSegredo) -> "Segredo.Cabecalho":
+            return Segredo.Cabecalho(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo.por_codigo(dados.fk_tipo_segredo))
 
     def __salvar(self) -> Self:
         dao.salvar(self.__down)
-        return self
+        return self.__salvar_dados_internos()
 
-    @property
-    def chave(self) -> SegredoChave:
-        return SegredoChave(self.pk_segredo)
-
-    @property
-    def pk(self) -> SegredoPK:
-        return SegredoPK(self.pk_segredo)
-
-    @property
-    def up(self) -> CabecalhoSegredoComChave:
-        return CabecalhoSegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo)
-
-    @property
-    def up_eager(self) -> SegredoComChave:
-        permissoes: dict[str, TipoPermissao] = {} if self.usuarios is None else {k: self.usuarios[k].tipo for k in self.usuarios.keys()}
-        campos: dict[str, str] = {} if self.campos is None else self.campos
-        categorias = {} if self.categorias is None else self.categorias
-        return SegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo, campos, set(categorias.keys()), permissoes)
-
-    @property
-    def __down(self) -> DadosSegredo:
-        return DadosSegredo(self.pk_segredo, self.nome, self.descricao, self.tipo_segredo.value)
-
-    @staticmethod
-    def __promote(dados: DadosSegredo) -> "Segredo":
-        return Segredo(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo.por_codigo(dados.fk_tipo_segredo), None, None, None)
-
-    @staticmethod
-    def __promote_eager(dados: DadosSegredo) -> "Segredo":
-        s: Segredo = Segredo.__promote(dados)
-        campos: dict[str, str] = {c.pk_chave: c.valor for c in dao.ler_campos_segredo(s.pk)}
-        usuarios: dict[str, Permissao] = Usuario.listar_por_permissao(s)
-        categorias: dict[str, Categoria] = Categoria.listar_por_segredo(s.pk)
-        return Segredo(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo.por_codigo(dados.fk_tipo_segredo), usuarios, categorias, campos)
-
-    @staticmethod
-    def encontrar_por_chave(chave: SegredoChave) -> "Segredo | None":
-        dados: DadosSegredo | None = dao.buscar_por_pk(SegredoPK(chave.valor))
-        if dados is None: return None
-        return Segredo.__promote_eager(dados)
-
-    @staticmethod
-    def encontrar_existente_por_chave(chave: SegredoChave) -> "Segredo":
-        encontrado: Segredo | None = Segredo.encontrar_por_chave(chave)
-        if encontrado is None: raise SegredoNaoExisteException()
-        return encontrado
-
-    def __alterar_dados_segredo(self) -> None:
+    def __salvar_dados_internos(self) -> Self:
         assert self.usuarios is not None
         assert self.categorias is not None
         assert self.campos is not None
 
-        spk: SegredoPK = self.pk
+        spk: SegredoPK = self.__pk
         dao.limpar_segredo(spk)
 
         for descricao in self.campos.keys():
@@ -95,71 +70,145 @@ class Segredo:
         for categoria in self.categorias.values():
             dao.criar_categoria_segredo(spk, categoria.pk)
 
-    @staticmethod
-    def criar(quem_faz: Usuario, dados: SegredoSemChave) -> "Segredo":
-        if not quem_faz.is_admin and dados.usuarios[quem_faz.login] != TipoPermissao.PROPRIETARIO: raise PermissaoNegadaException()
+        return self
 
-        todos_usuarios: dict[str, Usuario] = Usuario.listar_por_login({*dados.usuarios})
+    def __alterar(self, dados: SegredoSemChave) -> Self:
+        permissoes: dict[str, Permissao] = Segredo.__mapear_permissoes(dados.usuarios)
+        categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
+        return replace(self, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo, campos = dados.campos, categorias = categorias, usuarios = permissoes).__salvar()
+
+    #@property
+    #def __chave(self) -> SegredoChave:
+    #    return SegredoChave(self.pk_segredo)
+
+    @property
+    def __pk(self) -> SegredoPK:
+        return self.cabecalho.pk
+
+    @property
+    def __up(self) -> CabecalhoSegredoComChave:
+        return self.cabecalho.__up
+
+    @property
+    def __up_eager(self) -> SegredoComChave:
+        permissoes: dict[str, TipoPermissao] = {} if self.usuarios is None else {k: self.usuarios[k].tipo for k in self.usuarios.keys()}
+        return self.__up.com_corpo(self.campos, set(self.categorias.keys()), permissoes)
+
+    @property
+    def __down(self) -> DadosSegredo:
+        return  self.cabecalho.__down
+
+    def __permitir_escrita_para(self, acesso: Usuario) -> None:
+        if acesso.is_admin: return
+        tipo_permissao: int | None = dao.buscar_permissao(self.__pk, acesso.login)
+        if tipo_permissao is None: raise PermissaoNegadaException()
+        permissao: TipoPermissao = TipoPermissao.por_codigo(tipo_permissao)
+        if permissao not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
+
+    # Métodos internos
+
+    @staticmethod
+    def __mapear_permissoes(usuarios: dict[str, TipoPermissao]) -> dict[str, Permissao]:
+        todos_usuarios: dict[str, Usuario] = Usuario.listar_por_login(set(usuarios.keys()))
         permissoes: dict[str, Permissao] = {}
 
-        for k in dados.usuarios:
+        for k in usuarios:
             if k not in todos_usuarios:
                 raise UsuarioNaoExisteException()
-            permissoes[k] = Permissao(todos_usuarios[k], dados.usuarios[k])
+            permissoes[k] = Permissao(todos_usuarios[k], usuarios[k])
 
-        todas_categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
-        categorias: dict[str, Categoria] = {}
+        return permissoes
 
-        for k in dados.categorias:
-            if k not in todas_categorias:
-                raise CategoriaNaoExisteException()
-            categorias[k] = todas_categorias[k]
+    # Métodos estáticos de fábrica.
+
+    @staticmethod
+    def __encontrar_por_chave(chave: SegredoChave) -> "Segredo | None":
+        dados: DadosSegredo | None = dao.buscar_por_pk(SegredoPK(chave.valor))
+        if dados is None: return None
+        cabecalho: Segredo.Cabecalho = Segredo.Cabecalho.__promote(dados)
+        spk: SegredoPK = cabecalho.pk
+        campos: dict[str, str] = {c.pk_chave: c.valor for c in dao.ler_campos_segredo(spk)}
+        usuarios: dict[str, Permissao] = Usuario.listar_por_permissao(cabecalho)
+        categorias: dict[str, Categoria] = Categoria.listar_por_segredo(spk)
+        return Segredo(cabecalho, usuarios, categorias, campos)
+
+    @staticmethod
+    def __encontrar_existente_por_chave(chave: SegredoChave) -> "Segredo":
+        encontrado: Segredo | None = Segredo.__encontrar_por_chave(chave)
+        if encontrado is None: raise SegredoNaoExisteException()
+        return encontrado
+
+    # Métodos estáticos de fábrica.
+
+    @staticmethod
+    def servicos() -> Segredo.Servico:
+        return Segredo.Servico.instance()
+
+    @staticmethod
+    def __criar(quem_faz: UsuarioChave, dados: SegredoSemChave) -> "Segredo":
+        quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+        if not quem_eh.is_admin and dados.usuarios[quem_eh.login] not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
+
+        permissoes: dict[str, Permissao] = Segredo.__mapear_permissoes(dados.usuarios)
+        categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
 
         rowid: SegredoPK = dao.criar(DadosSegredoSemPK(dados.nome, dados.descricao, dados.tipo.value))
-        s: Segredo = Segredo(rowid.pk_segredo, dados.nome, dados.descricao, dados.tipo, permissoes, categorias, dados.campos)
-
-        s.__alterar_dados_segredo()
-        return s
+        return Segredo(Segredo.Cabecalho(rowid.pk_segredo, dados.nome, dados.descricao, dados.tipo), permissoes, categorias, dados.campos).__salvar_dados_internos()
 
     @staticmethod
-    def listar() -> list["Segredo"]:
-        return [Segredo.__promote(s) for s in dao.listar()]
+    def __listar_todos() -> list["Segredo.Cabecalho"]:
+        return [Segredo.Cabecalho.__promote(s) for s in dao.listar()]
 
     @staticmethod
-    def alterar_segredo(dados: SegredoComChave) -> None:
-        segredo: Segredo = Segredo.encontrar_existente_por_chave(dados.chave) # Pode lançar SegredoNaoExisteException
-        segredo.__salvar()
-        segredo.__alterar_dados_segredo()
+    def __listar_visiveis(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:
+        return [Segredo.Cabecalho.__promote(s) for s in dao.listar_visiveis(quem_faz.login)]
 
     @staticmethod
-    def excluir_segredo(quem_faz: Usuario, dados: SegredoChave) -> None:
-        spk: SegredoPK = SegredoPK(dados.valor)
-        segredo: Segredo = Segredo.encontrar_existente_por_chave(dados) # Pode lançar SegredoNaoExisteException
+    def __listar(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:
+        if quem_faz.is_admin: return Segredo.__listar_todos()
+        return Segredo.__listar_visiveis(quem_faz)
 
-        if not quem_faz.is_admin:
-            tipo_permissao: int | None = dao.buscar_permissao(spk, quem_faz.login)
-            if tipo_permissao is None: raise PermissaoNegadaException()
-            permissao: TipoPermissao = TipoPermissao.por_codigo(tipo_permissao)
-            if permissao not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
+    class Servico:
 
-        segredo.excluir()
+        __me: "Segredo.Servico" = Segredo.Servico()
 
-    @staticmethod
-    def listar_segredos_visiveis(quem_faz: Usuario) -> list["Segredo"]:
-        return [Segredo.__promote(s) for s in dao.listar_visiveis(quem_faz.login)]
+        def __init__(self) -> None:
+            if Segredo.Servico.__me: raise Exception()
 
-    @staticmethod
-    def listar_segredos(quem_faz: Usuario) -> list["Segredo"]:
-        if quem_faz.is_admin: return Segredo.listar()
-        return Segredo.listar_segredos_visiveis(quem_faz)
+        @staticmethod
+        def instance() -> "Segredo.Servico":
+            return Segredo.Servico.__me
 
-    @staticmethod
-    def buscar_segredo(quem_faz: Usuario, chave: SegredoChave) -> SegredoComChave:
-        segredo: Segredo = Segredo.encontrar_existente_por_chave(chave)
-        u: dict[str, Permissao] = {} if segredo.usuarios is None else segredo.usuarios
-        if not quem_faz.is_admin and quem_faz.login not in u.keys(): raise SegredoNaoExisteException()
-        return segredo.up_eager
+        def criar(self, quem_faz: UsuarioChave, dados: SegredoSemChave) -> SegredoComChave:
+            return Segredo.__criar(quem_faz, dados).__up_eager
 
-    @staticmethod
-    def pesquisar_segredos(quem_faz: Usuario, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
-        raise NotImplementedError()
+        @staticmethod
+        def alterar(quem_faz: UsuarioChave, dados: SegredoComChave) -> None:
+            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            segredo: Segredo = Segredo.__encontrar_existente_por_chave(dados.chave) # Pode lançar SegredoNaoExisteException
+            segredo.__permitir_escrita_para(quem_eh)
+            segredo.__alterar(dados.sem_chave)
+
+        @staticmethod
+        def excluir(quem_faz: UsuarioChave, dados: SegredoChave) -> None:
+            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            segredo: Segredo = Segredo.__encontrar_existente_por_chave(dados) # Pode lançar SegredoNaoExisteException
+            segredo.__permitir_escrita_para(quem_eh)
+            segredo.cabecalho.__excluir()
+
+        @staticmethod
+        def listar(quem_faz: UsuarioChave) -> ResultadoPesquisaDeSegredos:
+            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            return ResultadoPesquisaDeSegredos([x.__up for x in Segredo.__listar(quem_eh)])
+
+        @staticmethod
+        def buscar(quem_faz: UsuarioChave, chave: SegredoChave) -> SegredoComChave:
+            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            segredo: Segredo = Segredo.__encontrar_existente_por_chave(chave)
+            if not quem_eh.is_admin and quem_eh.login not in segredo.usuarios.keys(): raise SegredoNaoExisteException()
+            return segredo.__up_eager
+
+        @staticmethod
+        def pesquisar(quem_faz: UsuarioChave, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
+            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            raise NotImplementedError()

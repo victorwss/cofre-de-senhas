@@ -23,6 +23,7 @@ python -m mypy --strict --install-types ^
     .\src\cofre_de_senhas\dao.py ^
     .\src\cofre_de_senhas\service.py ^
     .\src\cofre_de_senhas\service_impl.py ^
+    .\src\cofre_de_senhas\httpwrap.py ^
     .\src\cofre_de_senhas\controller.py ^
     .\src\cofre_de_senhas\bd\__init__.py ^
     .\src\cofre_de_senhas\bd\raiz.py ^
