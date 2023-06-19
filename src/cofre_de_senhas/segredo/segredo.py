@@ -38,7 +38,7 @@ class Segredo:
 
         @property
         def __up(self) -> CabecalhoSegredoComChave:
-            return CabecalhoSegredoComChave(SegredoChave(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo)
+            return CabecalhoSegredoComChave(ChaveSegredo(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo)
 
         @property
         def __down(self) -> DadosSegredo:
@@ -78,8 +78,8 @@ class Segredo:
         return replace(self, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo, campos = dados.campos, categorias = categorias, usuarios = permissoes).__salvar()
 
     #@property
-    #def __chave(self) -> SegredoChave:
-    #    return SegredoChave(self.pk_segredo)
+    #def __chave(self) -> ChaveSegredo:
+    #    return ChaveSegredo(self.pk_segredo)
 
     @property
     def __pk(self) -> SegredoPK:
@@ -122,7 +122,7 @@ class Segredo:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def __encontrar_por_chave(chave: SegredoChave) -> "Segredo | None":
+    def __encontrar_por_chave(chave: ChaveSegredo) -> "Segredo | None":
         dados: DadosSegredo | None = dao.buscar_por_pk(SegredoPK(chave.valor))
         if dados is None: return None
         cabecalho: Segredo.Cabecalho = Segredo.Cabecalho.__promote(dados)
@@ -133,7 +133,7 @@ class Segredo:
         return Segredo(cabecalho, usuarios, categorias, campos)
 
     @staticmethod
-    def __encontrar_existente_por_chave(chave: SegredoChave) -> "Segredo":
+    def __encontrar_existente_por_chave(chave: ChaveSegredo) -> "Segredo":
         encontrado: Segredo | None = Segredo.__encontrar_por_chave(chave)
         if encontrado is None: raise SegredoNaoExisteException()
         return encontrado
@@ -145,7 +145,7 @@ class Segredo:
         return Segredo.Servico.instance()
 
     @staticmethod
-    def __criar(quem_faz: UsuarioChave, dados: SegredoSemChave) -> "Segredo":
+    def __criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> "Segredo":
         quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
         if not quem_eh.is_admin and dados.usuarios[quem_eh.login] not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
 
@@ -179,36 +179,36 @@ class Segredo:
         def instance() -> "Segredo.Servico":
             return Segredo.Servico.__me
 
-        def criar(self, quem_faz: UsuarioChave, dados: SegredoSemChave) -> SegredoComChave:
+        def criar(self, quem_faz: ChaveUsuario, dados: SegredoSemChave) -> SegredoComChave:
             return Segredo.__criar(quem_faz, dados).__up_eager
 
         @staticmethod
-        def alterar(quem_faz: UsuarioChave, dados: SegredoComChave) -> None:
+        def alterar(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             segredo: Segredo = Segredo.__encontrar_existente_por_chave(dados.chave) # Pode lançar SegredoNaoExisteException
             segredo.__permitir_escrita_para(quem_eh)
             segredo.__alterar(dados.sem_chave)
 
         @staticmethod
-        def excluir(quem_faz: UsuarioChave, dados: SegredoChave) -> None:
+        def excluir(quem_faz: ChaveUsuario, dados: ChaveSegredo) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             segredo: Segredo = Segredo.__encontrar_existente_por_chave(dados) # Pode lançar SegredoNaoExisteException
             segredo.__permitir_escrita_para(quem_eh)
             segredo.cabecalho.__excluir()
 
         @staticmethod
-        def listar(quem_faz: UsuarioChave) -> ResultadoPesquisaDeSegredos:
+        def listar(quem_faz: ChaveUsuario) -> ResultadoPesquisaDeSegredos:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             return ResultadoPesquisaDeSegredos([x.__up for x in Segredo.__listar(quem_eh)])
 
         @staticmethod
-        def buscar(quem_faz: UsuarioChave, chave: SegredoChave) -> SegredoComChave:
+        def buscar(quem_faz: ChaveUsuario, chave: ChaveSegredo) -> SegredoComChave:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             segredo: Segredo = Segredo.__encontrar_existente_por_chave(chave)
             if not quem_eh.is_admin and quem_eh.login not in segredo.usuarios.keys(): raise SegredoNaoExisteException()
             return segredo.__up_eager
 
         @staticmethod
-        def pesquisar(quem_faz: UsuarioChave, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
+        def pesquisar(quem_faz: ChaveUsuario, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             raise NotImplementedError()

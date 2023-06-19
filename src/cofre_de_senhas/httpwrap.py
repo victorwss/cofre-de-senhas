@@ -1,10 +1,11 @@
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 from typing_extensions import Protocol, runtime_checkable
 from dataclasses import dataclass
 from validator import dataclass_validate
-from flask import jsonify
+from flask import jsonify, request
 from flask.wrappers import Response
 from functools import wraps
+from dacite import from_dict
 
 @runtime_checkable
 class StatusProtocol(Protocol):
@@ -73,3 +74,45 @@ def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, i
             erro: Erro = Erro.criar(e)
             return jsonify(erro), erro.status
     return decorator
+
+class RequisicaoMalFormadaException(Exception):
+    @property
+    def status(self) -> int:
+        return 400
+
+class PrecondicaoFalhouException(Exception):
+    @property
+    def status(self) -> int:
+        return 412
+
+class ConteudoNaoReconhecidoException(Exception):
+    @property
+    def status(self) -> int:
+        return 415
+
+class ConteudoIncompreensivelException(Exception):
+    @property
+    def status(self) -> int:
+        return 422
+
+_T = TypeVar("_T")
+def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> _T:
+    content_type: str | None = request.headers.get("Content-Type")
+
+    conteudo: Any
+    if content_type is None:
+        raise RequisicaoMalFormadaException()
+    if content_type == "application/json" and json:
+        try:
+            conteudo = request.json
+        except:
+            raise RequisicaoMalFormadaException()
+    elif (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart):
+        conteudo = request.form
+    else:
+        raise ConteudoNaoReconhecidoException()
+
+    try:
+        return from_dict(data_class = target, data = conteudo)
+    except:
+        raise ConteudoIncompreensivelException()

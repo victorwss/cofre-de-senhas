@@ -30,8 +30,8 @@ class Categoria:
         return self
 
     @property
-    def __chave(self) -> CategoriaChave:
-        return CategoriaChave(self.pk_categoria)
+    def __chave(self) -> ChaveCategoria:
+        return ChaveCategoria(self.pk_categoria)
 
     # Exportado para a classe Segredo.
     @property
@@ -57,13 +57,13 @@ class Categoria:
         return Categoria(dados.pk_categoria, dados.nome)
 
     @staticmethod
-    def __encontrar_por_chave(chave: CategoriaChave) -> "Categoria | None":
+    def __encontrar_por_chave(chave: ChaveCategoria) -> "Categoria | None":
         dados: DadosCategoria | None = dao.buscar_por_pk(CategoriaPK(chave.valor))
         if dados is None: return None
         return Categoria.__promote(dados)
 
     @staticmethod
-    def __encontrar_existente_por_chave(chave: CategoriaChave) -> "Categoria":
+    def __encontrar_existente_por_chave(chave: ChaveCategoria) -> "Categoria":
         encontrado: Categoria | None = Categoria.__encontrar_por_chave(chave)
         if encontrado is None: raise CategoriaNaoExisteException()
         return encontrado
@@ -125,26 +125,26 @@ class Categoria:
         def instance() -> "Categoria.Servico":
             return Categoria.Servico.__me
 
-        def buscar_por_nome(self, quem_faz: UsuarioChave, dados: NomeCategoria) -> CategoriaComChave:
+        def buscar_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             return Categoria.__encontrar_existente_por_nome(dados.nome).__up
 
-        def buscar_por_chave(self, quem_faz: UsuarioChave, chave: CategoriaChave) -> CategoriaComChave:
+        def buscar_por_chave(self, quem_faz: ChaveUsuario, chave: ChaveCategoria) -> CategoriaComChave:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             return Categoria.__encontrar_existente_por_chave(chave).__up
 
-        def criar(self, quem_faz: UsuarioChave, dados: NomeCategoria) -> CategoriaComChave:
+        def criar(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
             quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
             return Categoria.__criar(dados.nome).__up
 
-        def renomear(self, quem_faz: UsuarioChave, dados: RenomeCategoria) -> None:
+        def renomear(self, quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
             Categoria.__encontrar_existente_por_nome(dados.antigo).__renomear(dados.novo)
 
-        def excluir(self, quem_faz: UsuarioChave, dados: NomeCategoria) -> None:
+        def excluir(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
             Categoria.__encontrar_existente_por_nome(dados.nome).__excluir()
 
-        def listar(self, quem_faz: UsuarioChave) -> ResultadoListaDeCategorias:
+        def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             return ResultadoListaDeCategorias([x.__up for x in Categoria.__listar()])

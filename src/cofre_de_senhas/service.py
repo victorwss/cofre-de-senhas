@@ -6,7 +6,7 @@ from cofre_de_senhas.erro import *
 
 @dataclass_validate
 @dataclass(frozen = True)
-class UsuarioChave:
+class ChaveUsuario:
     valor: int
 
 @dataclass_validate
@@ -16,7 +16,7 @@ class ResetLoginUsuario:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class SegredoChave:
+class ChaveSegredo:
     valor: int
 
 @dataclass_validate
@@ -29,13 +29,13 @@ class SegredoSemChave:
     categorias: set[str]
     usuarios: dict[str, TipoPermissao]
 
-    def com_chave(self, chave: SegredoChave) -> "SegredoComChave":
+    def com_chave(self, chave: ChaveSegredo) -> "SegredoComChave":
         return SegredoComChave(chave, self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 
 @dataclass_validate
 @dataclass(frozen = True)
 class SegredoComChave:
-    chave: SegredoChave
+    chave: ChaveSegredo
     nome: str
     descricao: str
     tipo: TipoSegredo
@@ -93,19 +93,19 @@ class UsuarioComNivel:
 @dataclass_validate
 @dataclass(frozen = True)
 class UsuarioComChave:
-    chave: UsuarioChave
+    chave: ChaveUsuario
     login: str
     nivel_acesso: NivelAcesso
 
 @dataclass_validate
 @dataclass(frozen = True)
-class CategoriaChave:
+class ChaveCategoria:
     valor: int
 
 @dataclass_validate
 @dataclass(frozen = True)
 class CabecalhoSegredoComChave:
-    chave: SegredoChave
+    chave: ChaveSegredo
     nome: str
     descricao: str
     tipo: TipoSegredo
@@ -121,7 +121,7 @@ class ResultadoPesquisaDeSegredos:
 @dataclass_validate
 @dataclass(frozen = True)
 class CategoriaComChave:
-    chave: CategoriaChave
+    chave: ChaveCategoria
     nome: str
 
 @dataclass_validate
@@ -144,7 +144,7 @@ class GerenciadorLogin(ABC):
 
     # Pode lançar SenhaErradaException
     @abstractmethod
-    def login(self, chave: UsuarioChave) -> None:
+    def login(self, chave: UsuarioComChave) -> None:
         pass
 
     @abstractmethod
@@ -154,7 +154,7 @@ class GerenciadorLogin(ABC):
     # Pode lançar UsuarioNaoLogadoException.
     @property
     @abstractmethod
-    def usuario_logado(self) -> UsuarioChave:
+    def usuario_logado(self) -> ChaveUsuario:
         pass
 
 class ServicoBD(ABC):
@@ -168,7 +168,7 @@ class ServicoUsuario(ABC):
 
     # Pode lançar SenhaErradaException
     @abstractmethod
-    def login(self, quem_faz: LoginComSenha) -> None:
+    def login(self, quem_faz: LoginComSenha) -> UsuarioComChave:
         pass
 
     @abstractmethod
@@ -177,7 +177,7 @@ class ServicoUsuario(ABC):
 
     # Pode lançar PermissaoNegadaException, UsuarioJaExisteException
     @abstractmethod
-    def criar_usuario(self, dados: UsuarioNovo) -> UsuarioComChave:
+    def criar(self, dados: UsuarioNovo) -> UsuarioComChave:
         pass
 
     @abstractmethod
@@ -196,77 +196,77 @@ class ServicoUsuario(ABC):
 
     # Pode lançar UsuarioNaoExisteException
     @abstractmethod
-    def buscar_usuario_por_login(self, dados: LoginUsuario) -> UsuarioComChave:
+    def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave:
         pass
 
     # Pode lançar UsuarioNaoExisteException
     @abstractmethod
-    def buscar_usuario_por_chave(self, chave: UsuarioChave) -> UsuarioComChave:
+    def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave:
         pass
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @abstractmethod
-    def listar_usuarios(self) -> ResultadoListaDeUsuarios:
+    def listar(self) -> ResultadoListaDeUsuarios:
         pass
 
 class ServicoSegredo(ABC):
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     @abstractmethod
-    def criar_segredo(self, dados: SegredoSemChave) -> SegredoComChave:
+    def criar(self, dados: SegredoSemChave) -> SegredoComChave:
         pass
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException
     @abstractmethod
-    def alterar_segredo(self, dados: SegredoComChave) -> None:
+    def alterar(self, dados: SegredoComChave) -> None:
         pass
 
     # Pode lançar SegredoNaoExisteException
     @abstractmethod
-    def excluir_segredo(self, dados: SegredoChave) -> None:
+    def excluir(self, dados: ChaveSegredo) -> None:
         pass
 
     @abstractmethod
-    def listar_segredos(self) -> ResultadoPesquisaDeSegredos:
+    def listar(self) -> ResultadoPesquisaDeSegredos:
         pass
 
     # Pode lançar SegredoNaoExisteException
     @abstractmethod
-    def buscar_segredo_por_chave(self, chave: SegredoChave) -> SegredoComChave:
+    def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave:
         pass
 
     # Não implementado ainda! Pode lançar SegredoNaoExisteException
     @abstractmethod
-    def pesquisar_segredos(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
+    def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         pass
 
 class ServicoCategoria(ABC):
 
     # Pode lançar CategoriaNaoExisteException
     @abstractmethod
-    def buscar_categoria_por_nome(self, dados: NomeCategoria) -> CategoriaComChave:
+    def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave:
         pass
 
     # Pode lançar CategoriaNaoExisteException
     @abstractmethod
-    def buscar_categoria_por_chave(self, chave: CategoriaChave) -> CategoriaComChave:
+    def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave:
         pass
 
     # Pode lançar CategoriaJaExisteException
     @abstractmethod
-    def criar_categoria(self, dados: NomeCategoria) -> CategoriaComChave:
+    def criar(self, dados: NomeCategoria) -> CategoriaComChave:
         pass
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
     @abstractmethod
-    def renomear_categoria(self, dados: RenomeCategoria) -> None:
+    def renomear(self, dados: RenomeCategoria) -> None:
         pass
 
     # Pode lançar CategoriaNaoExisteException
     @abstractmethod
-    def excluir_categoria(self, dados: NomeCategoria) -> None:
+    def excluir(self, dados: NomeCategoria) -> None:
         pass
 
     @abstractmethod
-    def listar_categorias(self) -> ResultadoListaDeCategorias:
+    def listar(self) -> ResultadoListaDeCategorias:
         pass
