@@ -8,7 +8,6 @@ from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from cofre_de_senhas.categoria.categoria import Categoria
 from cofre_de_senhas.usuario.usuario import Usuario, SenhaAlterada
 from cofre_de_senhas.segredo.segredo import Segredo
-from cofre_de_senhas.cofre_enum import NivelAcesso
 
 class ServicoLogin:
 
@@ -52,16 +51,16 @@ class ServicoUsuarioImpl(ServicoUsuario):
     def criar(self, dados: UsuarioNovo) -> UsuarioComChave:
         return Usuario.servicos().criar(self.__login.logado, dados)
 
-    def trocar_senha(self, dados: NovaSenha) -> None:
-        Usuario.servicos().redefinir_senha(self.__login.logado, dados)
+    def trocar_senha_por_chave(self, dados: TrocaSenha) -> None:
+        Usuario.servicos().trocar_senha_por_chave(self.__login.logado, dados)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
-    def resetar_senha(self, dados: ResetLoginUsuario) -> str:
+    def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada:
         return Usuario.servicos().resetar_senha_por_login(self.__login.logado, dados)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
-    def alterar_nivel_de_acesso(self, dados: UsuarioComNivel) -> None:
-        Usuario.servicos().alterar_nivel(self.__login.logado, dados)
+    def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None:
+        Usuario.servicos().alterar_nivel_por_login(self.__login.logado, dados)
 
     # Pode lançar UsuarioNaoExisteException
     def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave:
@@ -69,7 +68,7 @@ class ServicoUsuarioImpl(ServicoUsuario):
 
     # Pode lançar UsuarioNaoExisteException
     def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave:
-        return Usuario.servicos().buscar_existente_por_chave(self.__login.logado, chave)
+        return Usuario.servicos().buscar_por_chave(self.__login.logado, chave)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     def listar(self) -> ResultadoListaDeUsuarios:
@@ -88,12 +87,12 @@ class ServicoSegredoImpl(ServicoSegredo):
         return Segredo.servicos().criar(self.__login.logado, dados)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException, PermissaoNegadaException
-    def alterar(self, dados: SegredoComChave) -> None:
-        Segredo.servicos().alterar(self.__login.logado, dados)
+    def alterar_por_chave(self, dados: SegredoComChave) -> None:
+        Segredo.servicos().alterar_por_chave(self.__login.logado, dados)
 
     # Pode lançar SegredoNaoExisteException, PermissaoNegadaException
-    def excluir(self, dados: ChaveSegredo) -> None:
-        Segredo.servicos().excluir(self.__login.logado, dados)
+    def excluir_por_chave(self, dados: ChaveSegredo) -> None:
+        Segredo.servicos().excluir_por_chave(self.__login.logado, dados)
 
     def listar(self) -> ResultadoPesquisaDeSegredos:
         return Segredo.servicos().listar(self.__login.logado)
@@ -127,12 +126,12 @@ class ServicoCategoriaImpl(ServicoCategoria):
         return Categoria.servicos().criar(self.__login.logado, dados)
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
-    def renomear(self, dados: RenomeCategoria) -> None:
-        Categoria.servicos().renomear(self.__login.logado, dados)
+    def renomear_por_nome(self, dados: RenomeCategoria) -> None:
+        Categoria.servicos().renomear_por_nome(self.__login.logado, dados)
 
     # Pode lançar CategoriaNaoExisteException
-    def excluir(self, dados: NomeCategoria) -> None:
-        Categoria.servicos().excluir(self.__login.logado, dados)
+    def excluir_por_nome(self, dados: NomeCategoria) -> None:
+        Categoria.servicos().excluir_por_nome(self.__login.logado, dados)
 
     def listar(self) -> ResultadoListaDeCategorias:
         return Categoria.servicos().listar(self.__login.logado)

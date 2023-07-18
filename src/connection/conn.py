@@ -2,7 +2,8 @@ from typing import Any, Callable, cast, Iterator, Literal, Self, Sequence, TypeV
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from dacite import from_dict
+from dacite import Config, from_dict
+from enum import Enum
 from types import TracebackType
 from functools import wraps
 from enum import Enum
@@ -107,7 +108,7 @@ def row_to_class_lambda(ctor: Callable[[dict[str, Any]], _T], description: Descr
     return ctor(row_to_dict(description, row))
 
 def row_to_class(klass: type[_T], description: Descriptor, row: tuple[Any, ...]) -> _T:
-    return row_to_class_lambda(lambda d: from_dict(data_class = klass, data = d), description, row)
+    return row_to_class_lambda(lambda d: from_dict(data_class = klass, data = d, config = Config(cast = [Enum])), description, row)
 
 def row_to_class_lambda_opt(ctor: Callable[[dict[str, Any]], _T], description: Descriptor, row: tuple[Any, ...] | None) -> _T | None:
     if row is None: return None

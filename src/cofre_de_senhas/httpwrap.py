@@ -5,7 +5,8 @@ from validator import dataclass_validate
 from flask import jsonify, request
 from flask.wrappers import Response
 from functools import wraps
-from dacite import from_dict
+from dacite import Config, from_dict
+from enum import Enum
 
 @runtime_checkable
 class StatusProtocol(Protocol):
@@ -113,6 +114,10 @@ def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, m
         raise ConteudoNaoReconhecidoException()
 
     try:
-        return from_dict(data_class = target, data = conteudo)
+        return from_dict(data_class = target, data = conteudo, config = Config(cast = [Enum]))
     except:
         raise ConteudoIncompreensivelException()
+
+def bodyless() -> None:
+    content_type: str | None = request.headers.get("Content-Type")
+    if content_type is not None: raise RequisicaoMalFormadaException()

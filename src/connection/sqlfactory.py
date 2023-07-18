@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, cast, Callable, Generic, TypeVar
 from dataclasses import asdict, dataclass, is_dataclass, Field, fields
 from enum import Enum
-from dacite import from_dict
+from dacite import Config, from_dict
 from validator import dataclass_validate, TypeValidationError
 from connection.conn import TransactedConnection
 
@@ -252,7 +252,7 @@ class SQLFactory(Generic[_T, _K, _NK]):
         for f in [*d.keys()]:
             if f not in key_fields:
                 del d[f]
-        return from_dict(data_class = self.key_type, data = d)
+        return from_dict(data_class = self.key_type, data = d, config = Config(cast = [Enum]))
 
     def nonkeyof(self, value: _T) -> _NK:
         key_fields: list[str] = self.key_fields
@@ -260,12 +260,12 @@ class SQLFactory(Generic[_T, _K, _NK]):
         for f in [*d.keys()]:
             if f in key_fields:
                 del d[f]
-        return from_dict(data_class = self.keyless_type, data = d)
+        return from_dict(data_class = self.keyless_type, data = d, config = Config(cast = [Enum]))
 
     def glue(self, key: _K, values: _NK) -> _T:
         d1: dict[str, Any] = as_dict(key)
         d2: dict[str, Any] = as_dict(values)
-        return from_dict(data_class = self.type_class, data = d1 | d2)
+        return from_dict(data_class = self.type_class, data = d1 | d2, config = Config(cast = [Enum]))
 
     def __check_subfields(self, subtype: type[_X], role: str) -> None:
         if not is_dataclass(subtype):
@@ -295,7 +295,7 @@ class SQLFactory(Generic[_T, _K, _NK]):
         def tx(cf: TransactedConnection, value: _NK) -> _T:
             data: list[Any] = as_list(value)
             cf.execute(sql, data)
-            key: _K = from_dict(data_class = self.key_type, data = {self.key_fields[0] : cf.lastrowid})
+            key: _K = from_dict(data_class = self.key_type, data = {self.key_fields[0] : cf.lastrowid}, config = Config(cast = [Enum]))
             return self.glue(key, value)
         return tx
 

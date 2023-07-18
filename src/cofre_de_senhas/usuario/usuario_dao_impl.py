@@ -18,7 +18,12 @@ class UsuarioDAOImpl(UsuarioDAO):
         return self.__cf.fetchall_class(DadosUsuario)
 
     def listar(self) -> list[DadosUsuario]:
-        self.__cf.execute("SELECT c.pk_usuario, c.login, c.fk_nivel_acesso, c.hash_com_sal FROM usuario c")
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario c")
+        return self.__cf.fetchall_class(DadosUsuario)
+
+    def listar_por_logins(self, logins: list[str]) -> list[DadosUsuario]:
+        wildcards: str = ", ".join(["?" for login in logins])
+        self.__cf.execute("SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario c WHERE login IN (" + wildcards + ")", logins)
         return self.__cf.fetchall_class(DadosUsuario)
 
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:

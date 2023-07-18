@@ -5,6 +5,7 @@ python -m mypy --strict --install-types ^
     .\src\mariadb\constants\__init__.pyi ^
     .\src\mariadb\constants\FIELD_FLAG.pyi ^
     .\src\mariadb\constants\FIELD_TYPE.pyi ^
+    .\src\flask_swagger.pyi ^
     .\src\admin.py ^
     .\src\cofre.py ^
     .\src\validator.py ^
@@ -18,7 +19,6 @@ python -m mypy --strict --install-types ^
     .\src\connection\mariadbconn.py ^
     .\src\connection\sqlite3conn.py ^
     .\src\cofre_de_senhas\__init__.py ^
-    .\src\cofre_de_senhas\cofre_enum.py ^
     .\src\cofre_de_senhas\erro.py ^
     .\src\cofre_de_senhas\dao.py ^
     .\src\cofre_de_senhas\service.py ^

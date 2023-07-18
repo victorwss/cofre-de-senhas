@@ -175,6 +175,10 @@ class CategoriaDAO:
         pass
 
     @abstractmethod
+    def listar_por_nomes(self, nomes: list[str]) -> list[DadosCategoria]:
+        pass
+
+    @abstractmethod
     def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
         pass
 
@@ -216,6 +220,10 @@ class UsuarioDAO:
 
     @abstractmethod
     def listar(self) -> list[DadosUsuario]:
+        pass
+
+    @abstractmethod
+    def listar_por_logins(self, logins: list[str]) -> list[DadosUsuario]:
         pass
 
     @abstractmethod

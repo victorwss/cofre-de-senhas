@@ -2,7 +2,6 @@ from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.bd.raiz import cf
-from cofre_de_senhas.cofre_enum import TipoSegredo, TipoPermissao
 from cofre_de_senhas.dao import *
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario import Usuario, Permissao
@@ -46,7 +45,7 @@ class Segredo:
 
         @staticmethod
         def __promote(dados: DadosSegredo) -> "Segredo.Cabecalho":
-            return Segredo.Cabecalho(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo.por_codigo(dados.fk_tipo_segredo))
+            return Segredo.Cabecalho(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo(dados.fk_tipo_segredo))
 
     def __salvar(self) -> Self:
         dao.salvar(self.__down)
@@ -100,9 +99,9 @@ class Segredo:
 
     def __permitir_escrita_para(self, acesso: Usuario) -> None:
         if acesso.is_admin: return
-        tipo_permissao: int | None = dao.buscar_permissao(self.__pk, acesso.login)
-        if tipo_permissao is None: raise PermissaoNegadaException()
-        permissao: TipoPermissao = TipoPermissao.por_codigo(tipo_permissao)
+        valor_permissao: int | None = dao.buscar_permissao(self.__pk, acesso.login)
+        if valor_permissao is None: raise PermissaoNegadaException()
+        permissao: TipoPermissao = TipoPermissao(valor_permissao)
         if permissao not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
 
     # Métodos internos
@@ -183,14 +182,14 @@ class Segredo:
             return Segredo.__criar(quem_faz, dados).__up_eager
 
         @staticmethod
-        def alterar(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None:
+        def alterar_por_chave(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             segredo: Segredo = Segredo.__encontrar_existente_por_chave(dados.chave) # Pode lançar SegredoNaoExisteException
             segredo.__permitir_escrita_para(quem_eh)
             segredo.__alterar(dados.sem_chave)
 
         @staticmethod
-        def excluir(quem_faz: ChaveUsuario, dados: ChaveSegredo) -> None:
+        def excluir_por_chave(quem_faz: ChaveUsuario, dados: ChaveSegredo) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
             segredo: Segredo = Segredo.__encontrar_existente_por_chave(dados) # Pode lançar SegredoNaoExisteException
             segredo.__permitir_escrita_para(quem_eh)

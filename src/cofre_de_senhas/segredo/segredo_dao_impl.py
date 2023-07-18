@@ -1,6 +1,5 @@
 from connection.conn import TransactedConnection
 from cofre_de_senhas.dao import SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, LoginComPermissao
-from cofre_de_senhas.cofre_enum import TipoPermissao
 
 class SegredoDAOImpl(SegredoDAO):
 
@@ -12,16 +11,6 @@ class SegredoDAOImpl(SegredoDAO):
     def buscar_por_pk(self, pk: SegredoPK) -> DadosSegredo | None:
         self.__cf.execute("SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo = ?", [pk.pk_segredo])
         return self.__cf.fetchone_class(DadosSegredo)
-
-    def buscar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
-        wildcards: str = ", ".join(["?" for pk in pks])
-        self.__cf.execute("SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN (" + wildcards + ")", [pk.pk_segredo for pk in pks])
-        return self.__cf.fetchall_class(DadosSegredo)
-
-    #def buscar_por_nomes(self, nomes: list[nome]) -> list[DadosSegredo]:
-    #    wildcards: str = ", ".join(["?" for pk in pks])
-    #    self.__cf.execute("SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo FROM segredo s INNER JOIN categoria_segredo cs ON s.pk_segredo = cs.pfk_segredo INNER JOIN categoria c ON c.categoria = cs.pfk_categoria WHERE nome IN (" + wildcards + ")", nomes)
-    #    return self.__cf.fetchall_class(DadosSegredo)
 
     def listar(self) -> list[DadosSegredo]:
         self.__cf.execute("SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo")
@@ -48,6 +37,16 @@ class SegredoDAOImpl(SegredoDAO):
         self.__cf.execute("DELETE FROM campo_segredo WHERE pfk_segredo = ?", [pk.pk_segredo])
         self.__cf.execute("DELETE FROM permissao WHERE pfk_segredo = ?", [pk.pk_segredo])
         self.__cf.execute("DELETE FROM categoria_segredo WHERE pfk_segredo = ?", [pk.pk_segredo])
+
+    def buscar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
+        wildcards: str = ", ".join(["?" for pk in pks])
+        self.__cf.execute("SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN (" + wildcards + ")", [pk.pk_segredo for pk in pks])
+        return self.__cf.fetchall_class(DadosSegredo)
+
+    #def buscar_por_nomes(self, nomes: list[nome]) -> list[DadosSegredo]:
+    #    wildcards: str = ", ".join(["?" for pk in pks])
+    #    self.__cf.execute("SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo FROM segredo s INNER JOIN categoria_segredo cs ON s.pk_segredo = cs.pfk_segredo INNER JOIN categoria c ON c.categoria = cs.pfk_categoria WHERE nome IN (" + wildcards + ")", nomes)
+    #    return self.__cf.fetchall_class(DadosSegredo)
 
     # Categoria de segredo
 

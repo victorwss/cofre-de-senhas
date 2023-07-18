@@ -4,7 +4,6 @@ from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.bd.raiz import cf
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.cofre_enum import NivelAcesso, TipoPermissao
 from cofre_de_senhas.dao import *
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
@@ -14,12 +13,6 @@ dao = UsuarioDAOImpl(cf)
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from cofre_de_senhas.segredo.segredo import Segredo
-
-@dataclass_validate
-@dataclass(frozen = True)
-class SenhaAlterada:
-    usuario: "Usuario"
-    nova_senha: str
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -37,12 +30,19 @@ class Usuario:
 
     # Propriedades e métodos de instância.
 
-    def __trocar_senha(self, nova_senha: str) -> "Usuario":
+    def __validar_senha(self, senha: str) -> None:
+        if not self.__comparar_hash(senha): raise SenhaErradaException()
+
+    def __redefinir_senha(self, nova_senha: str) -> "Usuario":
         return replace(self, hash_com_sal = Usuario.__criar_hash(nova_senha)).__salvar()
 
-    def __resetar_senha(self) -> SenhaAlterada:
+    def __trocar_senha(self, dados: TrocaSenha) -> "Usuario":
+        self.__validar_senha(dados.antiga)
+        return self.__redefinir_senha(dados.nova)
+
+    def __resetar_senha(self) -> tuple["Usuario", str]:
         nova_senha: str = Usuario.__string_random()
-        return SenhaAlterada(self.__trocar_senha(nova_senha), nova_senha)
+        return self.__redefinir_senha(nova_senha), nova_senha
 
     def __alterar_nivel_de_acesso(self, novo_nivel_acesso: NivelAcesso) -> "Usuario":
         return replace(self, nivel_acesso = novo_nivel_acesso).__salvar()
@@ -58,7 +58,7 @@ class Usuario:
 
     @property
     def __is_permitido(self) -> bool:
-        return self.nivel_acesso != NivelAcesso.BANIDO
+        return self.nivel_acesso != NivelAcesso.DESATIVADO
 
     def __permitir_admin(self) -> Self:
         if not self.is_admin: raise PermissaoNegadaException()
@@ -115,7 +115,7 @@ class Usuario:
 
     @staticmethod
     def __promote(dados: DadosUsuario) -> "Usuario":
-        return Usuario(dados.pk_usuario, dados.login, NivelAcesso.por_codigo(dados.fk_nivel_acesso), dados.hash_com_sal)
+        return Usuario(dados.pk_usuario, dados.login, NivelAcesso(dados.fk_nivel_acesso), dados.hash_com_sal)
 
     @staticmethod
     def __encontrar_por_chave(chave: ChaveUsuario) -> "Usuario | None":
@@ -163,22 +163,19 @@ class Usuario:
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_login(logins: set[str]) -> dict[str, "Usuario"]:
-        # TO DO: Implementação ruim.
+        r: dict[str, Usuario] = {u.login: Usuario.__promote(u) for u in dao.listar_por_logins(list(logins))}
 
-        usuarios1: dict[str, Usuario] = {usuario.login: usuario for usuario in Usuario.__listar()}
-        usuarios2: dict[str, Usuario] = {}
+        if len(r) != len(logins):
+            for login in logins:
+                if login not in r: raise UsuarioNaoExisteException(login)
 
-        for n in logins:
-            if n not in usuarios1: raise UsuarioNaoExisteException(n)
-            usuarios2[n] = usuarios1[n]
-
-        return usuarios2
+        return r
 
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_permissao(segredo: "Segredo.Cabecalho") -> dict[str, "Permissao"]:
         lista1: list[DadosUsuarioComPermissao] = dao.listar_por_permissao(segredo.pk)
-        lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao.por_codigo(dados.fk_tipo_permissao)) for dados in lista1]
+        lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao(dados.fk_tipo_permissao)) for dados in lista1]
         return {permissao.usuario.login: permissao for permissao in lista2}
 
     class Servico:
@@ -192,10 +189,10 @@ class Usuario:
         def instance() -> "Usuario.Servico":
             return Usuario.Servico.__me
 
-        def redefinir_senha(self, quem_faz: ChaveUsuario, dados: NovaSenha) -> None:
-            Usuario.verificar_acesso(quem_faz).__trocar_senha(dados.senha)
+        def trocar_senha_por_chave(self, quem_faz: ChaveUsuario, dados: TrocaSenha) -> None:
+            Usuario.verificar_acesso(quem_faz).__trocar_senha(dados)
 
-        def alterar_nivel(self, quem_faz: ChaveUsuario, dados: UsuarioComNivel) -> None:
+        def alterar_nivel_por_login(self, quem_faz: ChaveUsuario, dados: UsuarioComNivel) -> None:
             Usuario.verificar_acesso_admin(quem_faz)
             Usuario.__encontrar_existente_por_login(dados.login).__alterar_nivel_de_acesso(dados.nivel_acesso)
 
@@ -203,16 +200,17 @@ class Usuario:
             dados: DadosUsuario | None = dao.buscar_por_login(quem_faz.login)
             if dados is None: raise SenhaErradaException()
             cadastrado: Usuario = Usuario.__promote(dados)
-            if not cadastrado.__comparar_hash(quem_faz.senha): raise SenhaErradaException()
+            cadastrado.__validar_senha(quem_faz.senha)
             return cadastrado.__permitir_acesso().__up
 
-        def buscar_existente_por_chave(self, quem_faz: ChaveUsuario, chave: ChaveUsuario) -> UsuarioComChave:
+        def buscar_por_chave(self, quem_faz: ChaveUsuario, chave: ChaveUsuario) -> UsuarioComChave:
             Usuario.verificar_acesso(quem_faz)
             return Usuario.__encontrar_existente_por_chave(chave).__up
 
-        def resetar_senha_por_login(self, quem_faz: ChaveUsuario, dados: ResetLoginUsuario) -> str:
+        def resetar_senha_por_login(self, quem_faz: ChaveUsuario, dados: ResetLoginUsuario) -> SenhaAlterada:
             Usuario.verificar_acesso_admin(quem_faz)
-            return Usuario.__encontrar_existente_por_login(dados.login).__resetar_senha().nova_senha
+            t: tuple[Usuario, str] = Usuario.__encontrar_existente_por_login(dados.login).__resetar_senha()
+            return SenhaAlterada(t[0].__chave, t[0].login, t[1])
 
         def buscar_por_login(self, quem_faz: ChaveUsuario, dados: LoginUsuario) -> UsuarioComChave:
             Usuario.verificar_acesso(quem_faz)

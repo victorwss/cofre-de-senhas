@@ -1,8 +1,23 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from cofre_de_senhas.cofre_enum import NivelAcesso, TipoPermissao, TipoSegredo
 from cofre_de_senhas.erro import *
+from enum import Enum
+
+class NivelAcesso(Enum):
+    DESATIVADO = 0
+    NORMAL = 1
+    CHAVEIRO_DEUS_SUPREMO = 2
+
+class TipoPermissao(Enum):
+    SOMENTE_LEITURA = 1
+    LEITURA_E_ESCRITA = 2
+    PROPRIETARIO = 3
+
+class TipoSegredo(Enum):
+    PUBLICO = 1
+    ENCONTRAVEL = 2
+    CONFIDENCIAL = 3
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -81,8 +96,16 @@ class UsuarioNovo:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class NovaSenha:
-    senha: str
+class TrocaSenha:
+    antiga: str
+    nova: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class SenhaAlterada:
+    chave: ChaveUsuario
+    login: str
+    nova_senha: str
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -181,17 +204,17 @@ class ServicoUsuario(ABC):
         pass
 
     @abstractmethod
-    def trocar_senha(self, dados: NovaSenha) -> None:
+    def trocar_senha_por_chave(self, dados: TrocaSenha) -> None:
         pass
 
     @abstractmethod
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
-    def resetar_senha(self, dados: ResetLoginUsuario) -> str:
+    def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada:
         pass
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @abstractmethod
-    def alterar_nivel_de_acesso(self, dados: UsuarioComNivel) -> None:
+    def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None:
         pass
 
     # Pode lançar UsuarioNaoExisteException
@@ -218,12 +241,12 @@ class ServicoSegredo(ABC):
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException
     @abstractmethod
-    def alterar(self, dados: SegredoComChave) -> None:
+    def alterar_por_chave(self, dados: SegredoComChave) -> None:
         pass
 
     # Pode lançar SegredoNaoExisteException
     @abstractmethod
-    def excluir(self, dados: ChaveSegredo) -> None:
+    def excluir_por_chave(self, dados: ChaveSegredo) -> None:
         pass
 
     @abstractmethod
@@ -235,7 +258,7 @@ class ServicoSegredo(ABC):
     def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave:
         pass
 
-    # Não implementado ainda! Pode lançar SegredoNaoExisteException
+    # Pode lançar SegredoNaoExisteException
     @abstractmethod
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         pass
@@ -259,12 +282,12 @@ class ServicoCategoria(ABC):
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
     @abstractmethod
-    def renomear(self, dados: RenomeCategoria) -> None:
+    def renomear_por_nome(self, dados: RenomeCategoria) -> None:
         pass
 
     # Pode lançar CategoriaNaoExisteException
     @abstractmethod
-    def excluir(self, dados: NomeCategoria) -> None:
+    def excluir_por_nome(self, dados: NomeCategoria) -> None:
         pass
 
     @abstractmethod

@@ -21,6 +21,11 @@ class CategoriaDAOImpl(CategoriaDAO):
         self.__cf.execute("SELECT c.pk_categoria, c.nome FROM categoria c")
         return self.__cf.fetchall_class(DadosCategoria)
 
+    def listar_por_nomes(self, nomes: list[str]) -> list[DadosCategoria]:
+        wildcards: str = ", ".join(["?" for nome in nomes])
+        self.__cf.execute("SELECT pk_categoria, nome FROM categoria WHERE pk_categoria IN (" + wildcards + ")", nomes)
+        return self.__cf.fetchall_class(DadosCategoria)
+
     def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
         self.__cf.execute("INSERT INTO categoria (nome) VALUES (?)", [dados.nome])
         return CategoriaPK(self.__cf.asserted_lastrowid)

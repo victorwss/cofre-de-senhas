@@ -3,7 +3,6 @@ from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.bd.raiz import cf
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.cofre_enum import *
 from cofre_de_senhas.dao import *
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario import Usuario, Permissao
@@ -103,16 +102,13 @@ class Categoria:
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
-        # TO DO: Implementação ruim.
+        r: dict[str, Categoria] = {c.nome: Categoria.__promote(c) for c in dao.listar_por_nomes(list(nomes))}
 
-        categorias1: dict[str, Categoria] = {categoria.nome: categoria for categoria in Categoria.__listar()}
-        categorias2: dict[str, Categoria] = {}
+        if len(r) != len(nomes):
+            for nome in nomes:
+                if nome not in r: raise CategoriaNaoExisteException(nome)
 
-        for n in nomes:
-            if n not in categorias1: raise CategoriaNaoExisteException(n)
-            categorias2[n] = categorias1[n]
-
-        return categorias2
+        return r
 
     class Servico:
 
@@ -137,11 +133,11 @@ class Categoria:
             quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
             return Categoria.__criar(dados.nome).__up
 
-        def renomear(self, quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None:
+        def renomear_por_nome(self, quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
             Categoria.__encontrar_existente_por_nome(dados.antigo).__renomear(dados.novo)
 
-        def excluir(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> None:
+        def excluir_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> None:
             quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
             Categoria.__encontrar_existente_por_nome(dados.nome).__excluir()
 
