@@ -1,4 +1,4 @@
-python -m mypy --strict --install-types ^
+python -m mypy  ^
     .\src\mariadb\__init__.pyi ^
     .\src\mariadb\connections.pyi ^
     .\src\mariadb\cursors.pyi ^
@@ -6,11 +6,13 @@ python -m mypy --strict --install-types ^
     .\src\mariadb\constants\FIELD_FLAG.pyi ^
     .\src\mariadb\constants\FIELD_TYPE.pyi ^
     .\src\flask_swagger.pyi ^
+    .\src\flask_swagger_ui.pyi ^
     .\src\admin.py ^
     .\src\cofre.py ^
     .\src\validator.py ^
     .\src\decorators\__init__.py ^
     .\src\decorators\for_all.py ^
+    .\src\decorators\single.py ^
     .\src\decorators\tracer.py ^
     .\src\connection\__init__.py ^
     .\src\connection\conn.py ^

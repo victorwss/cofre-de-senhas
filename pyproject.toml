@@ -1,0 +1,42 @@
+[tool.mypy]
+strict                      = true
+disallow_any_unimported     = true
+disallow_any_expr           = false
+disallow_any_decorated      = false
+disallow_any_explicit       = false
+disallow_any_generics       = true
+disallow_subclassing_any    = true
+disallow_untyped_calls      = true
+disallow_untyped_defs       = true
+disallow_incomplete_defs    = true
+disallow_untyped_globals    = true
+disallow_redefinition       = true
+disallow_untyped_decorators = true
+check_untyped_defs          = true
+no_implicit_optional        = true
+no_implicit_reexport        = true
+no_silence_site_packages    = false
+warn_redundant_casts        = true
+warn_unused_ignores         = true
+warn_no_return              = true
+warn_return_any             = true
+warn_unreachable            = true
+strict_optional             = true
+strict_equality             = true
+strict_concatenate          = true
+warn_incomplete_stub        = true
+warn_unused_configs         = true
+
+color_output                = true
+show_error_context          = true
+show_column_numbers         = true
+show_error_end              = true
+hide_error_codes            = false
+pretty                      = true
+no_error_summary            = false
+show_absolute_path          = true
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]

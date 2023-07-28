@@ -2,13 +2,9 @@ import hashlib
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.bd.raiz import cf
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.dao import *
+from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK
 from cofre_de_senhas.service import *
-from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
-
-dao = UsuarioDAOImpl(cf)
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -48,7 +44,7 @@ class Usuario:
         return replace(self, nivel_acesso = novo_nivel_acesso).__salvar()
 
     #def __excluir(self) -> Self:
-    #    dao.deletar_por_pk(self.__pk)
+    #    UsuarioDAO.instance().deletar_por_pk(self.__pk)
     #    return self
 
     # Exportado para a classe Segredo.
@@ -69,7 +65,7 @@ class Usuario:
         return self
 
     def __salvar(self) -> Self:
-        dao.salvar(self.__down)
+        UsuarioDAO.instance().salvar(self.__down)
         return self
 
     @property
@@ -110,7 +106,7 @@ class Usuario:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def servicos() -> Usuario.Servico:
+    def servicos() -> "Usuario.Servico":
         return Usuario.Servico.instance()
 
     @staticmethod
@@ -119,7 +115,7 @@ class Usuario:
 
     @staticmethod
     def __encontrar_por_chave(chave: ChaveUsuario) -> "Usuario | None":
-        dados: DadosUsuario | None = dao.buscar_por_pk(UsuarioPK(chave.valor))
+        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_pk(UsuarioPK(chave.valor))
         if dados is None: return None
         return Usuario.__promote(dados)
 
@@ -141,7 +137,7 @@ class Usuario:
 
     @staticmethod
     def __encontrar_por_login(login: str) -> "Usuario | None":
-        dados: DadosUsuario | None = dao.buscar_por_login(login)
+        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(login)
         if dados is None: return None
         return Usuario.__promote(dados)
 
@@ -158,12 +154,12 @@ class Usuario:
 
     @staticmethod
     def __listar() -> list["Usuario"]:
-        return [Usuario.__promote(u) for u in dao.listar()]
+        return [Usuario.__promote(u) for u in UsuarioDAO.instance().listar()]
 
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_login(logins: set[str]) -> dict[str, "Usuario"]:
-        r: dict[str, Usuario] = {u.login: Usuario.__promote(u) for u in dao.listar_por_logins(list(logins))}
+        r: dict[str, Usuario] = {u.login: Usuario.__promote(u) for u in UsuarioDAO.instance().listar_por_logins(list(logins))}
 
         if len(r) != len(logins):
             for login in logins:
@@ -174,19 +170,21 @@ class Usuario:
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_permissao(segredo: "Segredo.Cabecalho") -> dict[str, "Permissao"]:
-        lista1: list[DadosUsuarioComPermissao] = dao.listar_por_permissao(segredo.pk)
+        lista1: list[DadosUsuarioComPermissao] = UsuarioDAO.instance().listar_por_permissao(segredo.pk)
         lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao(dados.fk_tipo_permissao)) for dados in lista1]
         return {permissao.usuario.login: permissao for permissao in lista2}
 
     class Servico:
 
-        __me: "Usuario.Servico" = Usuario.Servico()
+        __me: "Usuario.Servico | None" = None
 
         def __init__(self) -> None:
             if Usuario.Servico.__me: raise Exception()
 
         @staticmethod
         def instance() -> "Usuario.Servico":
+            if not Usuario.Servico.__me:
+                Usuario.Servico.__me = Usuario.Servico()
             return Usuario.Servico.__me
 
         def trocar_senha_por_chave(self, quem_faz: ChaveUsuario, dados: TrocaSenha) -> None:
@@ -197,7 +195,7 @@ class Usuario:
             Usuario.__encontrar_existente_por_login(dados.login).__alterar_nivel_de_acesso(dados.nivel_acesso)
 
         def login(self, quem_faz: LoginComSenha) -> UsuarioComChave:
-            dados: DadosUsuario | None = dao.buscar_por_login(quem_faz.login)
+            dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(quem_faz.login)
             if dados is None: raise SenhaErradaException()
             cadastrado: Usuario = Usuario.__promote(dados)
             cadastrado.__validar_senha(quem_faz.senha)
@@ -226,7 +224,7 @@ class Usuario:
         def __criar_interno(self, dados: UsuarioNovo) -> UsuarioComChave:
             Usuario.__nao_existente_por_login(dados.login)
             hash_com_sal: str = Usuario.__criar_hash(dados.senha)
-            pk: UsuarioPK = dao.criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
+            pk: UsuarioPK = UsuarioDAO.instance().criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
             return Usuario(pk.pk_usuario, dados.login, dados.nivel_acesso, hash_com_sal).__up
 
         def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeUsuarios:

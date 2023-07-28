@@ -1,14 +1,10 @@
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.bd.raiz import cf
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.dao import *
+from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario import Usuario, Permissao
-from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
-
-dao = CategoriaDAOImpl(cf)
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -21,11 +17,11 @@ class Categoria:
         return replace(self, nome = novo_nome).__salvar()
 
     def __excluir(self) -> Self:
-        dao.deletar_por_pk(self.pk)
+        CategoriaDAO.instance().deletar_por_pk(self.pk)
         return self
 
     def __salvar(self) -> Self:
-        dao.salvar(self.__down)
+        CategoriaDAO.instance().salvar(self.__down)
         return self
 
     @property
@@ -48,7 +44,7 @@ class Categoria:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def servicos() -> Categoria.Servico:
+    def servicos() -> "Categoria.Servico":
         return Categoria.Servico.instance()
 
     @staticmethod
@@ -57,7 +53,7 @@ class Categoria:
 
     @staticmethod
     def __encontrar_por_chave(chave: ChaveCategoria) -> "Categoria | None":
-        dados: DadosCategoria | None = dao.buscar_por_pk(CategoriaPK(chave.valor))
+        dados: DadosCategoria | None = CategoriaDAO.instance().buscar_por_pk(CategoriaPK(chave.valor))
         if dados is None: return None
         return Categoria.__promote(dados)
 
@@ -69,7 +65,7 @@ class Categoria:
 
     @staticmethod
     def __encontrar_por_nome(nome: str) -> "Categoria | None":
-        dados: DadosCategoria | None = dao.buscar_por_nome(nome)
+        dados: DadosCategoria | None = CategoriaDAO.instance().buscar_por_nome(nome)
         if dados is None: return None
         return Categoria.__promote(dados)
 
@@ -87,22 +83,22 @@ class Categoria:
     @staticmethod
     def __criar(nome: str) -> "Categoria":
         Categoria.__nao_existente_por_nome(nome)
-        pk: CategoriaPK = dao.criar(DadosCategoriaSemPK(nome))
+        pk: CategoriaPK = CategoriaDAO.instance().criar(DadosCategoriaSemPK(nome))
         return Categoria(pk.pk_categoria, nome)
 
     @staticmethod
     def __listar() -> list["Categoria"]:
-        return [Categoria.__promote(c) for c in dao.listar()]
+        return [Categoria.__promote(c) for c in CategoriaDAO.instance().listar()]
 
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_segredo(pk: SegredoPK) -> dict[str, "Categoria"]:
-        return {c.nome: Categoria.__promote(c) for c in dao.listar_por_segredo(pk)}
+        return {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_segredo(pk)}
 
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
-        r: dict[str, Categoria] = {c.nome: Categoria.__promote(c) for c in dao.listar_por_nomes(list(nomes))}
+        r: dict[str, Categoria] = {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_nomes(list(nomes))}
 
         if len(r) != len(nomes):
             for nome in nomes:
@@ -112,13 +108,15 @@ class Categoria:
 
     class Servico:
 
-        __me: "Categoria.Servico" = Categoria.Servico()
+        __me: "Categoria.Servico | None" = None
 
         def __init__(self) -> None:
             if Categoria.Servico.__me: raise Exception()
 
         @staticmethod
         def instance() -> "Categoria.Servico":
+            if not Categoria.Servico.__me:
+                Categoria.Servico.__me = Categoria.Servico()
             return Categoria.Servico.__me
 
         def buscar_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:

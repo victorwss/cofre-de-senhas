@@ -37,8 +37,6 @@ class FieldFlags:
     raw_value: int
     meanings : frozenset[str]
 
-__empty = FieldFlags(0, frozenset())
-
 @dataclass_validate
 @dataclass(frozen = True)
 class ColumnDescriptor:
@@ -66,7 +64,7 @@ class ColumnDescriptor:
             precision           : int  | None = None, \
             scale               : int  | None = None, \
             null_ok             : NullStatus, \
-            field_flags         : FieldFlags = __empty, \
+            field_flags         : FieldFlags = FieldFlags(0, frozenset()), \
             table_name          : str  | None = None, \
             original_column_name: str  | None = None, \
             original_table_name : str  | None = None, \
@@ -281,13 +279,17 @@ class TransactedConnection(SimpleConnection):
         @wraps(operation)
         def transacted_operation(*args: Any, **kwargs: Any) -> Any:
             with self as xxx:
+                ok: bool = True
                 try:
                     return operation(*args, **kwargs)
                 except BaseException as x:
-                    self.rollback()
+                    ok = False
                     raise x
-                else:
-                    self.commit()
+                finally:
+                    if ok:
+                        self.commit()
+                    else:
+                        self.rollback()
         return cast(_TRANS, transacted_operation)
 
     @property

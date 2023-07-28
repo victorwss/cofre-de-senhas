@@ -3,8 +3,8 @@ from typing import Generic, Self, TypeGuard
 from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace
 from cofre_de_senhas.service import *
-from cofre_de_senhas.bd.raiz import cf, log
-from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
+from cofre_de_senhas.bd.raiz import Raiz, log
+from cofre_de_senhas.dao import CofreDeSenhasDAO
 from cofre_de_senhas.categoria.categoria import Categoria
 from cofre_de_senhas.usuario.usuario import Usuario, SenhaAlterada
 from cofre_de_senhas.segredo.segredo import Segredo
@@ -12,26 +12,23 @@ from cofre_de_senhas.segredo.segredo import Segredo
 class ServicoLogin:
 
     def __init__(self, gl: GerenciadorLogin) -> None:
-        self.__gl = gl
+        self.__gl: GerenciadorLogin = gl
 
     @property
     def logado(self) -> ChaveUsuario:
         return self.__gl.usuario_logado
 
 @for_all_methods(log.trace)
-@for_all_methods(cf.transact)
+@for_all_methods(Raiz.transact)
 class ServicoBDImpl(ServicoBD):
 
-    def __init__(self) -> None:
-        self.__dao = CofreDeSenhasDAOImpl(cf)
-
     def criar_bd(self, dados: LoginComSenha) -> None:
-        self.__dao.criar_bd()
+        CofreDeSenhasDAO.instance().criar_bd()
         Usuario.servicos().criar_admin(dados)
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
-@for_all_methods(cf.transact)
+@for_all_methods(Raiz.transact)
 class ServicoUsuarioImpl(ServicoUsuario):
 
     def __init__(self, gl: GerenciadorLogin) -> None:
@@ -76,7 +73,7 @@ class ServicoUsuarioImpl(ServicoUsuario):
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
-@for_all_methods(cf.transact)
+@for_all_methods(Raiz.transact)
 class ServicoSegredoImpl(ServicoSegredo):
 
     def __init__(self, gl: GerenciadorLogin) -> None:
@@ -102,12 +99,16 @@ class ServicoSegredoImpl(ServicoSegredo):
         return Segredo.servicos().buscar(self.__login.logado, chave)
 
     # Pode lançar SegredoNaoExisteException
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave:
+        return Segredo.servicos().buscar_sem_logar(chave)
+
+    # Pode lançar SegredoNaoExisteException
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         return Segredo.servicos().pesquisar(self.__login.logado, dados)
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
-@for_all_methods(cf.transact)
+@for_all_methods(Raiz.transact)
 class ServicoCategoriaImpl(ServicoCategoria):
 
     def __init__(self, gl: GerenciadorLogin) -> None:

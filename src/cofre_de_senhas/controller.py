@@ -1,7 +1,8 @@
 from typing import Any, cast
-from flask import Flask, headers, jsonify, request, session
+from flask import Flask, jsonify, request, session
 from flask.wrappers import Response
 from flask_swagger import swagger
+from flask_swagger_ui import get_swaggerui_blueprint
 from cofre_de_senhas.httpwrap import *
 from cofre_de_senhas.service import *
 from cofre_de_senhas.service_impl import *
@@ -9,8 +10,23 @@ from validator import dataclass_validate
 from dataclasses import dataclass
 #from werkzeug.datastructures import MultiDict
 
+PORTA: int = 5000
 app: Flask = Flask(__name__)
 app.secret_key = ""
+
+SWAGGER_URL = "/docs"
+API_URL = f"http://127.0.0.1:{PORTA}/spec"
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config = {
+        "app_name": "Cofre de senhas"
+    }
+)
+
+app.register_blueprint(swaggerui_blueprint)
 
 class GerenciadorLoginImpl(GerenciadorLogin):
 
@@ -32,19 +48,40 @@ su: ServicoUsuario = ServicoUsuarioImpl(gl)
 sc: ServicoCategoria = ServicoCategoriaImpl(gl)
 ss: ServicoSegredo = ServicoSegredoImpl(gl)
 
-app.secret_key = ss.buscar_por_chave(ChaveSegredo(-1)).campos["Chave da sessão"]
-
 #### Usuários
 
 @app.route("/login", methods = ["POST"])
 @empty_json
 def login() -> None:
+    """Login
+        ---
+        post:
+            tags: [""]
+            body:
+            responses:
+                200:
+                    content:
+                        application/json:
+                404:
+                    uuuu
+    """
     read_body(LoginComSenha)
     su.login(read_body(LoginComSenha))
 
 @app.route("/logout", methods = ["POST"])
 @empty_json
 def logout() -> None:
+    """Logout
+        ---
+        post:
+            tags: [""]
+            responses:
+                200:
+                    content:
+                        application/json:
+                404:
+                    uuuu
+    """
     bodyless()
     su.logout()
 
@@ -196,9 +233,11 @@ def spec() -> Response:
     swag: dict[str, Any] = swagger(app)
     swag["info"]["version"] = "1.0"
     swag["info"]["title"] = "Cofre de senhas"
+    print(swag)
     return jsonify(swag)
 
 #### E aqui, a mágica acontece...
 
 def servir() -> None:
-    app.run(host = "0.0.0.0", port = 5000)
+    app.secret_key = ss.buscar_por_chave_sem_logar(ChaveSegredo(-1)).campos["Chave da sessão"]
+    app.run(host = "0.0.0.0", port = PORTA, debug = True)

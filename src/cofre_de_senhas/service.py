@@ -260,6 +260,11 @@ class ServicoSegredo(ABC):
 
     # Pode lançar SegredoNaoExisteException
     @abstractmethod
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave:
+        pass
+
+    # Pode lançar SegredoNaoExisteException
+    @abstractmethod
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         pass
 

@@ -8,5 +8,5 @@ def swagger( \
         from_file_keyword: str | None = None, \
         template: dict[str, Any] | None = None, \
         base_path: str = "" \
-        ) -> dict[str, Any]:
+    ) -> dict[str, Any]:
     ...

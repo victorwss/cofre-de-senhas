@@ -1,7 +1,8 @@
-from typing import Generic
+from typing import cast, Generic
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
+from decorators.single import Single
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -90,6 +91,14 @@ class CofreDeSenhasDAO(ABC):
     def criar_bd(self) -> None:
         pass
 
+    @staticmethod
+    def register(instance: "CofreDeSenhasDAO") -> None:
+        Single.register("CofreDeSenhasDAO", lambda: instance)
+
+    @staticmethod
+    def instance() -> "CofreDeSenhasDAO":
+        return cast(CofreDeSenhasDAO, Single.instance("CofreDeSenhasDAO"))
+
 class SegredoDAO(ABC):
 
     # CRUD básico.
@@ -158,6 +167,14 @@ class SegredoDAO(ABC):
     def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:
         pass
 
+    @staticmethod
+    def register(instance: "SegredoDAO") -> None:
+        return Single.register("SegredoDAO", lambda: instance)
+
+    @staticmethod
+    def instance() -> "SegredoDAO":
+        return cast(SegredoDAO, Single.instance("SegredoDAO"))
+
 class CategoriaDAO:
 
     # CRUD básico
@@ -206,7 +223,17 @@ class CategoriaDAO:
     def listar_por_segredo(self, pk_segredo: SegredoPK) -> list[DadosCategoria]:
         pass
 
+    @staticmethod
+    def register(instance: "CategoriaDAO") -> None:
+        Single.register("CategoriaDAO", lambda: instance)
+
+    @staticmethod
+    def instance() -> "CategoriaDAO":
+        return cast(CategoriaDAO, Single.instance("CategoriaDAO"))
+
 class UsuarioDAO:
+
+    __instance: "UsuarioDAO | None" = None
 
     # CRUD básico
 
@@ -253,3 +280,11 @@ class UsuarioDAO:
     @abstractmethod
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:
         pass
+
+    @staticmethod
+    def register(instance: "UsuarioDAO") -> None:
+        Single.register("UsuarioDAO", lambda: instance)
+
+    @staticmethod
+    def instance() -> "UsuarioDAO":
+        return cast(UsuarioDAO, Single.instance("UsuarioDAO"))
