@@ -9,6 +9,7 @@ GlobalNS_T = dict[str, Any]
 _U = TypeVar("_U")
 
 _CallableTypeReal = type(lambda a: a)
+_NoneType = type(None)
 
 if typing.TYPE_CHECKING:
     class _UnionType(Protocol):
@@ -159,8 +160,28 @@ def _validate_typing_dict(expected_type: _GenericType, value: Any, globalns: Glo
 def _validate_typing_callable(expected_type: _CallableTypeFormal, value: Any, globalns: GlobalNS_T) -> str | None:
     if not isinstance(value, _CallableTypeReal):
         return f"must be an instance of {expected_type.__str__()}, but received {type(value)}"
-    if len(expected_type.__args__) != 2:
-        return f"bad parameters for {expected_type} - should be 2 but are {len(expected_type.__args__)}"
+
+    names  : list[str]       = list(value.__annotations__.keys())
+    reals  : list[type[Any]] = list(value.__annotations__.values())
+    formals: list[type[Any]] = list(expected_type.__args__)
+
+    errors: list[str] = []
+
+    if formals[0] == _Ellipsis:
+        if formals[-1] != reals[-1] and formals[-1] != _NoneType and reals[-1] is not None: # type: ignore [comparison-overlap]
+            errors.append(f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}")
+
+    elif len(reals) != len(formals):
+        return f"bad parameters - should be {formals} but are {reals}"
+
+    else:
+        for k in range(0, len(reals)):
+            if formals[k] != reals[k] and formals[k] != _NoneType and reals[k] is not None: # type: ignore [comparison-overlap]
+                errors.append(f"incompatible value for {names[k]}: expected {formals[k]} but was {reals[k]}")
+
+    if errors:
+        return f"must be an instance of {expected_type}, but there are some errors in parameters or return types: {errors}"
+
     return None
 
 

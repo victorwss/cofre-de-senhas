@@ -287,6 +287,11 @@ class HasCall2:
 class HasCall3:
     x1: Callable[[...], str]
 
+@dataclass_validate
+@dataclass(frozen = True)
+class HasCall4:
+    x1: Callable[[...], None]
+
 def test_hascall_1() -> None:
     def u(x: float, y: int) -> str:
         return "z"
@@ -339,26 +344,54 @@ def test_hascall_8() -> None:
     t1: HasCall3 = HasCall3(u)
     assert t1.x1 == u
 
-def test_hascall_8() -> None:
+def test_hascall_9() -> None:
     def u(x: str, y: int, z: float) -> str:
         return "z"
 
     t1: HasCall3 = HasCall3(u)
     assert t1.x1 == u
 
-def test_hascall_9() -> None:
+def test_hascall_10() -> None:
     def u() -> str:
         return "z"
 
     t1: HasCall3 = HasCall3(u)
     assert t1.x1 == u
 
-def test_hascall_10() -> None:
+def test_hascall_11() -> None:
     def u() -> int:
-        return "z"
+        return 5
 
     with pytest.raises(TypeValidationError):
         HasCall3(u)
+
+def test_hascall_12() -> None:
+    def u(x: str, y: int) -> None:
+        pass
+
+    t1: HasCall4 = HasCall4(u)
+    assert t1.x1 == u
+
+def test_hascall_13() -> None:
+    def u(x: str, y: int, z: float) -> None:
+        pass
+
+    t1: HasCall4 = HasCall4(u)
+    assert t1.x1 == u
+
+def test_hascall_14() -> None:
+    def u() -> None:
+        pass
+
+    t1: HasCall4 = HasCall4(u)
+    assert t1.x1 == u
+
+def test_hascall_15() -> None:
+    def u() -> int:
+        return 5
+
+    with pytest.raises(TypeValidationError):
+        HasCall4(u)
 
 @dataclass_validate
 @dataclass(frozen = True)
