@@ -161,23 +161,25 @@ def _validate_typing_callable(expected_type: _CallableTypeFormal, value: Any, gl
     if not isinstance(value, _CallableTypeReal):
         return f"must be an instance of {expected_type.__str__()}, but received {type(value)}"
 
-    names  : list[str]       = list(value.__annotations__.keys())
-    reals  : list[type[Any]] = list(value.__annotations__.values())
-    formals: list[type[Any]] = list(expected_type.__args__)
+    names  : list[str]              = list(value.__annotations__.keys())
+    reals  : list[type[Any]]        = list(value.__annotations__.values())
+    formals: list[type[Any] | None] = [None if k == _NoneType else k for k in expected_type.__args__] # type: ignore [comparison-overlap]
 
     errors: list[str] = []
 
     if formals[0] == _Ellipsis:
-        if formals[-1] != reals[-1] and formals[-1] != _NoneType and reals[-1] is not None: # type: ignore [comparison-overlap]
+        if formals[-1] != Any and formals[-1] != reals[-1]:
             errors.append(f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}")
 
     elif len(reals) != len(formals):
         return f"bad parameters - should be {formals} but are {reals}"
 
     else:
-        for k in range(0, len(reals)):
-            if formals[k] != reals[k] and formals[k] != _NoneType and reals[k] is not None: # type: ignore [comparison-overlap]
+        for k in range(0, len(reals) - 1):
+            if formals[k] != reals[k]:
                 errors.append(f"incompatible value for {names[k]}: expected {formals[k]} but was {reals[k]}")
+        if formals[-1] != Any and formals[-1] != reals[-1]:
+            errors.append(f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}")
 
     if errors:
         return f"must be an instance of {expected_type}, but there are some errors in parameters or return types: {errors}"

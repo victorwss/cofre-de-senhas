@@ -37,10 +37,10 @@ class Logger:
 
     @staticmethod
     def for_print_fn(printer: Callable[[str], None] = print) -> "Logger":
-        on_enter : Callable[[Call               ], None] = \
-                lambda call     : printer(f"Calling {call.callee.__qualname__} - Args: {call.args} - Kwargs: {call.kwargs}.")
-        on_return: Callable[[Call, Any          ], None] = \
-                lambda call, ret: printer(f"Call on {call.callee.__qualname__} - returned {ret}.")
-        on_raise : Callable[[Call, BaseException], None] = \
-                lambda call, exc: printer(f"Call on {call.callee.__qualname__} - raised {exc}.")
+        def on_enter(call: Call) -> None:
+            printer(f"Calling {call.callee.__qualname__} - Args: {call.args} - Kwargs: {call.kwargs}.")
+        def on_return(call: Call, ret: Any) -> None:
+            printer(f"Call on {call.callee.__qualname__} - returned {ret}.")
+        def on_raise(call: Call, exc: BaseException) -> None:
+            printer(f"Call on {call.callee.__qualname__} - raised {exc}.")
         return Logger(on_enter, on_return, on_raise)

@@ -1,7 +1,7 @@
 from validator import TypeValidationError, dataclass_validate
 from dataclasses import dataclass
 from typing import Any, Callable
-import pytest
+from pytest import raises
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -13,7 +13,7 @@ def test_simple_1() -> None:
     assert t1.x1 == "a"
 
 def test_simple_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         Simple(123)
 
 @dataclass_validate
@@ -30,7 +30,7 @@ def test_united_2() -> None:
     assert t1.x1 == 123
 
 def test_united_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         United(123.567)
 
 @dataclass_validate
@@ -47,23 +47,23 @@ def test_tupled_1() -> None:
     assert len(t1.x1) == 4
 
 def test_tupled_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         Tupled(("a", 5, 3.3))
 
 def test_tupled_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         Tupled(("a", 5, 3.3, "b", "x"))
 
 def test_tupled_4() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         Tupled(("a", 5, 3.3, 4))
 
 def test_tupled_5() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         Tupled(())
 
 def test_tupled_6() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         Tupled("xxx")
 
 @dataclass_validate
@@ -72,31 +72,31 @@ class TupledCont:
     x1: tuple[str, int, float, str, ...] # Invalid type! Should always fail!
 
 def test_tupled_cont_1() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         t1: TupledCont = TupledCont(("a", 5, 3.3, "b"))
 
 def test_tupled_cont_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledCont(("a", 5, 3.3))
 
 def test_tupled_cont_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         t1: TupledCont = TupledCont(("a", 5, 3.3, "b", "x"))
 
 def test_tupled_cont_4() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledCont(("a", 5, 3.3, 4))
 
 def test_tupled_cont_5() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledCont(("a", 5, 3.3, "x", 5))
 
 def test_tupled_cont_6() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledCont(())
 
 def test_tupled_cont_7() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledCont("xxx")
 
 @dataclass_validate
@@ -105,19 +105,19 @@ class BadTupledEllipsis:
     x1: tuple[...] # Invalid type! Should always fail!
 
 def test_bad_tupled_ellipsis_1() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadTupledEllipsis(())
 
 def test_bad_tupled_ellipsis_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadTupledEllipsis(("a", ))
 
 def test_bad_tupled_ellipsis_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadTupledEllipsis(("a", 5))
 
 def test_bad_tupled_ellipsis_4() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadTupledEllipsis("xxx")
 
 @dataclass_validate
@@ -156,15 +156,15 @@ def test_tupled_ellipsis_5() -> None:
     assert len(t1.x1) == 3
 
 def test_tupled_ellipsis_6() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEllipsis("xxx")
 
 def test_tupled_ellipsis_7() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEllipsis((6.66, ))
 
 def test_tupled_ellipsis_8() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEllipsis((1, 2, 3, 6.66))
 
 @dataclass_validate
@@ -177,19 +177,19 @@ def test_tupled_empty_1() -> None:
     assert len(t1.x1) == 0
 
 def test_tupled_empty_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEmpty(("a", ))
 
 def test_tupled_empty_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEmpty(("a", "x"))
 
 def test_tupled_empty_4() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEmpty(("a", 789))
 
 def test_tupled_empty_5() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         TupledEmpty("xxx")
 
 @dataclass_validate
@@ -208,15 +208,15 @@ def test_hasdict_2() -> None:
     assert len(t1.x1) == 0
 
 def test_hasdict_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasDict({"a": 3.3})
 
 def test_hasdict_4() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasDict({3.3: "x"})
 
 def test_hasdict_5() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasDict("xxx")
 
 @dataclass_validate
@@ -225,11 +225,11 @@ class BadDict1:
     x1: dict[str, float, int] # Invalid type! Should always fail!
 
 def test_bad_dict1_1() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadDict1({})
 
 def test_bad_dict1_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadDict1("xxx")
 
 @dataclass_validate
@@ -238,11 +238,11 @@ class BadDict2:
     x1: dict[str] # Invalid type! Should always fail!
 
 def test_bad_dict2_1() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadDict2({})
 
 def test_bad_dict2_2() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         BadDict1("xxx")
 
 @dataclass_validate
@@ -261,15 +261,15 @@ def test_haslist_2() -> None:
     assert len(t1.x1) == 0
 
 def test_haslist_3() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasList(["a", 3.3])
 
 def test_haslist_4() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasList([3.3, "x"])
 
 def test_haslist_5() -> None:
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasList("xxx")
 
 @dataclass_validate
@@ -292,106 +292,165 @@ class HasCall3:
 class HasCall4:
     x1: Callable[[...], None]
 
-def test_hascall_1() -> None:
+@dataclass_validate
+@dataclass(frozen = True)
+class HasCall5:
+    x1: Callable[[str, int, int], Any]
+
+@dataclass_validate
+@dataclass(frozen = True)
+class HasCall6:
+    x1: Callable[[...], Any]
+
+def test_hascall_1a() -> None:
     def u(x: float, y: int) -> str:
         return "z"
 
     t1: HasCall1 = HasCall1(u)
     assert t1.x1 == u
 
-def test_hascall_2() -> None:
+def test_hascall_1b() -> None:
     def u(x: float, y: int) -> int:
         return 6
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall1(u)
 
-def test_hascall_3() -> None:
+def test_hascall_1c() -> None:
     def u(x: str, y: int) -> str:
         return "z"
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall1(u)
 
-def test_hascall_4() -> None:
+def test_hascall_1d() -> None:
     def u(x: str) -> str:
         return "z"
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall1(u)
 
-def test_hascall_5() -> None:
+def test_hascall_1e() -> None:
     def u(x: float, y: int, w: int) -> str:
         return "z"
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall1(u)
 
-def test_hascall_6() -> None:
+def test_hascall_2a() -> None:
     def u(x: str, y: int, z: int) -> str:
         return "z"
 
     t1: HasCall2 = HasCall2(u)
     assert t1.x1 == u
 
-def test_hascall_7() -> None:
+def test_hascall_2b() -> None:
     def u(x: str, y: int) -> str:
         return "z"
 
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall2(u)
 
-def test_hascall_8() -> None:
+def test_hascall_3a() -> None:
     def u(x: str, y: int) -> str:
         return "z"
 
     t1: HasCall3 = HasCall3(u)
     assert t1.x1 == u
 
-def test_hascall_9() -> None:
+def test_hascall_3b() -> None:
     def u(x: str, y: int, z: float) -> str:
         return "z"
 
     t1: HasCall3 = HasCall3(u)
     assert t1.x1 == u
 
-def test_hascall_10() -> None:
+def test_hascall_3c() -> None:
     def u() -> str:
         return "z"
 
     t1: HasCall3 = HasCall3(u)
     assert t1.x1 == u
 
-def test_hascall_11() -> None:
+def test_hascall_3d() -> None:
     def u() -> int:
         return 5
 
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall3(u)
 
-def test_hascall_12() -> None:
+def test_hascall_4a() -> None:
     def u(x: str, y: int) -> None:
         pass
 
     t1: HasCall4 = HasCall4(u)
     assert t1.x1 == u
 
-def test_hascall_13() -> None:
+def test_hascall_4b() -> None:
     def u(x: str, y: int, z: float) -> None:
         pass
 
     t1: HasCall4 = HasCall4(u)
     assert t1.x1 == u
 
-def test_hascall_14() -> None:
+def test_hascall_4c() -> None:
     def u() -> None:
         pass
 
     t1: HasCall4 = HasCall4(u)
     assert t1.x1 == u
 
-def test_hascall_15() -> None:
+def test_hascall_4d() -> None:
     def u() -> int:
         return 5
 
-    with pytest.raises(TypeValidationError):
+    with raises(TypeValidationError):
         HasCall4(u)
+
+def test_hascall_5a() -> None:
+    def u(x: str, y: int, z: int) -> str:
+        return "x"
+
+    t1: HasCall5 = HasCall5(u)
+    assert t1.x1 == u
+
+def test_hascall_5b() -> None:
+    def u(x: str, y: int, z: int) -> int:
+        return 5
+
+    t1: HasCall5 = HasCall5(u)
+    assert t1.x1 == u
+
+def test_hascall_5c() -> None:
+    def u(x: str, y: int, z: int) -> Any:
+        return 5
+
+    t1: HasCall5 = HasCall5(u)
+    assert t1.x1 == u
+
+def test_hascall_5d() -> None:
+    def u(x: str, y: str, z: int) -> Any:
+        return 5
+
+    with raises(TypeValidationError):
+        HasCall5(u)
+
+def test_hascall_6a() -> None:
+    def u() -> str:
+        return "x"
+
+    t1: HasCall6 = HasCall6(u)
+    assert t1.x1 == u
+
+def test_hascall_6b() -> None:
+    def u(x: str, y: int) -> int:
+        return 5
+
+    t1: HasCall6 = HasCall6(u)
+    assert t1.x1 == u
+
+def test_hascall_6c() -> None:
+    def u(x: str) -> Any:
+        return 5
+
+    t1: HasCall6 = HasCall6(u)
+    assert t1.x1 == u
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -413,13 +472,13 @@ def _foo_3(a: str, b: float) -> int:
     return 42
 
 def test_instantiation_works_1() -> None:
-    t1: SomeClass = SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    t1: SomeClass = SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
     assert t1.x1 == "a"
     assert t1.x2 == 123
     assert t1.x3 == "e"
     assert t1.x4 == ("a", 5, 7.7)
     assert t1.x5 is _foo_1
-    assert t1.x6 is pytest
+    assert t1.x6 is raises
     assert t1.x7 == "ss"
     assert t1.x8 == _foo_2
     assert t1.x9 == ("1", "2", "3", "4", "5")
@@ -439,41 +498,41 @@ def test_instantiation_works_2() -> None:
     assert t1.x10 == _foo_3
 
 def test_validation_is_strong_typed_1() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass(123, 123, "e", ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass(123, 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_2() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", "b", "e", ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", "b", "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_3() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, _foo_2, ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, _foo_2, ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_4() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", _foo_1, _foo_1, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", _foo_1, _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_5() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_2, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_2, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_7() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, pytest, 123, _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, 123, _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_8() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, pytest, "ss", "x", ("1", "2", "3", "4", "5"), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", "x", ("1", "2", "3", "4", "5"), _foo_3)
 
 def test_validation_is_strong_typed_9a() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, 444, _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, 444, _foo_3)
 
 def test_validation_is_strong_typed_9b() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, (444, ), _foo_3)
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, (444, ), _foo_3)
 
 def test_validation_is_strong_typed_10() -> None:
-    with pytest.raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, pytest, "ss", _foo_2, ("1", "2", "3", "4", "5"), "x")
+    with raises(TypeValidationError):
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), "x")
