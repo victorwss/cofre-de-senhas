@@ -19,7 +19,7 @@ def the_wrapper(operation: _TRANS) -> _TRANS:
 
     return cast(_TRANS, inner)
 
-def test_simple_wrapped_method():
+def test_simple_wrapped_method() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -39,7 +39,7 @@ def test_simple_wrapped_method():
     assert f.test1() == "x"
     assert which == ["test1"]
 
-def test_parameter_wrapped_method():
+def test_parameter_wrapped_method() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -59,7 +59,7 @@ def test_parameter_wrapped_method():
     assert f.test2(5) == 10
     assert which == ["test2"]
 
-def test_raising_wrapped_method():
+def test_raising_wrapped_method() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -80,7 +80,7 @@ def test_raising_wrapped_method():
         f.test3()
     assert which == ["test3"]
 
-def test_static_wrapped():
+def test_static_wrapped() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -102,7 +102,7 @@ def test_static_wrapped():
     assert Foo.test4() == "y"
     assert which == ["test4"]
 
-def test_wrapped_property_get():
+def test_wrapped_property_get() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -123,7 +123,7 @@ def test_wrapped_property_get():
     assert f.test5 == "z"
     assert which == ["test5"]
 
-def test_wrapped_property_set():
+def test_wrapped_property_set() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -148,7 +148,7 @@ def test_wrapped_property_set():
     f.test5 = "z"
     assert which == ["test5"]
 
-def test_wrapped_property_del():
+def test_wrapped_property_del() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -173,7 +173,7 @@ def test_wrapped_property_del():
     del f.test5
     assert which == ["test5"]
 
-def test_wrapped_dunders():
+def test_wrapped_dunders() -> None:
 
     @for_all_methods(the_wrapper, even_dunders = True)
     class Foo:
@@ -199,7 +199,7 @@ def test_wrapped_dunders():
     f.__foofoo__()
     assert which == ["__new__", "__init__", "__str__", "__format__", "__getattribute__", "__foofoo__"]
 
-def test_was_wrapped_sequence():
+def test_was_wrapped_sequence() -> None:
 
     @for_all_methods(the_wrapper)
     class Foo:
@@ -260,7 +260,7 @@ def test_was_wrapped_sequence():
     del f.test5
     assert which == ["test1", "test2", "test3", "test4", "test5", "test5", "test5"]
 
-def test_was_wrapped_sequence_with_dunders():
+def test_was_wrapped_sequence_with_dunders() -> None:
 
     @for_all_methods(the_wrapper, even_dunders = True)
     class Foo:

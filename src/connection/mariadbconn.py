@@ -168,7 +168,7 @@ class MariaDBConnectionWrapper(SimpleConnection):
 
     @property
     def description(self) -> Descriptor:
-        return [self.__make_descriptor(k) for k in self.__curr.description]
+        return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
 
     @property
     def lastrowid(self) -> int | None:

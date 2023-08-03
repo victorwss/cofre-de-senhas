@@ -38,8 +38,9 @@ def test_call_is_immutable() -> None:
     assert c.kwargs == {"foo": 123, "bar": 321}
 
 def test_tracer_simple():
-    x = []
-    def foo(y):
+    x: list[str] = []
+
+    def foo(y: str) -> None:
         nonlocal x
         x.append(y)
 
@@ -57,9 +58,10 @@ def test_tracer_simple():
     assert x[1] == "Foo Foo"
     assert x[2] == "Call on test_tracer_simple.<locals>.bar - returned Sbrubbles."
 
-def test_tracer_raise():
-    x = []
-    def foo(y):
+def test_tracer_raise() -> None:
+    x: list[str] = []
+
+    def foo(y: str) -> None:
         nonlocal x
         x.append(y)
 

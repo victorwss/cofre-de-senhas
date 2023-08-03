@@ -60,8 +60,8 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
 
     @property
     def description(self) -> Descriptor:
-        if self.__curr.description is None: return []
-        return [self.__make_descriptor(k) for k in self.__curr.description]
+        if self.__curr.description is None: return Descriptor([])
+        return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
 
     @property
     def lastrowid(self) -> int | None:

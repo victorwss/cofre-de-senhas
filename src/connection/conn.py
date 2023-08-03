@@ -84,12 +84,27 @@ class ColumnDescriptor:
                 original_table_name
         )
 
-Descriptor = list[ColumnDescriptor]
+class Descriptor:
+
+    def __init__(self, columns: list[ColumnDescriptor]) -> None:
+        self.__columns: list[ColumnDescriptor] = columns[:]
+
+        x: list[str] = []
+        for c in columns:
+            if c.name in x:
+                raise ValueError(f"Repeated column name {x}")
+            x.append(c.name)
+
+    @property
+    def columns(self) -> list[ColumnDescriptor]:
+        return self.__columns[:]
 
 def row_to_dict(description: Descriptor, row: tuple[Any, ...]) -> dict[str, Any]:
+    if len(description.columns) != len(row):
+        raise ValueError("Column descriptions and rows do not have the same length.")
     d = {}
     for i in range(0, len(row)):
-        d[description[i].name] = row[i]
+        d[description.columns[i].name] = row[i]
     return d
 
 def row_to_dict_opt(description: Descriptor, row: tuple[Any, ...] | None) -> dict[str, Any] | None:
