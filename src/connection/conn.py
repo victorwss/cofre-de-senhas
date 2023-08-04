@@ -92,12 +92,18 @@ class Descriptor:
         x: list[str] = []
         for c in columns:
             if c.name in x:
-                raise ValueError(f"Repeated column name {x}")
+                raise ValueError(f"Repeated column name {c.name}.")
             x.append(c.name)
+
+        self.__column_names: list[str] = x
 
     @property
     def columns(self) -> list[ColumnDescriptor]:
         return self.__columns[:]
+
+    @property
+    def column_names(self) -> list[str]:
+        return self.__column_names[:]
 
 def row_to_dict(description: Descriptor, row: tuple[Any, ...]) -> dict[str, Any]:
     if len(description.columns) != len(row):
@@ -228,6 +234,10 @@ class SimpleConnection(ABC):
         ...
 
     @property
+    def column_names(self) -> list[str]:
+        return self.description.column_names
+
+    @property
     @abstractmethod
     def lastrowid(self) -> int | None:
         ...
@@ -261,6 +271,7 @@ class TransactionNotActiveException(Exception):
     pass
 
 class TransactedConnection(SimpleConnection):
+
     def __init__(self, activate: Callable[[], SimpleConnection]) -> None:
         self.__activate: Callable[[], SimpleConnection] = activate
         self.__local = threading.local()
@@ -386,6 +397,10 @@ class TransactedConnection(SimpleConnection):
     @property
     def description(self) -> Descriptor:
         return self.__wrapped.description
+
+    @property
+    def column_names(self) -> list[str]:
+        return self.__wrapped.column_names
 
     @property
     def lastrowid(self) -> int | None:
