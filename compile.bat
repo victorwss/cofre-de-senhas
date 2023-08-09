@@ -1,4 +1,4 @@
-python -m mypy  ^
+python -m mypy ^
     .\src\mariadb\__init__.pyi ^
     .\src\mariadb\connections.pyi ^
     .\src\mariadb\cursors.pyi ^
@@ -16,6 +16,7 @@ python -m mypy  ^
     .\src\decorators\tracer.py ^
     .\src\connection\__init__.py ^
     .\src\connection\conn.py ^
+    .\src\connection\inflater.py ^
     .\src\connection\sqlfactory.py ^
     .\src\connection\mysqlconn.py ^
     .\src\connection\mariadbconn.py ^

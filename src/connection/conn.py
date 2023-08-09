@@ -2,12 +2,11 @@ from typing import Any, Callable, cast, Iterator, Literal, Self, Sequence, TypeV
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from dacite import Config, from_dict
-from enum import Enum
 from types import TracebackType
 from functools import wraps
 from enum import Enum
 import threading
+from .inflater import *
 
 _T = TypeVar("_T")
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
@@ -84,70 +83,35 @@ class ColumnDescriptor:
                 original_table_name
         )
 
-class Descriptor:
-
-    def __init__(self, columns: list[ColumnDescriptor]) -> None:
-        self.__columns: list[ColumnDescriptor] = columns[:]
+class ColumnSet:
+    def __init__(self, items: list[ColumnDescriptor]) -> None:
+        self.__items: list[ColumnDescriptor] = items[:]
 
         x: list[str] = []
-        for c in columns:
+        for c in items:
             if c.name in x:
                 raise ValueError(f"Repeated column name {c.name}.")
             x.append(c.name)
 
-        self.__column_names: list[str] = x
+    def __len__(self) -> int:
+        return len(self.__items)
+
+    def __getitem__(self, key: int) -> ColumnDescriptor:
+        return self.__items[key]
+
+class Descriptor:
+
+    def __init__(self, columns: list[ColumnDescriptor]) -> None:
+        self.__columns: ColumnSet = ColumnSet(columns)
+        self.__column_names: ColumnNames = ColumnNames([c.name for c in columns])
 
     @property
-    def columns(self) -> list[ColumnDescriptor]:
-        return self.__columns[:]
+    def columns(self) -> ColumnSet:
+        return self.__columns
 
     @property
-    def column_names(self) -> list[str]:
-        return self.__column_names[:]
-
-def row_to_dict(description: Descriptor, row: tuple[Any, ...]) -> dict[str, Any]:
-    if len(description.columns) != len(row):
-        raise ValueError("Column descriptions and rows do not have the same length.")
-    d = {}
-    for i in range(0, len(row)):
-        d[description.columns[i].name] = row[i]
-    return d
-
-def row_to_dict_opt(description: Descriptor, row: tuple[Any, ...] | None) -> dict[str, Any] | None:
-    if row is None: return None
-    return row_to_dict(description, row)
-
-def rows_to_dicts(description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[dict[str, Any]]:
-    result = []
-    for row in rows:
-        result.append(row_to_dict(description, row))
-    return result
-
-def row_to_class_lambda(ctor: Callable[[dict[str, Any]], _T], description: Descriptor, row: tuple[Any, ...]) -> _T:
-    return ctor(row_to_dict(description, row))
-
-def row_to_class(klass: type[_T], description: Descriptor, row: tuple[Any, ...]) -> _T:
-    return row_to_class_lambda(lambda d: from_dict(data_class = klass, data = d, config = Config(cast = [Enum])), description, row)
-
-def row_to_class_lambda_opt(ctor: Callable[[dict[str, Any]], _T], description: Descriptor, row: tuple[Any, ...] | None) -> _T | None:
-    if row is None: return None
-    return row_to_class_lambda(ctor, description, row)
-
-def row_to_class_opt(klass: type[_T], description: Descriptor, row: tuple[Any, ...] | None) -> _T | None:
-    if row is None: return None
-    return row_to_class(klass, description, row)
-
-def rows_to_classes_lambda(ctor: Callable[[dict[str, Any]], _T], description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[_T]:
-    result = []
-    for row in rows:
-        result.append(row_to_class_lambda(ctor, description, row))
-    return result
-
-def rows_to_classes(klass: type[_T], description: Descriptor, rows: Sequence[tuple[Any, ...]]) -> list[_T]:
-    result = []
-    for row in rows:
-        result.append(row_to_class(klass, description, row))
-    return result
+    def column_names(self) -> ColumnNames:
+        return self.__column_names
 
 class SimpleConnection(ABC):
 
@@ -176,31 +140,31 @@ class SimpleConnection(ABC):
         ...
 
     def fetchone_dict(self) -> dict[str, Any] | None:
-        return row_to_dict_opt(self.description, self.fetchone())
+        return row_to_dict_opt(self.column_names, self.fetchone())
 
     def fetchall_dict(self) -> list[dict[str, Any]]:
-        return rows_to_dicts(self.description, self.fetchall())
+        return rows_to_dicts(self.column_names, self.fetchall())
 
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, Any]]:
-        return rows_to_dicts(self.description, self.fetchmany(size))
+        return rows_to_dicts(self.column_names, self.fetchmany(size))
 
     def fetchone_class(self, klass: type[_T]) -> _T | None:
-        return row_to_class_opt(klass, self.description, self.fetchone())
+        return row_to_class_opt(klass, self.column_names, self.fetchone())
 
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
-        return rows_to_classes(klass, self.description, self.fetchall())
+        return rows_to_classes(klass, self.column_names, self.fetchall())
 
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
-        return rows_to_classes(klass, self.description, self.fetchmany(size))
+        return rows_to_classes(klass, self.column_names, self.fetchmany(size))
 
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, Any]], _T]) -> _T | None:
-        return row_to_class_lambda_opt(ctor, self.description, self.fetchone())
+        return row_to_class_lambda_opt(ctor, self.column_names, self.fetchone())
 
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, Any]], _T]) -> list[_T]:
-        return rows_to_classes_lambda(ctor, self.description, self.fetchall())
+        return rows_to_classes_lambda(ctor, self.column_names, self.fetchall())
 
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, Any]], _T], size: int = 0) -> list[_T]:
-        return rows_to_classes_lambda(ctor, self.description, self.fetchmany(size))
+        return rows_to_classes_lambda(ctor, self.column_names, self.fetchmany(size))
 
     @abstractmethod
     def callproc(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
@@ -234,7 +198,7 @@ class SimpleConnection(ABC):
         ...
 
     @property
-    def column_names(self) -> list[str]:
+    def column_names(self) -> ColumnNames:
         return self.description.column_names
 
     @property
@@ -399,7 +363,7 @@ class TransactedConnection(SimpleConnection):
         return self.__wrapped.description
 
     @property
-    def column_names(self) -> list[str]:
+    def column_names(self) -> ColumnNames:
         return self.__wrapped.column_names
 
     @property
