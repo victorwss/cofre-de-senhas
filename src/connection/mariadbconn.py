@@ -99,6 +99,10 @@ def find_flags(code: int) -> FieldFlags:
             result.append(f.name)
     return FieldFlags(code, frozenset(result))
 
+class NotImplementedError(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
 class MariaDBConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: MariaDBConnection) -> None:
@@ -137,7 +141,7 @@ class MariaDBConnectionWrapper(SimpleConnection):
         return self
 
     def executescript(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
-        raise TypeError("Sorry. Not implemented yet.")
+        raise NotImplementedError("Sorry. The executescript method was not implemented yet.")
         #self.__curr.execute(sql, parameters, multi = True)
         #return self
 

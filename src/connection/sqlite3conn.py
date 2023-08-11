@@ -1,6 +1,10 @@
 from typing import Any, cast, Self, Sequence
 from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode
-from sqlite3 import Cursor, Connection, NotSupportedError
+from sqlite3 import Cursor, Connection
+
+class NotImplementedError(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
 
 class Sqlite3ConnectionWrapper(SimpleConnection):
 
@@ -28,7 +32,7 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
         return self.__curr.fetchmany(size)
 
     def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
-        raise NotSupportedError()
+        raise NotImplementedError("Sorry. The callproc method was not implemented yet.")
 
     def execute(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
         self.__curr.execute(sql, parameters)
@@ -53,9 +57,9 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
     def __make_descriptor(self, k: tuple[str, None, None, None, None, None, None]) -> ColumnDescriptor:
         return ColumnDescriptor.create( \
                 name = k[0], \
-                type_code = TypeCode.UNSPECIFIED,
-                column_type_name = "Unspecified",
-                null_ok = NullStatus.DONT_KNOW
+                type_code = TypeCode.UNSPECIFIED, \
+                column_type_name = "Unspecified", \
+                null_ok = NullStatus.DONT_KNOW \
         )
 
     @property

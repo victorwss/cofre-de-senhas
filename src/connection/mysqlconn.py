@@ -117,7 +117,7 @@ class MySQLConnectionWrapper(SimpleConnection):
                 name = k[0], \
                 type_code = code.type, \
                 column_type_name = code.name, \
-                null_ok = NullStatus.YES if k[6] not in [False, 0] else NullStatus.NO, \
+                null_ok = NullStatus.YES if k[6] not in [False, 0] else NullStatus.NO \
         )
 
     @property
