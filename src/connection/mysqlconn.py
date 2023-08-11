@@ -107,6 +107,10 @@ class MySQLConnectionWrapper(SimpleConnection):
     def arraysize(self) -> int:
         return self.__curr.arraysize
 
+    @arraysize.setter
+    def arraysize(self, size: int) -> None:
+        self.__curr.arraysize = size
+
     @property
     def rowcount(self) -> int:
         return self.__curr.rowcount

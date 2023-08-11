@@ -149,6 +149,10 @@ class MariaDBConnectionWrapper(SimpleConnection):
     def arraysize(self) -> int:
         return self.__curr.arraysize
 
+    @arraysize.setter
+    def arraysize(self, size: int) -> None:
+        raise NotImplementedError("Sorry. The arraysize setter was not implemented yet.")
+
     @property
     def rowcount(self) -> int:
         return self.__curr.rowcount

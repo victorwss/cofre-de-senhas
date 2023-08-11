@@ -187,6 +187,11 @@ class SimpleConnection(ABC):
     def arraysize(self) -> int:
         ...
 
+    @arraysize.setter
+    @abstractmethod
+    def arraysize(self, size: int) -> None:
+        ...
+
     @property
     @abstractmethod
     def rowcount(self) -> int:
@@ -353,6 +358,10 @@ class TransactedConnection(SimpleConnection):
     @property
     def arraysize(self) -> int:
         return self.__wrapped.arraysize
+
+    @arraysize.setter
+    def arraysize(self, size: int) -> None:
+        self.__wrapped.arraysize = size
 
     @property
     def rowcount(self) -> int:
