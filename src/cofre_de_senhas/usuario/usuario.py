@@ -3,7 +3,7 @@ from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK
+from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuario as LoginUsuarioDAO
 from cofre_de_senhas.service import *
 
 from typing import TYPE_CHECKING
@@ -65,7 +65,7 @@ class Usuario:
         return self
 
     def __salvar(self) -> Self:
-        UsuarioDAO.instance().salvar(self.__down)
+        UsuarioDAO.instance().salvar_com_pk(self.__down)
         return self
 
     @property
@@ -137,7 +137,7 @@ class Usuario:
 
     @staticmethod
     def __encontrar_por_login(login: str) -> "Usuario | None":
-        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(login)
+        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(login))
         if dados is None: return None
         return Usuario.__promote(dados)
 
@@ -159,7 +159,8 @@ class Usuario:
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_login(logins: set[str]) -> dict[str, "Usuario"]:
-        r: dict[str, Usuario] = {u.login: Usuario.__promote(u) for u in UsuarioDAO.instance().listar_por_logins(list(logins))}
+        dl: list[LoginUsuarioDAO] = [LoginUsuarioDAO(v) for v in logins]
+        r: dict[str, Usuario] = {u.login: Usuario.__promote(u) for u in UsuarioDAO.instance().listar_por_logins(dl)}
 
         if len(r) != len(logins):
             for login in logins:
@@ -195,7 +196,7 @@ class Usuario:
             Usuario.__encontrar_existente_por_login(dados.login).__alterar_nivel_de_acesso(dados.nivel_acesso)
 
         def login(self, quem_faz: LoginComSenha) -> UsuarioComChave:
-            dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(quem_faz.login)
+            dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(quem_faz.login))
             if dados is None: raise SenhaErradaException()
             cadastrado: Usuario = Usuario.__promote(dados)
             cadastrado.__validar_senha(quem_faz.senha)

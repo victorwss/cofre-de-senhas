@@ -139,3 +139,10 @@ def bodyless() -> None:
     """
     content_type: str | None = request.headers.get("Content-Type")
     if content_type is not None: raise RequisicaoMalFormadaException()
+
+def move() -> tuple[str, bool]:
+    dest: str | None = request.headers.get("Destination")
+    if dest is None: raise RequisicaoMalFormadaException()
+    overwrite: str | None = request.headers.get("Overwrite")
+    if overwrite not in [None, "F", "T"]: raise RequisicaoMalFormadaException()
+    return (dest, overwrite != "F")

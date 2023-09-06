@@ -1,8 +1,6 @@
-from typing import Any, cast
-from flask import Flask, jsonify, request, session
-from flask.wrappers import Response
-from flask_swagger import swagger
-from flask_swagger_ui import get_swaggerui_blueprint
+from typing import Any, cast, TypeVar
+from flask import Flask, jsonify, redirect, request, session, url_for
+from werkzeug import Response
 from cofre_de_senhas.httpwrap import *
 from cofre_de_senhas.service import *
 from cofre_de_senhas.service_impl import *
@@ -13,20 +11,6 @@ from dataclasses import dataclass
 PORTA: int = 5000
 app: Flask = Flask(__name__)
 app.secret_key = ""
-
-SWAGGER_URL = "/docs"
-API_URL = f"http://127.0.0.1:{PORTA}/spec"
-
-# Call factory function to create our blueprint
-swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,
-    API_URL,
-    config = {
-        "app_name": "Cofre de senhas"
-    }
-)
-
-app.register_blueprint(swaggerui_blueprint)
 
 class GerenciadorLoginImpl(GerenciadorLogin):
 
@@ -53,35 +37,12 @@ ss: ServicoSegredo = ServicoSegredoImpl(gl)
 @app.route("/login", methods = ["POST"])
 @empty_json
 def login() -> None:
-    """Login
-        ---
-        post:
-            tags: [""]
-            body:
-            responses:
-                200:
-                    content:
-                        application/json:
-                404:
-                    uuuu
-    """
     read_body(LoginComSenha)
     su.login(read_body(LoginComSenha))
 
 @app.route("/logout", methods = ["POST"])
 @empty_json
 def logout() -> None:
-    """Logout
-        ---
-        post:
-            tags: [""]
-            responses:
-                200:
-                    content:
-                        application/json:
-                404:
-                    uuuu
-    """
     bodyless()
     su.logout()
 
@@ -170,14 +131,11 @@ def criar_categoria(nome: str) -> CategoriaComChave:
 @empty_json
 def renomear_categoria(nome: str) -> None:
     bodyless()
-    dest: str | None = request.headers.get("Destination")
-    if dest is None: raise RequisicaoMalFormadaException()
-    overwrite: str | None = request.headers.get("Overwrite")
-    if overwrite not in [None, "F", "T"]: raise RequisicaoMalFormadaException()
+    dest, overwrite = move()
     try:
         sc.renomear_por_nome(RenomeCategoria(nome, dest))
     except CategoriaJaExisteException as x:
-        if overwrite == "F": raise PrecondicaoFalhouException()
+        if not overwrite: raise PrecondicaoFalhouException()
         raise x
 
 @app.route("/categorias")
@@ -226,15 +184,22 @@ def listar_segredos() -> ResultadoPesquisaDeSegredos:
     bodyless()
     return ss.listar()
 
-#### Swagger
+#### Front-end
 
-@app.route("/spec")
-def spec() -> Response:
-    swag: dict[str, Any] = swagger(app)
-    swag["info"]["version"] = "1.0"
-    swag["info"]["title"] = "Cofre de senhas"
-    print(swag)
-    return jsonify(swag)
+@app.route("/")
+def index() -> Response:
+    bodyless()
+    return redirect(url_for("static", filename = "index.html"))
+
+@app.route("/map")
+def map() -> str:
+    x = ""
+    for rule in app.url_map.iter_rules():
+        #for method in rule.methods:
+            f = "function xxx(" + ", ".join([str(arg) for arg in rule.arguments]) + ") {}"
+            x += str(rule.endpoint)
+            x += f
+    return x
 
 #### E aqui, a mágica acontece...
 

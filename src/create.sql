@@ -2,7 +2,7 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS enum_nivel_acesso (
     pk_nivel_acesso INTEGER NOT NULL PRIMARY KEY,
-    descricao       TEXT    NOT NULL
+    descricao       TEXT    NOT NULL UNIQUE
 ) STRICT, WITHOUT ROWID;
 
 INSERT INTO enum_nivel_acesso (pk_nivel_acesso, descricao) VALUES
@@ -12,7 +12,7 @@ INSERT INTO enum_nivel_acesso (pk_nivel_acesso, descricao) VALUES
 
 CREATE TABLE IF NOT EXISTS enum_tipo_permissao (
     pk_tipo_permissao INTEGER NOT NULL PRIMARY KEY,
-    descricao         TEXT    NOT NULL
+    descricao         TEXT    NOT NULL UNIQUE
 ) STRICT, WITHOUT ROWID;
 
 INSERT INTO enum_tipo_permissao (pk_tipo_permissao, descricao) VALUES
@@ -22,7 +22,7 @@ INSERT INTO enum_tipo_permissao (pk_tipo_permissao, descricao) VALUES
 
 CREATE TABLE IF NOT EXISTS enum_tipo_segredo (
     pk_tipo_segredo INTEGER NOT NULL PRIMARY KEY,
-    nome            TEXT    NOT NULL,
+    nome            TEXT    NOT NULL UNIQUE,
     descricao       TEXT    NOT NULL
 ) STRICT, WITHOUT ROWID;
 

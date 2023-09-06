@@ -85,6 +85,26 @@ class LoginComPermissao:
     login: str
     permissao: int
 
+@dataclass_validate
+@dataclass(frozen = True)
+class CampoSegredoPK:
+    pk_campo_segredo: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CategoriaSegredoPK:
+    pk_categoria_segredo: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class LoginUsuario:
+    valor: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class NomeCategoria:
+    valor: str
+
 class CofreDeSenhasDAO(ABC):
 
     @abstractmethod
@@ -108,7 +128,7 @@ class SegredoDAO(ABC):
         pass
 
     @abstractmethod
-    def buscar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
+    def listar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
         pass
 
     @abstractmethod
@@ -120,7 +140,7 @@ class SegredoDAO(ABC):
         pass
 
     @abstractmethod
-    def salvar(self, dados: DadosSegredo) -> None:
+    def salvar_com_pk(self, dados: DadosSegredo) -> None:
         pass
 
     @abstractmethod
@@ -130,7 +150,7 @@ class SegredoDAO(ABC):
     # Métodos auxiliares.
 
     @abstractmethod
-    def listar_visiveis(self, login: str) -> list[DadosSegredo]:
+    def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
         pass
 
     @abstractmethod
@@ -140,13 +160,13 @@ class SegredoDAO(ABC):
     # Categoria de segredo
 
     @abstractmethod
-    def criar_categoria_segredo(self, spk: SegredoPK, cpk: CategoriaPK) -> int:
+    def criar_categoria_segredo(self, spk: SegredoPK, cpk: CategoriaPK) -> CategoriaSegredoPK:
         pass
 
     # Campos
 
     @abstractmethod
-    def criar_campo_segredo(self, pk: SegredoPK, descricao: str, valor: str) -> int:
+    def criar_campo_segredo(self, pk: SegredoPK, descricao: str, valor: str) -> CampoSegredoPK:
         pass
 
     @abstractmethod
@@ -160,7 +180,7 @@ class SegredoDAO(ABC):
         pass
 
     @abstractmethod
-    def buscar_permissao(self, pk: SegredoPK, login: str) -> int | None:
+    def buscar_permissao(self, pk: SegredoPK, login: LoginUsuario) -> int | None:
         pass
 
     @abstractmethod
@@ -184,7 +204,7 @@ class CategoriaDAO:
         pass
 
     @abstractmethod
-    def buscar_por_pks(self, pks: list[CategoriaPK]) -> list[DadosCategoria]:
+    def listar_por_pks(self, pks: list[CategoriaPK]) -> list[DadosCategoria]:
         pass
 
     @abstractmethod
@@ -192,7 +212,7 @@ class CategoriaDAO:
         pass
 
     @abstractmethod
-    def listar_por_nomes(self, nomes: list[str]) -> list[DadosCategoria]:
+    def listar_por_nomes(self, nomes: list[NomeCategoria]) -> list[DadosCategoria]:
         pass
 
     @abstractmethod
@@ -200,7 +220,7 @@ class CategoriaDAO:
         pass
 
     @abstractmethod
-    def salvar(self, dados: DadosCategoria) -> None:
+    def salvar_com_pk(self, dados: DadosCategoria) -> None:
         pass
 
     @abstractmethod
@@ -210,11 +230,11 @@ class CategoriaDAO:
     # Métodos auxiliares
 
     @abstractmethod
-    def buscar_por_nome(self, nome: str) -> DadosCategoria | None:
+    def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
         pass
 
     #@abstractmethod
-    #def deletar_por_nome(self, nome: str) -> None:
+    #def deletar_por_nome(self, nome: NomeCategoria) -> None:
     #    pass
 
     # Métodos com joins em outras tabelas
@@ -242,7 +262,7 @@ class UsuarioDAO:
         pass
 
     @abstractmethod
-    def buscar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
+    def listar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
         pass
 
     @abstractmethod
@@ -250,7 +270,7 @@ class UsuarioDAO:
         pass
 
     @abstractmethod
-    def listar_por_logins(self, logins: list[str]) -> list[DadosUsuario]:
+    def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
         pass
 
     @abstractmethod
@@ -258,7 +278,7 @@ class UsuarioDAO:
         pass
 
     @abstractmethod
-    def salvar(self, dados: DadosUsuario) -> None:
+    def salvar_com_pk(self, dados: DadosUsuario) -> None:
         pass
 
     @abstractmethod
@@ -268,11 +288,11 @@ class UsuarioDAO:
     # Métodos auxiliares
 
     @abstractmethod
-    def buscar_por_login(self, login: str) -> DadosUsuario | None:
+    def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
         pass
 
     #@abstractmethod
-    #def deletar_por_login(self, login: str) -> None:
+    #def deletar_por_login(self, login: LoginUsuario) -> None:
     #    pass
 
     # Métodos com joins em outras tabelas

@@ -2,7 +2,7 @@ from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK
+from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria as NomeCategoriaDAO
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario import Usuario, Permissao
 
@@ -21,7 +21,7 @@ class Categoria:
         return self
 
     def __salvar(self) -> Self:
-        CategoriaDAO.instance().salvar(self.__down)
+        CategoriaDAO.instance().salvar_com_pk(self.__down)
         return self
 
     @property
@@ -65,7 +65,7 @@ class Categoria:
 
     @staticmethod
     def __encontrar_por_nome(nome: str) -> "Categoria | None":
-        dados: DadosCategoria | None = CategoriaDAO.instance().buscar_por_nome(nome)
+        dados: DadosCategoria | None = CategoriaDAO.instance().buscar_por_nome(NomeCategoriaDAO(nome))
         if dados is None: return None
         return Categoria.__promote(dados)
 
@@ -98,7 +98,8 @@ class Categoria:
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
-        r: dict[str, Categoria] = {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_nomes(list(nomes))}
+        dl: list[NomeCategoriaDAO] = [NomeCategoriaDAO(nome) for nome in nomes]
+        r: dict[str, Categoria] = {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_nomes(dl)}
 
         if len(r) != len(nomes):
             for nome in nomes:

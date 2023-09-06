@@ -5,8 +5,6 @@ python -m mypy ^
     .\src\mariadb\constants\__init__.pyi ^
     .\src\mariadb\constants\FIELD_FLAG.pyi ^
     .\src\mariadb\constants\FIELD_TYPE.pyi ^
-    .\src\flask_swagger.pyi ^
-    .\src\flask_swagger_ui.pyi ^
     .\src\admin.py ^
     .\src\cofre.py ^
     .\src\validator.py ^

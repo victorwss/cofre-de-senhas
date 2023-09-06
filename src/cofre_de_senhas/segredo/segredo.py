@@ -1,7 +1,7 @@
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK
+from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, LoginUsuario as LoginUsuarioDAO
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario import Usuario, Permissao
 from cofre_de_senhas.categoria.categoria import Categoria
@@ -36,7 +36,7 @@ class Segredo:
             return CabecalhoSegredoComChave(ChaveSegredo(self.pk_segredo), self.nome, self.descricao, self.tipo_segredo)
 
         @property
-        def __down(self) -> DadosSegredo:
+        def _down(self) -> DadosSegredo:
             return DadosSegredo(self.pk_segredo, self.nome, self.descricao, self.tipo_segredo.value)
 
         @staticmethod
@@ -44,7 +44,7 @@ class Segredo:
             return Segredo.Cabecalho(dados.pk_segredo, dados.nome, dados.descricao, TipoSegredo(dados.fk_tipo_segredo))
 
     def __salvar(self) -> Self:
-        SegredoDAO.instance().salvar(self.__down)
+        SegredoDAO.instance().salvar_com_pk(self.__down)
         return self.__salvar_dados_internos()
 
     def __salvar_dados_internos(self) -> Self:
@@ -70,7 +70,8 @@ class Segredo:
     def _alterar(self, dados: SegredoSemChave) -> Self:
         permissoes: dict[str, Permissao] = Segredo.__mapear_permissoes(dados.usuarios)
         categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
-        return replace(self, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo, campos = dados.campos, categorias = categorias, usuarios = permissoes).__salvar()
+        c: Segredo.Cabecalho = replace(self.cabecalho, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo)
+        return replace(self, cabecalho = c, campos = dados.campos, categorias = categorias, usuarios = permissoes).__salvar()
 
     #@property
     #def __chave(self) -> ChaveSegredo:
@@ -91,11 +92,11 @@ class Segredo:
 
     @property
     def __down(self) -> DadosSegredo:
-        return  self.cabecalho.__down
+        return  self.cabecalho._down
 
     def _permitir_escrita_para(self, acesso: Usuario) -> None:
         if acesso.is_admin: return
-        valor_permissao: int | None = SegredoDAO.instance().buscar_permissao(self.__pk, acesso.login)
+        valor_permissao: int | None = SegredoDAO.instance().buscar_permissao(self.__pk, LoginUsuarioDAO(acesso.login))
         if valor_permissao is None: raise PermissaoNegadaException()
         permissao: TipoPermissao = TipoPermissao(valor_permissao)
         if permissao not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
@@ -156,7 +157,7 @@ class Segredo:
 
     @staticmethod
     def __listar_visiveis(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:
-        return [Segredo.Cabecalho._promote(s) for s in SegredoDAO.instance().listar_visiveis(quem_faz.login)]
+        return [Segredo.Cabecalho._promote(s) for s in SegredoDAO.instance().listar_visiveis(LoginUsuarioDAO(quem_faz.login))]
 
     @staticmethod
     def _listar(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:

@@ -1,11 +1,13 @@
-import os
-import shutil
 import sqlite3
+from typing import Callable
 from connection.sqlite3conn import Sqlite3ConnectionWrapper
 from connection.conn import TransactedConnection, TransactionNotActiveException
 from pytest import raises
 from dataclasses import dataclass
 from validator import dataclass_validate
+from .db_test_util import DbTestConfig
+
+db: DbTestConfig = DbTestConfig("test/fruits-ok.db", "test/fruits.db")
 
 create = """
 CREATE TABLE IF NOT EXISTS fruit (
@@ -17,28 +19,23 @@ INSERT INTO fruit (name) VALUES ('strawberry');
 INSERT INTO fruit (name) VALUES ('lemon');
 """;
 
-def register_sqlite() -> TransactedConnection:
-    try:
-        os.remove("test/test.db")
-    except FileNotFoundError as x:
-        pass
-    shutil.copy2("test/test-ok.db", "test/test.db")
-    return TransactedConnection(lambda: Sqlite3ConnectionWrapper(sqlite3.connect("test/test.db")))
-
+@db.decorator
 def test_fetchone() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
         one: tuple[Any, ...] = c.fetchone()
         assert one == (2, "strawberry")
 
+@db.decorator
 def test_fetchall() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
         all: list[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
+@db.decorator
 def test_fetchall_class() -> None:
 
     @dataclass_validate
@@ -47,7 +44,7 @@ def test_fetchall_class() -> None:
         pk_fruit: int
         name: str
 
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
         all: list[tuple[Any, ...]] = c.fetchall_class(Fruit)
@@ -59,8 +56,9 @@ def test_fetchall_class() -> None:
         assert all[2].pk_fruit == 3
         assert all[2].name == "lemon"
 
+@db.decorator
 def test_commit() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
 
     with conn as c:
         c.execute("INSERT INTO fruit (name) VALUES ('grape')")
@@ -71,8 +69,9 @@ def test_commit() -> None:
         all: list[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
+@db.decorator
 def test_rollback() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
 
     with conn as c:
         c.execute("INSERT INTO fruit (name) VALUES ('grape')")
@@ -83,8 +82,9 @@ def test_rollback() -> None:
         all: list[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
+@db.decorator
 def test_transact_1() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
 
     def x() -> None:
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
@@ -96,8 +96,9 @@ def test_transact_1() -> None:
         all: list[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
+@db.decorator
 def test_transact_2() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
 
     @conn.transact
     def x() -> None:
@@ -110,7 +111,8 @@ def test_transact_2() -> None:
         all: list[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
+@db.decorator
 def test_no_transaction() -> None:
-    conn: TransactedConnection = register_sqlite()
+    conn: TransactedConnection = db.new_connection()
     with raises(TransactionNotActiveException):
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
