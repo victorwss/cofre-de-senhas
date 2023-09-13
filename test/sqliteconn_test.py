@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Callable
+from typing import Any, Callable, Sequence
 from connection.sqlite3conn import Sqlite3ConnectionWrapper
 from connection.conn import TransactedConnection, TransactionNotActiveException
 from pytest import raises
@@ -24,7 +24,7 @@ def test_fetchone() -> None:
     conn: TransactedConnection = db.new_connection()
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: tuple[Any, ...] = c.fetchone()
+        one: tuple[Any, ...] | None = c.fetchone()
         assert one == (2, "strawberry")
 
 @db.decorator
@@ -32,7 +32,7 @@ def test_fetchall() -> None:
     conn: TransactedConnection = db.new_connection()
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
-        all: list[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 @db.decorator
@@ -47,7 +47,7 @@ def test_fetchall_class() -> None:
     conn: TransactedConnection = db.new_connection()
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
-        all: list[tuple[Any, ...]] = c.fetchall_class(Fruit)
+        all: Sequence[Fruit] = c.fetchall_class(Fruit)
         assert len(all) == 3
         assert all[0].pk_fruit == 1
         assert all[0].name == "orange"
@@ -66,7 +66,7 @@ def test_commit() -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
-        all: list[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 @db.decorator
@@ -79,7 +79,7 @@ def test_rollback() -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
-        all: list[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 @db.decorator
@@ -93,7 +93,7 @@ def test_transact_1() -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
-        all: list[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 @db.decorator
@@ -108,7 +108,7 @@ def test_transact_2() -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
-        all: list[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 @db.decorator

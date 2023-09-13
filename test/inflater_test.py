@@ -1,3 +1,4 @@
+from typing import Any
 from pytest import raises
 from connection.conn import ColumnDescriptor, Descriptor, NullStatus, TypeCode
 from dataclasses import dataclass
@@ -60,13 +61,13 @@ def test_row_to_dict_mismatch() -> None:
 def test_row_to_dict_opt() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
-    result: dict[str, Any] = row_to_dict_opt(columns, row)
+    result: dict[str, Any] | None = row_to_dict_opt(columns, row)
     assert result == {"lemon": 1, "strawberry": "xyz", "grape": 27}
 
 def test_row_to_dict_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
     row: tuple[Any, ...] = ()
-    result: dict[str, Any] = row_to_dict_opt(columns, row)
+    result: dict[str, Any] | None = row_to_dict_opt(columns, row)
     assert result == {}
 
 def test_row_to_dict_opt_mismatch() -> None:
@@ -90,14 +91,14 @@ def test_rows_to_dicts() -> None:
 def test_rows_to_dict_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
     rows: list[tuple[Any, ...]] = []
-    results: dict[str, Any] = rows_to_dicts(columns, rows)
+    results: list[dict[str, Any]] = rows_to_dicts(columns, rows)
     assert results == []
 
 def test_rows_to_dict_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
-    rows: list[tuple[Any, ...]] = [(1, 2)]
+    row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, rows)
+        row_to_dict(columns, row)
 
 # ---------------
 
@@ -157,10 +158,8 @@ def test_row_to_class_columns_missing() -> None:
 def test_row_to_class_opt() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
-    result: FruitSalad = row_to_class_opt(FruitSalad, columns, row)
-    assert result.lemon == 1
-    assert result.strawberry == "xyz"
-    assert result.grape == 27
+    result: FruitSalad | None = row_to_class_opt(FruitSalad, columns, row)
+    assert result == FruitSalad(1, "xyz", 27)
 
 def test_row_to_class_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
@@ -211,9 +210,7 @@ def test_row_to_class_lambda() -> None:
         assert t == {"lemon": 1, "strawberry": "abc", "grape": 27}
         return FruitSalad(5, "xyz", 9)
     result: FruitSalad = row_to_class_lambda(make, columns, row)
-    assert result.lemon == 5
-    assert result.strawberry == "xyz"
-    assert result.grape == 9
+    assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_empty() -> None:
     columns: ColumnNames = make_columns([])
@@ -222,15 +219,15 @@ def test_row_to_class_lambda_empty() -> None:
         assert t == {}
         return FruitSalad(5, "xyz", 9)
     result: FruitSalad = row_to_class_lambda(make, columns, row)
-    assert result.lemon == 5
-    assert result.strawberry == "xyz"
-    assert result.grape == 9
+    assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_row_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
+    def make(t: dict[str, Any]) -> FruitSalad:
+        assert False
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda(FruitSalad, columns, row)
+        row_to_class_lambda(make, columns, row)
 
 # ---------------
 
@@ -240,10 +237,8 @@ def test_row_to_class_lambda_opt() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert t == {"lemon": 1, "strawberry": "abc", "grape": 27}
         return FruitSalad(5, "xyz", 9)
-    result: FruitSalad = row_to_class_lambda_opt(make, columns, row)
-    assert result.lemon == 5
-    assert result.strawberry == "xyz"
-    assert result.grape == 9
+    result: FruitSalad | None = row_to_class_lambda_opt(make, columns, row)
+    assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
@@ -251,10 +246,8 @@ def test_row_to_class_lambda_opt_empty() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert t == {}
         return FruitSalad(5, "xyz", 9)
-    result: FruitSalad = row_to_class_lambda_opt(make, columns, row)
-    assert result.lemon == 5
-    assert result.strawberry == "xyz"
-    assert result.grape == 9
+    result: FruitSalad | None = row_to_class_lambda_opt(make, columns, row)
+    assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_opt_row_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -268,4 +261,4 @@ def test_row_to_class_lambda_opt_none() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
-    assert None == row_to_class_opt(make, columns, None)
+    assert None == row_to_class_lambda_opt(make, columns, None)

@@ -14,7 +14,7 @@ def test_simple_1() -> None:
 
 def test_simple_2() -> None:
     with raises(TypeValidationError):
-        Simple(123)
+        Simple(123) # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -31,7 +31,7 @@ def test_united_2() -> None:
 
 def test_united_3() -> None:
     with raises(TypeValidationError):
-        United(123.567)
+        United(123.567) # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -48,36 +48,37 @@ def test_tupled_1() -> None:
 
 def test_tupled_2() -> None:
     with raises(TypeValidationError):
-        Tupled(("a", 5, 3.3))
+        Tupled(("a", 5, 3.3)) # type: ignore
 
 def test_tupled_3() -> None:
     with raises(TypeValidationError):
-        Tupled(("a", 5, 3.3, "b", "x"))
+        Tupled(("a", 5, 3.3, "b", "x")) # type: ignore
 
 def test_tupled_4() -> None:
     with raises(TypeValidationError):
-        Tupled(("a", 5, 3.3, 4))
+        Tupled(("a", 5, 3.3, 4)) # type: ignore
 
 def test_tupled_5() -> None:
     with raises(TypeValidationError):
-        Tupled(())
+        Tupled(()) # type: ignore
 
 def test_tupled_6() -> None:
     with raises(TypeValidationError):
-        Tupled("xxx")
+        Tupled("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
 class TupledCont:
-    x1: tuple[str, int, float, str, ...] # Invalid type! Should always fail!
+    # Invalid type! Should always fail!
+    x1: tuple[str, int, float, str, ...] # type: ignore
 
 def test_tupled_cont_1() -> None:
     with raises(TypeValidationError):
-        t1: TupledCont = TupledCont(("a", 5, 3.3, "b"))
+        t1: TupledCont = TupledCont(("a", 5, 3.3, "b")) # type: ignore
 
 def test_tupled_cont_2() -> None:
     with raises(TypeValidationError):
-        TupledCont(("a", 5, 3.3))
+        TupledCont(("a", 5, 3.3)) # type: ignore
 
 def test_tupled_cont_3() -> None:
     with raises(TypeValidationError):
@@ -85,7 +86,7 @@ def test_tupled_cont_3() -> None:
 
 def test_tupled_cont_4() -> None:
     with raises(TypeValidationError):
-        TupledCont(("a", 5, 3.3, 4))
+        TupledCont(("a", 5, 3.3, 4)) # type: ignore
 
 def test_tupled_cont_5() -> None:
     with raises(TypeValidationError):
@@ -93,20 +94,21 @@ def test_tupled_cont_5() -> None:
 
 def test_tupled_cont_6() -> None:
     with raises(TypeValidationError):
-        TupledCont(())
+        TupledCont(()) # type: ignore
 
 def test_tupled_cont_7() -> None:
     with raises(TypeValidationError):
-        TupledCont("xxx")
+        TupledCont("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
 class BadTupledEllipsis:
-    x1: tuple[...] # Invalid type! Should always fail!
+    # Invalid type! Should always fail!
+    x1: tuple[...] # type: ignore
 
 def test_bad_tupled_ellipsis_1() -> None:
     with raises(TypeValidationError):
-        BadTupledEllipsis(())
+        BadTupledEllipsis(()) # type: ignore
 
 def test_bad_tupled_ellipsis_2() -> None:
     with raises(TypeValidationError):
@@ -114,11 +116,11 @@ def test_bad_tupled_ellipsis_2() -> None:
 
 def test_bad_tupled_ellipsis_3() -> None:
     with raises(TypeValidationError):
-        BadTupledEllipsis(("a", 5))
+        BadTupledEllipsis(("a", 5)) # type: ignore
 
 def test_bad_tupled_ellipsis_4() -> None:
     with raises(TypeValidationError):
-        BadTupledEllipsis("xxx")
+        BadTupledEllipsis("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -157,15 +159,15 @@ def test_tupled_ellipsis_5() -> None:
 
 def test_tupled_ellipsis_6() -> None:
     with raises(TypeValidationError):
-        TupledEllipsis("xxx")
+        TupledEllipsis("xxx") # type: ignore
 
 def test_tupled_ellipsis_7() -> None:
     with raises(TypeValidationError):
-        TupledEllipsis((6.66, ))
+        TupledEllipsis((6.66, )) # type: ignore
 
 def test_tupled_ellipsis_8() -> None:
     with raises(TypeValidationError):
-        TupledEllipsis((1, 2, 3, 6.66))
+        TupledEllipsis((1, 2, 3, 6.66)) # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -178,19 +180,19 @@ def test_tupled_empty_1() -> None:
 
 def test_tupled_empty_2() -> None:
     with raises(TypeValidationError):
-        TupledEmpty(("a", ))
+        TupledEmpty(("a", )) # type: ignore
 
 def test_tupled_empty_3() -> None:
     with raises(TypeValidationError):
-        TupledEmpty(("a", "x"))
+        TupledEmpty(("a", "x")) # type: ignore
 
 def test_tupled_empty_4() -> None:
     with raises(TypeValidationError):
-        TupledEmpty(("a", 789))
+        TupledEmpty(("a", 789)) # type: ignore
 
 def test_tupled_empty_5() -> None:
     with raises(TypeValidationError):
-        TupledEmpty("xxx")
+        TupledEmpty("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -209,20 +211,21 @@ def test_hasdict_2() -> None:
 
 def test_hasdict_3() -> None:
     with raises(TypeValidationError):
-        HasDict({"a": 3.3})
+        HasDict({"a": 3.3}) # type: ignore
 
 def test_hasdict_4() -> None:
     with raises(TypeValidationError):
-        HasDict({3.3: "x"})
+        HasDict({3.3: "x"}) # type: ignore
 
 def test_hasdict_5() -> None:
     with raises(TypeValidationError):
-        HasDict("xxx")
+        HasDict("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
 class BadDict1:
-    x1: dict[str, float, int] # Invalid type! Should always fail!
+    # Invalid type! Should always fail!
+    x1: dict[str, float, int] # type: ignore
 
 def test_bad_dict1_1() -> None:
     with raises(TypeValidationError):
@@ -230,12 +233,13 @@ def test_bad_dict1_1() -> None:
 
 def test_bad_dict1_2() -> None:
     with raises(TypeValidationError):
-        BadDict1("xxx")
+        BadDict1("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
 class BadDict2:
-    x1: dict[str] # Invalid type! Should always fail!
+    # Invalid type! Should always fail!
+    x1: dict[str] # type: ignore
 
 def test_bad_dict2_1() -> None:
     with raises(TypeValidationError):
@@ -243,7 +247,7 @@ def test_bad_dict2_1() -> None:
 
 def test_bad_dict2_2() -> None:
     with raises(TypeValidationError):
-        BadDict1("xxx")
+        BadDict1("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -262,15 +266,15 @@ def test_haslist_2() -> None:
 
 def test_haslist_3() -> None:
     with raises(TypeValidationError):
-        HasList(["a", 3.3])
+        HasList(["a", 3.3]) # type: ignore
 
 def test_haslist_4() -> None:
     with raises(TypeValidationError):
-        HasList([3.3, "x"])
+        HasList([3.3, "x"]) # type: ignore
 
 def test_haslist_5() -> None:
     with raises(TypeValidationError):
-        HasList("xxx")
+        HasList("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -285,12 +289,12 @@ class HasCall2:
 @dataclass_validate
 @dataclass(frozen = True)
 class HasCall3:
-    x1: Callable[[...], str]
+    x1: Callable[..., str]
 
 @dataclass_validate
 @dataclass(frozen = True)
 class HasCall4:
-    x1: Callable[[...], None]
+    x1: Callable[..., None]
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -300,7 +304,7 @@ class HasCall5:
 @dataclass_validate
 @dataclass(frozen = True)
 class HasCall6:
-    x1: Callable[[...], Any]
+    x1: Callable[..., Any]
 
 def test_hascall_1a() -> None:
     def u(x: float, y: int) -> str:
@@ -313,25 +317,25 @@ def test_hascall_1b() -> None:
     def u(x: float, y: int) -> int:
         return 6
     with raises(TypeValidationError):
-        HasCall1(u)
+        HasCall1(u) # type: ignore
 
 def test_hascall_1c() -> None:
     def u(x: str, y: int) -> str:
         return "z"
     with raises(TypeValidationError):
-        HasCall1(u)
+        HasCall1(u) # type: ignore
 
 def test_hascall_1d() -> None:
     def u(x: str) -> str:
         return "z"
     with raises(TypeValidationError):
-        HasCall1(u)
+        HasCall1(u) # type: ignore
 
 def test_hascall_1e() -> None:
     def u(x: float, y: int, w: int) -> str:
         return "z"
     with raises(TypeValidationError):
-        HasCall1(u)
+        HasCall1(u) # type: ignore
 
 def test_hascall_2a() -> None:
     def u(x: str, y: int, z: int) -> str:
@@ -345,7 +349,7 @@ def test_hascall_2b() -> None:
         return "z"
 
     with raises(TypeValidationError):
-        HasCall2(u)
+        HasCall2(u) # type: ignore
 
 def test_hascall_3a() -> None:
     def u(x: str, y: int) -> str:
@@ -373,7 +377,7 @@ def test_hascall_3d() -> None:
         return 5
 
     with raises(TypeValidationError):
-        HasCall3(u)
+        HasCall3(u) # type: ignore
 
 def test_hascall_4a() -> None:
     def u(x: str, y: int) -> None:
@@ -401,7 +405,7 @@ def test_hascall_4d() -> None:
         return 5
 
     with raises(TypeValidationError):
-        HasCall4(u)
+        HasCall4(u) # type: ignore
 
 def test_hascall_5a() -> None:
     def u(x: str, y: int, z: int) -> str:
@@ -429,7 +433,7 @@ def test_hascall_5d() -> None:
         return 5
 
     with raises(TypeValidationError):
-        HasCall5(u)
+        HasCall5(u) # type: ignore
 
 def test_hascall_6a() -> None:
     def u() -> str:
@@ -468,6 +472,7 @@ class SomeClass:
 
 _foo_1: list[str] = ["a", "b"]
 _foo_2: dict[str, str] = {"a": "b", "c": "d"}
+
 def _foo_3(a: str, b: float) -> int:
     return 42
 
@@ -499,40 +504,40 @@ def test_instantiation_works_2() -> None:
 
 def test_validation_is_strong_typed_1() -> None:
     with raises(TypeValidationError):
-        SomeClass(123, 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass(123, 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_2() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", "b", "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass("a", "b", "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_3() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, _foo_2, ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass("a", 123, _foo_2, ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_4() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", _foo_1, _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass("a", 123, "e", _foo_1, _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_5() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_2, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_2, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_7() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, 123, _foo_2, ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, 123, _foo_2, ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_8() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", "x", ("1", "2", "3", "4", "5"), _foo_3)
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", "x", ("1", "2", "3", "4", "5"), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_9a() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, 444, _foo_3)
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, 444, _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_9b() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, (444, ), _foo_3)
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, (444, ), _foo_3) # type: ignore
 
 def test_validation_is_strong_typed_10() -> None:
     with raises(TypeValidationError):
-        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), "x")
+        SomeClass("a", 123, "e", ("a", 5, 7.7), _foo_1, raises, "ss", _foo_2, ("1", "2", "3", "4", "5"), "x") # type: ignore
