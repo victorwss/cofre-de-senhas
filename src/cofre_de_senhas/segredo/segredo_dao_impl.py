@@ -24,8 +24,8 @@ class SegredoDAOImpl(SegredoDAO):
         return SegredoPK(Raiz.instance().asserted_lastrowid)
 
     def salvar_com_pk(self, dados: DadosSegredo) -> None:
-        sql: str = "UPDATE segredo SET nome = ?, descricao = ?, fk_tipo_segredo = ? WHERE pk_segredo = ?"
-        Raiz.instance().execute(sql, [dados.nome, dados.descricao, dados.fk_tipo_segredo, dados.pk_segredo])
+        sql: str = "UPDATE segredo SET pk_segredo = ?, nome = ?, descricao = ?, fk_tipo_segredo = ? WHERE pk_segredo = ?"
+        Raiz.instance().execute(sql, [dados.pk_segredo, dados.nome, dados.descricao, dados.fk_tipo_segredo, dados.pk_segredo])
 
     def deletar_por_pk(self, pk: SegredoPK) -> None:
         # self.limpar_segredo(pk) # Desnecessário, pois deleta nas outras tabelas graças ao ON DELETE CASCADE.
@@ -40,10 +40,16 @@ class SegredoDAOImpl(SegredoDAO):
             + "FROM segredo s " \
             + "INNER JOIN permissao p ON p.pfk_segredo = s.pk_segredo " \
             + "INNER JOIN usuario u ON p.pfk_usuario = u.pk_usuario " \
-            + "WHERE u.login = ?"
+            + "WHERE u.login = ? AND u.fk_nivel_acesso IN (1, 2)" \
+            + "UNION " \
+            + "SELECT p.pk_segredo, p.nome, p.descricao, p.fk_tipo_segredo " \
+            + "FROM segredo p " \
+            + "WHERE p.fk_tipo_segredo IN (1, 2) " \
+            + "ORDER BY pk_segredo"
         Raiz.instance().execute(sql, [login.valor])
         return Raiz.instance().fetchall_class(DadosSegredo)
 
+    # TESTAR
     def limpar_segredo(self, pk: SegredoPK) -> None:
         sql1: str = "DELETE FROM campo_segredo WHERE pfk_segredo = ?"
         sql2: str = "DELETE FROM permissao WHERE pfk_segredo = ?"
@@ -71,6 +77,7 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Categoria de segredo
 
+    # TESTAR
     def criar_categoria_segredo(self, spk: SegredoPK, cpk: CategoriaPK) -> CategoriaSegredoPK:
         sql: str = "INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (?, ?)"
         Raiz.instance().execute(sql, [spk.pk_segredo, cpk])
@@ -78,23 +85,27 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Campos
 
+    # TESTAR
     def criar_campo_segredo(self, pk: SegredoPK, descricao: str, valor: str) -> CampoSegredoPK:
         sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_descricao, valor) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [pk.pk_segredo, descricao, valor])
         return CampoSegredoPK(Raiz.instance().asserted_lastrowid)
 
+    # TESTAR
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
-        sql: str = "SELECT pk_chave, valor FROM campo_segredo WHERE pfk_segredo = ?"
+        sql: str = "SELECT pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ?"
         Raiz.instance().execute(sql, [pk.pk_segredo])
         return Raiz.instance().fetchall_class(CampoDeSegredo)
 
     # Permissões
 
+    # TESTAR
     def criar_permissao(self, upk: UsuarioPK, spk: SegredoPK, fk_tipo_permissao: int) -> int:
         sql: str = "INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [upk, spk.pk_segredo, fk_tipo_permissao])
         return Raiz.instance().asserted_lastrowid
 
+    # TESTAR
     def buscar_permissao(self, pk: SegredoPK, login: LoginUsuario) -> int | None:
         sql: str = "" \
             + "SELECT p.fk_tipo_permissao " \
@@ -106,6 +117,7 @@ class SegredoDAOImpl(SegredoDAO):
         if tupla is None: return None
         return int(tupla[0])
 
+    # TESTAR
     def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:
         sql: str = "" \
             + "SELECT u.login, p.fk_tipo_permissao AS permissao " \

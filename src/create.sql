@@ -66,9 +66,9 @@ CREATE TABLE IF NOT EXISTS segredo (
 
 CREATE TABLE IF NOT EXISTS campo_segredo (
     pfk_segredo INTEGER NOT NULL,
-    pk_chave    TEXT    NOT NULL CHECK (LENGTH(pk_chave) >= 0 AND LENGTH(pk_chave) <=  500),
-    valor       TEXT    NOT NULL CHECK (                          LENGTH(valor   ) <= 5000),
-    PRIMARY KEY (pfk_segredo, pk_chave),
+    pk_nome     TEXT    NOT NULL CHECK (LENGTH(pk_nome) >= 0 AND LENGTH(pk_nome) <=  500),
+    valor       TEXT    NOT NULL CHECK (                         LENGTH(valor  ) <= 5000),
+    PRIMARY KEY (pfk_segredo, pk_nome),
     FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE
 ) STRICT, WITHOUT ROWID;
 
