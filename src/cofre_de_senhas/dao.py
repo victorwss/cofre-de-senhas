@@ -76,7 +76,7 @@ class DadosSegredo:
 @dataclass_validate
 @dataclass(frozen = True)
 class CampoDeSegredo:
-    pk_segredo: int
+    pfk_segredo: int
     pk_nome: str
     valor: str
 

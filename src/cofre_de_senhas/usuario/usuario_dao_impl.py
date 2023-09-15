@@ -56,6 +56,7 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     # Métodos com joins em outras tabelas
 
+    # TESTAR
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:
         sql: str = "" \
             + "SELECT u.pk_usuario, u.login, u.fk_nivel_acesso, u.hash_com_sal, p.fk_tipo_permissao " \

@@ -14,7 +14,7 @@ class SegredoDAOImpl(SegredoDAO):
         return Raiz.instance().fetchone_class(DadosSegredo)
 
     def listar(self) -> list[DadosSegredo]:
-        sql: str = "SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo"
+        sql: str = "SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo ORDER BY pk_segredo"
         Raiz.instance().execute(sql)
         return Raiz.instance().fetchall_class(DadosSegredo)
 
@@ -60,7 +60,7 @@ class SegredoDAOImpl(SegredoDAO):
 
     def listar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
         wildcards: str = ", ".join(["?" for pk in pks])
-        sql: str = f"SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN ({wildcards})"
+        sql: str = f"SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN ({wildcards}) ORDER BY pk_segredo"
         Raiz.instance().execute(sql, [pk.pk_segredo for pk in pks])
         return Raiz.instance().fetchall_class(DadosSegredo)
 
@@ -87,11 +87,11 @@ class SegredoDAOImpl(SegredoDAO):
     # TESTAR
     def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
         sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (?, ?, ?)"
-        Raiz.instance().execute(sql, [campo.pk_segredo, campo.pk_nome, campo.valor])
+        Raiz.instance().execute(sql, [campo.pfk_segredo, campo.pk_nome, campo.valor])
 
-    # TESTAR
+    # TESTAR (está parcial)
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
-        sql: str = "SELECT pfk_segredo, pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ?"
+        sql: str = "SELECT pfk_segredo, pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ? ORDER BY pk_nome"
         Raiz.instance().execute(sql, [pk.pk_segredo])
         return Raiz.instance().fetchall_class(CampoDeSegredo)
 
@@ -118,6 +118,7 @@ class SegredoDAOImpl(SegredoDAO):
             + "SELECT u.login, p.fk_tipo_permissao AS permissao " \
             + "FROM permissao p " \
             + "INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario " \
-            + "WHERE p.pfk_segredo = ?"
+            + "WHERE p.pfk_segredo = ? " \
+            + "ORDER BY u.login"
         Raiz.instance().execute(sql, [pk.pk_segredo])
         return Raiz.instance().fetchall_class(LoginComPermissao)

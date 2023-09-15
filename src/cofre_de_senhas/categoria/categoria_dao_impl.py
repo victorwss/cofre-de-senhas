@@ -56,6 +56,7 @@ class CategoriaDAOImpl(CategoriaDAO):
 
     # Métodos com joins em outras tabelas
 
+    # TESTAR
     def listar_por_segredo(self, pk: SegredoPK) -> list[DadosCategoria]:
         sql: str = "" \
             + "SELECT c.pk_categoria, c.nome " \

@@ -1,5 +1,5 @@
 from .fixtures import *
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK
+from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo
 from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.segredo.segredo_dao_impl import SegredoDAOImpl
 
@@ -152,3 +152,14 @@ def test_salvar_segredo_com_pk_nao_existe() -> None:
     pk: SegredoPK = SegredoPK(lixo3)
     lido: DadosSegredo | None = dao.buscar_por_pk(pk)
     assert lido is None
+
+@db.transacted
+def test_ler_campos_segredo() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
+    campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
+    assert campos == [
+        CampoDeSegredo(3, "Nome do cara vestido de preto", "Darth Vader"), \
+        CampoDeSegredo(3, "Nome do imperador", "Palpatine"), \
+        CampoDeSegredo(3, "Robô chato e falastrão", "C3PO") \
+    ]
