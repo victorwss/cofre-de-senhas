@@ -76,6 +76,7 @@ class DadosSegredo:
 @dataclass_validate
 @dataclass(frozen = True)
 class CampoDeSegredo:
+    pk_segredo: int
     pk_nome: str
     valor: str
 
@@ -87,16 +88,6 @@ class LoginComPermissao:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class CampoSegredoPK:
-    pk_campo_segredo: int
-
-@dataclass_validate
-@dataclass(frozen = True)
-class CategoriaSegredoPK:
-    pk_categoria_segredo: int
-
-@dataclass_validate
-@dataclass(frozen = True)
 class LoginUsuario:
     valor: str
 
@@ -104,6 +95,25 @@ class LoginUsuario:
 @dataclass(frozen = True)
 class NomeCategoria:
     valor: str
+
+@dataclass_validate
+@dataclass(frozen = True)
+class CategoriaDeSegredo:
+    pk_segredo: int
+    pk_categoria: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class PermissaoDeSegredo:
+    pfk_usuario: int
+    pfk_segredo: int
+    fk_tipo_permissao: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BuscaPermissaoPorLogin:
+    pfk_segredo: int
+    login: str
 
 class CofreDeSenhasDAO(ABC):
 
@@ -160,13 +170,13 @@ class SegredoDAO(ABC):
     # Categoria de segredo
 
     @abstractmethod
-    def criar_categoria_segredo(self, spk: SegredoPK, cpk: CategoriaPK) -> CategoriaSegredoPK:
+    def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> None:
         pass
 
     # Campos
 
     @abstractmethod
-    def criar_campo_segredo(self, pk: SegredoPK, descricao: str, valor: str) -> CampoSegredoPK:
+    def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
         pass
 
     @abstractmethod
@@ -176,11 +186,11 @@ class SegredoDAO(ABC):
     # Permissões
 
     @abstractmethod
-    def criar_permissao(self, upk: UsuarioPK, spk: SegredoPK, fk_tipo_permissao: int) -> int:
+    def criar_permissao(self, permissao: PermissaoDeSegredo) -> None:
         pass
 
     @abstractmethod
-    def buscar_permissao(self, pk: SegredoPK, login: LoginUsuario) -> int | None:
+    def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
         pass
 
     @abstractmethod

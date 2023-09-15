@@ -1,7 +1,7 @@
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, LoginUsuario as LoginUsuarioDAO
+from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, LoginUsuario as LoginUsuarioDAO, CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 from cofre_de_senhas.service import *
 from cofre_de_senhas.usuario.usuario import Usuario, Permissao
 from cofre_de_senhas.categoria.categoria import Categoria
@@ -57,13 +57,13 @@ class Segredo:
 
         for descricao in self.campos.keys():
             valor: str = self.campos[descricao]
-            SegredoDAO.instance().criar_campo_segredo(spk, descricao, valor)
+            SegredoDAO.instance().criar_campo_segredo(CampoDeSegredo(spk.pk_segredo, descricao, valor))
 
         for permissao in self.usuarios.values():
-            SegredoDAO.instance().criar_permissao(permissao.usuario.pk, spk, permissao.tipo.value)
+            SegredoDAO.instance().criar_permissao(PermissaoDeSegredo(permissao.usuario.pk.pk_usuario, spk.pk_segredo, permissao.tipo.value))
 
         for categoria in self.categorias.values():
-            SegredoDAO.instance().criar_categoria_segredo(spk, categoria.pk)
+            SegredoDAO.instance().criar_categoria_segredo(CategoriaDeSegredo(spk.pk_segredo, categoria.pk.pk_categoria))
 
         return self
 
@@ -96,9 +96,10 @@ class Segredo:
 
     def _permitir_escrita_para(self, acesso: Usuario) -> None:
         if acesso.is_admin: return
-        valor_permissao: int | None = SegredoDAO.instance().buscar_permissao(self.__pk, LoginUsuarioDAO(acesso.login))
-        if valor_permissao is None: raise PermissaoNegadaException()
-        permissao: TipoPermissao = TipoPermissao(valor_permissao)
+        busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(self.__pk.pk_segredo, acesso.login)
+        permissao_encontrada: PermissaoDeSegredo | None = SegredoDAO.instance().buscar_permissao(busca)
+        if permissao_encontrada is None: raise PermissaoNegadaException()
+        permissao: TipoPermissao = TipoPermissao(permissao_encontrada.fk_tipo_permissao)
         if permissao not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]: raise PermissaoNegadaException()
 
     # Métodos internos
@@ -123,7 +124,7 @@ class Segredo:
         if dados is None: return None
         cabecalho: Segredo.Cabecalho = Segredo.Cabecalho._promote(dados)
         spk: SegredoPK = cabecalho.pk
-        campos: dict[str, str] = {c.pk_chave: c.valor for c in SegredoDAO.instance().ler_campos_segredo(spk)}
+        campos: dict[str, str] = {c.pk_nome: c.valor for c in SegredoDAO.instance().ler_campos_segredo(spk)}
         usuarios: dict[str, Permissao] = Usuario.listar_por_permissao(cabecalho)
         categorias: dict[str, Categoria] = Categoria.listar_por_segredo(spk)
         return Segredo(cabecalho, usuarios, categorias, campos)

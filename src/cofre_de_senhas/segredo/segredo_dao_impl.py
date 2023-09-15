@@ -1,5 +1,5 @@
 from cofre_de_senhas.bd.raiz import Raiz
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, LoginComPermissao, LoginUsuario, CampoSegredoPK, CategoriaSegredoPK
+from cofre_de_senhas.dao import SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, LoginComPermissao, LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 
 class SegredoDAOImpl(SegredoDAO):
 
@@ -78,44 +78,39 @@ class SegredoDAOImpl(SegredoDAO):
     # Categoria de segredo
 
     # TESTAR
-    def criar_categoria_segredo(self, spk: SegredoPK, cpk: CategoriaPK) -> CategoriaSegredoPK:
+    def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> None:
         sql: str = "INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (?, ?)"
-        Raiz.instance().execute(sql, [spk.pk_segredo, cpk])
-        return CategoriaSegredoPK(Raiz.instance().asserted_lastrowid)
+        Raiz.instance().execute(sql, [c.pk_segredo, c.pk_categoria])
 
     # Campos
 
     # TESTAR
-    def criar_campo_segredo(self, pk: SegredoPK, descricao: str, valor: str) -> CampoSegredoPK:
-        sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_descricao, valor) VALUES (?, ?, ?)"
-        Raiz.instance().execute(sql, [pk.pk_segredo, descricao, valor])
-        return CampoSegredoPK(Raiz.instance().asserted_lastrowid)
+    def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
+        sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (?, ?, ?)"
+        Raiz.instance().execute(sql, [campo.pk_segredo, campo.pk_nome, campo.valor])
 
     # TESTAR
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
-        sql: str = "SELECT pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ?"
+        sql: str = "SELECT pfk_segredo, pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ?"
         Raiz.instance().execute(sql, [pk.pk_segredo])
         return Raiz.instance().fetchall_class(CampoDeSegredo)
 
     # Permissões
 
     # TESTAR
-    def criar_permissao(self, upk: UsuarioPK, spk: SegredoPK, fk_tipo_permissao: int) -> int:
+    def criar_permissao(self, permissao: PermissaoDeSegredo) -> None:
         sql: str = "INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (?, ?, ?)"
-        Raiz.instance().execute(sql, [upk, spk.pk_segredo, fk_tipo_permissao])
-        return Raiz.instance().asserted_lastrowid
+        Raiz.instance().execute(sql, [permissao.pfk_usuario, permissao.pfk_segredo, permissao.fk_tipo_permissao])
 
     # TESTAR
-    def buscar_permissao(self, pk: SegredoPK, login: LoginUsuario) -> int | None:
+    def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
         sql: str = "" \
-            + "SELECT p.fk_tipo_permissao " \
+            + "SELECT p.pfk_usuario, p.pfk_segredo, p.fk_tipo_permissao " \
             + "FROM permissao p " \
             + "INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario " \
             + "WHERE p.pfk_segredo = ? AND u.login = ?"
-        Raiz.instance().execute(sql, [pk.pk_segredo, login.valor])
-        tupla = Raiz.instance().fetchone()
-        if tupla is None: return None
-        return int(tupla[0])
+        Raiz.instance().execute(sql, [busca.pfk_segredo, busca.login])
+        return Raiz.instance().fetchone_class(PermissaoDeSegredo)
 
     # TESTAR
     def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:

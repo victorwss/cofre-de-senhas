@@ -1,5 +1,5 @@
 from typing import Any, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode
+from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode, RAW_DATA
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
 from dataclasses import dataclass
@@ -87,19 +87,19 @@ class MySQLConnectionWrapper(SimpleConnection):
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchmany(size)
 
-    def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.callproc(sql, parameters)
         return self
 
-    def execute(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters)
         return self
 
-    def executemany(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__curr.executemany(sql, parameters)
         return self
 
-    def executescript(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def executescript(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters, multi = True)
         return self
 

@@ -11,6 +11,8 @@ from .inflater import *
 _T = TypeVar("_T")
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
+RAW_DATA = str | int | float
+
 class TypeCode(Enum):
     STRING = "STRING"
     BINARY = "BINARY"
@@ -128,15 +130,15 @@ class SimpleConnection(ABC):
         ...
 
     @abstractmethod
-    def fetchone(self) -> tuple[Any, ...] | None:
+    def fetchone(self) -> tuple[RAW_DATA, ...] | None:
         ...
 
     @abstractmethod
-    def fetchall(self) -> Sequence[tuple[Any, ...]]:
+    def fetchall(self) -> Sequence[tuple[RAW_DATA, ...]]:
         ...
 
     @abstractmethod
-    def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
+    def fetchmany(self, size: int = 0) -> Sequence[tuple[RAW_DATA, ...]]:
         ...
 
     def fetchone_dict(self) -> dict[str, Any] | None:
@@ -157,25 +159,25 @@ class SimpleConnection(ABC):
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         return rows_to_classes(klass, self.column_names, self.fetchmany(size))
 
-    def fetchone_class_lambda(self, ctor: Callable[[dict[str, Any]], _T]) -> _T | None:
+    def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         return row_to_class_lambda_opt(ctor, self.column_names, self.fetchone())
 
-    def fetchall_class_lambda(self, ctor: Callable[[dict[str, Any]], _T]) -> list[_T]:
+    def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         return rows_to_classes_lambda(ctor, self.column_names, self.fetchall())
 
-    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, Any]], _T], size: int = 0) -> list[_T]:
+    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         return rows_to_classes_lambda(ctor, self.column_names, self.fetchmany(size))
 
     @abstractmethod
-    def callproc(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
+    def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:
         ...
 
     @abstractmethod
-    def execute(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
+    def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:
         ...
 
     @abstractmethod
-    def executemany(self, sql: str, parameters: Sequence[Any] = ...) -> Self:
+    def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ...) -> Self:
         ...
 
     @abstractmethod
@@ -217,13 +219,13 @@ class SimpleConnection(ABC):
         assert last is not None
         return last
 
-    def next(self) -> tuple[Any, ...] | None:
+    def next(self) -> tuple[RAW_DATA, ...] | None:
         return self.fetchone()
 
-    def __next__(self) -> tuple[Any, ...] | None:
+    def __next__(self) -> tuple[RAW_DATA, ...] | None:
         return self.fetchone()
 
-    def __iter__(self) -> Iterator[tuple[Any, ...] | None]:
+    def __iter__(self) -> Iterator[tuple[RAW_DATA, ...] | None]:
         yield self.fetchone()
 
     @property
@@ -312,15 +314,15 @@ class TransactedConnection(SimpleConnection):
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__wrapped.fetchmany(size)
 
-    def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__wrapped.callproc(sql, parameters)
         return self
 
-    def execute(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__wrapped.execute(sql, parameters)
         return self
 
-    def executemany(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__wrapped.executemany(sql, parameters)
         return self
 
@@ -346,13 +348,13 @@ class TransactedConnection(SimpleConnection):
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
-    def fetchone_class_lambda(self, ctor: Callable[[dict[str, Any]], _T]) -> _T | None:
+    def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         return self.__wrapped.fetchone_class_lambda(ctor)
 
-    def fetchall_class_lambda(self, ctor: Callable[[dict[str, Any]], _T]) -> list[_T]:
+    def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         return self.__wrapped.fetchall_class_lambda(ctor)
 
-    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, Any]], _T], size: int = 0) -> list[_T]:
+    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class_lambda(ctor, size)
 
     @property

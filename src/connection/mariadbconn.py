@@ -1,5 +1,5 @@
 from typing import Any, Callable, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, FieldFlags, NullStatus, SimpleConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, FieldFlags, NullStatus, SimpleConnection, TypeCode, RAW_DATA
 from mariadb.connections import Connection as MariaDBConnection
 from mariadb.cursors import Cursor as MariaDBCursor
 from mariadb.constants import FIELD_FLAG, FIELD_TYPE
@@ -128,19 +128,19 @@ class MariaDBConnectionWrapper(SimpleConnection):
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchmany(size)
 
-    def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.callproc(sql, parameters)
         return self
 
-    def execute(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters)
         return self
 
-    def executemany(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__curr.executemany(sql, parameters)
         return self
 
-    def executescript(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def executescript(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         raise NotImplementedError("Sorry. The executescript method was not implemented yet.")
         #self.__curr.execute(sql, parameters, multi = True)
         #return self

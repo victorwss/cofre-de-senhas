@@ -1,5 +1,5 @@
 from typing import Any, cast, Self, Sequence
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode
+from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode, RAW_DATA
 from sqlite3 import Cursor, Connection
 
 class NotImplementedError(Exception):
@@ -31,14 +31,14 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchmany(size)
 
-    def callproc(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         raise NotImplementedError("Sorry. The callproc method was not implemented yet.")
 
-    def execute(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters)
         return self
 
-    def executemany(self, sql: str, parameters: Sequence[Any] = ()) -> Self:
+    def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__curr.executemany(sql, parameters)
         return self
 
