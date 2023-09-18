@@ -195,7 +195,7 @@ class SQLFactory(Generic[_T, _K, _NK]):
 
         if len(self.__type_fields) == 0:
             raise KeyError(f"The type_class {type_class.__name__} has no fields.")
-        if len(self.__type_fields) == 0:
+        if len(self.__key_fields) == 0:
             raise KeyError(f"The key_type {key_type.__name__} has no fields.")
         if self.keyless_type == Empty:
             if type_class != key_type:

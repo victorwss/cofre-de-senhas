@@ -38,21 +38,23 @@ class FieldFlags:
     raw_value: int
     meanings : frozenset[str]
 
+EMPTY_FLAGS = FieldFlags(0, frozenset())
+
 @dataclass_validate
 @dataclass(frozen = True)
 class ColumnDescriptor:
     name                : str
     type_code           : TypeCode
     column_type_name    : str
-    display_size        : int  | None
-    internal_size       : int  | None
-    precision           : int  | None
-    scale               : int  | None
+    display_size        : int | None
+    internal_size       : int | None
+    precision           : int | None
+    scale               : int | None
     null_ok             : NullStatus
     field_flags         : FieldFlags
-    table_name          : str  | None
-    original_column_name: str  | None
-    original_table_name : str  | None
+    table_name          : str | None
+    original_column_name: str | None
+    original_table_name : str | None
 
     @staticmethod
     def create( \
@@ -60,15 +62,15 @@ class ColumnDescriptor:
             name                : str, \
             type_code           : TypeCode, \
             column_type_name    : str, \
-            display_size        : int  | None = None, \
-            internal_size       : int  | None = None, \
-            precision           : int  | None = None, \
-            scale               : int  | None = None, \
-            null_ok             : NullStatus, \
-            field_flags         : FieldFlags = FieldFlags(0, frozenset()), \
-            table_name          : str  | None = None, \
-            original_column_name: str  | None = None, \
-            original_table_name : str  | None = None, \
+            display_size        : int | None = None, \
+            internal_size       : int | None = None, \
+            precision           : int | None = None, \
+            scale               : int | None = None, \
+            null_ok             : NullStatus = NullStatus.DONT_KNOW, \
+            field_flags         : FieldFlags = EMPTY_FLAGS, \
+            table_name          : str | None = None, \
+            original_column_name: str | None = None, \
+            original_table_name : str | None = None  \
     ) -> "ColumnDescriptor":
         return ColumnDescriptor( \
                 name, \
@@ -82,7 +84,7 @@ class ColumnDescriptor:
                 field_flags, \
                 table_name, \
                 original_column_name, \
-                original_table_name
+                original_table_name \
         )
 
 class ColumnSet:
@@ -245,7 +247,7 @@ class TransactedConnection(SimpleConnection):
 
     def __init__(self, activate: Callable[[], SimpleConnection]) -> None:
         self.__activate: Callable[[], SimpleConnection] = activate
-        self.__local = threading.local()
+        self.__local: threading.local = threading.local()
         self.__count: int = 0
 
     def __enter__(self) -> Self:
@@ -260,7 +262,12 @@ class TransactedConnection(SimpleConnection):
             self.__wrapped.close()
             del self.__local.con
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> Literal[False]:
+    def __exit__( \
+            self, \
+            exc_type: type[BaseException] | None, \
+            exc_val : BaseException       | None, \
+            exc_tb  : TracebackType       | None  \
+    ) -> Literal[False]:
         self.close()
         return False
 
