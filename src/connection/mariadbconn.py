@@ -1,5 +1,6 @@
 from typing import Any, Callable, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, FieldFlags, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TransactedConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, FieldFlags, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from .trans import TransactedConnection
 from mariadb import connect as db_connect
 from mariadb.connections import Connection as MariaDBConnection
 from mariadb.cursors import Cursor as MariaDBCursor

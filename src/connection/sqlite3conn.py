@@ -1,5 +1,6 @@
 from typing import Any, cast, Self, Sequence
-from .conn import ColumnDescriptor, Descriptor, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TransactedConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from .trans import TransactedConnection
 from sqlite3 import Connection, connect as db_connect, Cursor
 from dataclasses import dataclass
 from validator import dataclass_validate

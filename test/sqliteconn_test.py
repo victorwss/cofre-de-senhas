@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Any, Callable, Sequence
-from connection.conn import TransactedConnection, TransactionNotActiveException
+from connection.conn import TransactionNotActiveException
+from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
 from validator import dataclass_validate

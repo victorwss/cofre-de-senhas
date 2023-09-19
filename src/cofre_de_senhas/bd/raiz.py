@@ -1,5 +1,5 @@
 import sqlite3
-from connection.conn import TransactedConnection
+from connection.trans import TransactedConnection
 from connection.sqlite3conn import ConnectionData
 from functools import wraps
 from decorators.tracer import Logger

@@ -1,5 +1,6 @@
 from typing import Any, cast, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, RAW_DATA, TransactedConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, RAW_DATA, TypeCode
+from .trans import TransactedConnection
 from mysql.connector import connect as db_connect
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.cursor import MySQLCursor

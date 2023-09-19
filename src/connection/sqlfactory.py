@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass, is_dataclass, Field, fields
 from enum import Enum
 from dacite import Config, from_dict
 from validator import dataclass_validate, TypeValidationError
-from connection.conn import TransactedConnection
+from connection.trans import TransactedConnection
 
 _T = TypeVar("_T")
 _K = TypeVar("_K")
