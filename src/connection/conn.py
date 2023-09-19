@@ -13,6 +13,10 @@ _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
 RAW_DATA = str | int | float
 
+class NotImplementedError(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
 class TypeCode(Enum):
     STRING = "STRING"
     BINARY = "BINARY"
@@ -60,8 +64,8 @@ class ColumnDescriptor:
     def create( \
             *, \
             name                : str, \
-            type_code           : TypeCode, \
-            column_type_name    : str, \
+            type_code           : TypeCode = TypeCode.UNSPECIFIED, \
+            column_type_name    : str = "Unspecified", \
             display_size        : int | None = None, \
             internal_size       : int | None = None, \
             precision           : int | None = None, \

@@ -134,18 +134,19 @@ def _validate_typing_frozenset(expected_type: _GenericType, value: Any, globalns
     return _validate_iterable_items(expected_type, value, globalns)
 
 
+def _filter_nones_out(some_list: list[_U | None]) -> list[_U]:
+    return [v for v in some_list if v]
+
+
 def _validate_typing_dict(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
     if not isinstance(value, dict): return f"must be an instance of dict, but received {type(value)}"
     if len(expected_type.__args__) != 2: return f"bad parameters for {expected_type}"
 
-    expected_key_type = expected_type.__args__[0]
-    expected_value_type = expected_type.__args__[1]
+    expected_key_type  : type[Any] = expected_type.__args__[0]
+    expected_value_type: type[Any] = expected_type.__args__[1]
 
-    key_errors = [_validate_types(expected_type = expected_key_type, value = k, globalns = globalns) for k in value.keys()]
-    key_errors = [k for k in key_errors if k]
-
-    val_errors = [_validate_types(expected_type = expected_value_type, value = v, globalns = globalns) for v in value.values()]
-    val_errors = [v for v in val_errors if v]
+    key_errors: list[str] = _filter_nones_out([_validate_types(expected_type = expected_key_type, value = k, globalns = globalns) for k in value.keys()])
+    val_errors: list[str] = _filter_nones_out([_validate_types(expected_type = expected_value_type, value = v, globalns = globalns) for v in value.values()])
 
     if len(key_errors) > 0 and len(val_errors) > 0:
         return f"must be an instance of {expected_type}, but there are some errors in keys and values. "\
@@ -157,6 +158,19 @@ def _validate_typing_dict(expected_type: _GenericType, value: Any, globalns: Glo
     return None
 
 
+def _validate_parameters(names: list[str], reals: list[type[Any]], formals: list[type[Any] | None]) -> list[str]:
+    errors: list[str] = []
+
+    for k in range(0, len(reals) - 1):
+        if formals[k] != reals[k]:
+            errors.append(f"incompatible value for {names[k]}: expected {formals[k]} but was {reals[k]}")
+
+    if formals[-1] != Any and formals[-1] != reals[-1]:
+        errors.append(f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}")
+
+    return errors
+
+
 def _validate_typing_callable(expected_type: _CallableTypeFormal, value: Any, globalns: GlobalNS_T) -> str | None:
     if not isinstance(value, _CallableTypeReal):
         return f"must be an instance of {expected_type.__str__()}, but received {type(value)}"
@@ -165,21 +179,17 @@ def _validate_typing_callable(expected_type: _CallableTypeFormal, value: Any, gl
     reals  : list[type[Any]]        = list(value.__annotations__.values())
     formals: list[type[Any] | None] = [None if k == _NoneType else k for k in expected_type.__args__] # type: ignore [comparison-overlap]
 
-    errors: list[str] = []
-
     if formals[0] == _Ellipsis:
-        if formals[-1] != Any and formals[-1] != reals[-1]:
-            errors.append(f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}")
+        if formals[-1] == Any or formals[-1] == reals[-1]:
+            return None
 
-    elif len(reals) != len(formals):
+        error: str = f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}"
+        return f"must be an instance of {expected_type}, but there are some errors in parameters or return types: {error}"
+
+    if len(reals) != len(formals):
         return f"bad parameters - should be {formals} but are {reals}"
 
-    else:
-        for k in range(0, len(reals) - 1):
-            if formals[k] != reals[k]:
-                errors.append(f"incompatible value for {names[k]}: expected {formals[k]} but was {reals[k]}")
-        if formals[-1] != Any and formals[-1] != reals[-1]:
-            errors.append(f"incompatible value for {names[-1]}: expected {formals[-1]} but was {reals[-1]}")
+    errors: list[str] = _validate_parameters(names, reals, formals)
 
     if errors:
         return f"must be an instance of {expected_type}, but there are some errors in parameters or return types: {errors}"

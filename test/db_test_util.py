@@ -1,7 +1,7 @@
 import sqlite3
 from functools import wraps
 from typing import Callable
-from connection.sqlite3conn import Sqlite3ConnectionWrapper
+from connection.sqlite3conn import ConnectionData
 from connection.conn import TransactedConnection
 from cofre_de_senhas.bd.raiz import Raiz
 
@@ -53,4 +53,4 @@ class DbTestConfig:
         return middle
 
     def new_connection(self) -> TransactedConnection:
-        return TransactedConnection(lambda: Sqlite3ConnectionWrapper(sqlite3.connect(self.__sandbox)))
+        return ConnectionData.create(file_name = self.__sandbox).connect()

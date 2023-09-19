@@ -1,6 +1,6 @@
 import sqlite3
 from connection.conn import TransactedConnection
-from connection.sqlite3conn import Sqlite3ConnectionWrapper
+from connection.sqlite3conn import ConnectionData
 from functools import wraps
 from decorators.tracer import Logger
 from decorators.single import Single
@@ -15,7 +15,7 @@ class Raiz:
 
     @staticmethod
     def register_sqlite(file: str) -> None:
-        Raiz.register(TransactedConnection(lambda: Sqlite3ConnectionWrapper(sqlite3.connect(file))))
+        Raiz.register(ConnectionData.create(file_name = file).connect())
 
     @staticmethod
     def register(instance: TransactedConnection) -> None:

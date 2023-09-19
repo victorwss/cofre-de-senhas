@@ -1,5 +1,6 @@
 from typing import Any, Callable, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, FieldFlags, NullStatus, SimpleConnection, TypeCode, RAW_DATA
+from .conn import ColumnDescriptor, Descriptor, FieldFlags, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TransactedConnection, TypeCode
+from mariadb import connect as db_connect
 from mariadb.connections import Connection as MariaDBConnection
 from mariadb.cursors import Cursor as MariaDBCursor
 from mariadb.constants import FIELD_FLAG, FIELD_TYPE
@@ -60,6 +61,40 @@ __codes: list[_InternalCode] = [
 
 __codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
 
+@dataclass_validate
+@dataclass(frozen = True)
+class ConnectionData:
+    user: str
+    password: str
+    host: str
+    port: int
+    database: str
+
+    @staticmethod
+    def create( \
+            *, \
+            user: str, \
+            password: str, \
+            host: str, \
+            port: int = 3306, \
+            database: str, \
+    ) -> "ConnectionData":
+        return ConnectionData(user, password, host, port, database)
+
+    def connect(self) -> TransactedConnection:
+        def mangle(*, user: str, pasword: str, host: str, port: int, database: str) -> MariaDBConnection:
+            assert False
+
+        def make_connection() -> _MariaDBConnectionWrapper:
+            return _MariaDBConnectionWrapper(db_connect( \
+                user = self.user, \
+                password = self.password, \
+                host = self.host, \
+                port = self.port, \
+                database = self.database \
+            ))
+        return TransactedConnection(make_connection)
+
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
 
@@ -92,18 +127,14 @@ __flags: list[_Flag] = [
     _Flag("Signed"       , lambda x: (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0)
 ]
 
-def find_flags(code: int) -> FieldFlags:
+def _find_flags(code: int) -> FieldFlags:
     result: list[str] = []
     for f in __flags:
         if f.test(code):
             result.append(f.name)
     return FieldFlags(code, frozenset(result))
 
-class NotImplementedError(Exception):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-class MariaDBConnectionWrapper(SimpleConnection):
+class _MariaDBConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: MariaDBConnection) -> None:
         self.__conn: MariaDBConnection = conn
@@ -168,7 +199,7 @@ class MariaDBConnectionWrapper(SimpleConnection):
                 precision = k[4], \
                 scale = k[5], \
                 null_ok = NullStatus.YES if k[6] != 0 else NullStatus.NO, \
-                field_flags = find_flags(k[7]), \
+                field_flags = _find_flags(k[7]), \
                 table_name = k[8], \
                 original_column_name = k[9], \
                 original_table_name = k[10] \

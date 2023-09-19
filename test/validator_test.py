@@ -306,6 +306,11 @@ class HasCall5:
 class HasCall6:
     x1: Callable[..., Any]
 
+@dataclass_validate
+@dataclass(frozen = True)
+class HasCall7:
+    x1: Callable[[str, Any, int], int]
+
 def test_hascall_1a() -> None:
     def u(x: float, y: int) -> str:
         return "z"
@@ -455,6 +460,20 @@ def test_hascall_6c() -> None:
 
     t1: HasCall6 = HasCall6(u)
     assert t1.x1 == u
+
+def test_hascall_7a() -> None:
+    def u(x: str, y: Any, z: int) -> int:
+        return 5
+
+    t1: HasCall7 = HasCall7(u)
+    assert t1.x1 == u
+
+def test_hascall_7b() -> None:
+    def u(x: str, y: str, z: int) -> int:
+        return 5
+
+    with raises(TypeValidationError):
+        HasCall7(u)
 
 @dataclass_validate
 @dataclass(frozen = True)

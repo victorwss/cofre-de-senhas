@@ -1,12 +1,27 @@
 from typing import Any, cast, Self, Sequence
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode, RAW_DATA
-from sqlite3 import Cursor, Connection
+from .conn import ColumnDescriptor, Descriptor, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TransactedConnection, TypeCode
+from sqlite3 import Connection, connect as db_connect, Cursor
+from dataclasses import dataclass
+from validator import dataclass_validate
 
-class NotImplementedError(Exception):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
+@dataclass_validate
+@dataclass(frozen = True)
+class ConnectionData:
+    file_name: str
 
-class Sqlite3ConnectionWrapper(SimpleConnection):
+    @staticmethod
+    def create( \
+            *, \
+            file_name: str, \
+    ) -> "ConnectionData":
+        return ConnectionData(file_name)
+
+    def connect(self) -> TransactedConnection:
+        def make_connection() -> _Sqlite3ConnectionWrapper:
+            return _Sqlite3ConnectionWrapper(db_connect(self.file_name))
+        return TransactedConnection(make_connection)
+
+class _Sqlite3ConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: Connection) -> None:
         self.__conn: Connection = conn
@@ -59,12 +74,7 @@ class Sqlite3ConnectionWrapper(SimpleConnection):
         return self.__curr.rowcount
 
     def __make_descriptor(self, k: tuple[str, None, None, None, None, None, None]) -> ColumnDescriptor:
-        return ColumnDescriptor.create( \
-                name = k[0], \
-                type_code = TypeCode.UNSPECIFIED, \
-                column_type_name = "Unspecified", \
-                null_ok = NullStatus.DONT_KNOW \
-        )
+        return ColumnDescriptor.create(name = k[0])
 
     @property
     def description(self) -> Descriptor:

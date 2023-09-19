@@ -9,9 +9,9 @@ from dacite.exceptions import MissingValueError, WrongTypeError, UnexpectedDataE
 def make_column_descriptor(name: str) -> ColumnDescriptor:
     return ColumnDescriptor.create( \
             name = name, \
-            type_code = TypeCode.UNSPECIFIED,
-            column_type_name = "Unspecified",
-            null_ok = NullStatus.DONT_KNOW
+            type_code = TypeCode.UNSPECIFIED, \
+            column_type_name = "Unspecified", \
+            null_ok = NullStatus.DONT_KNOW \
     )
 
 def make_columns(columns: list[str]) -> ColumnNames:

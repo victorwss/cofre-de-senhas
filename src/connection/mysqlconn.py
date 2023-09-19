@@ -1,5 +1,6 @@
-from typing import Any, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, TypeCode, RAW_DATA
+from typing import Any, cast, Self, Sequence, TypeVar
+from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, RAW_DATA, TransactedConnection, TypeCode
+from mysql.connector import connect as db_connect
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
 from dataclasses import dataclass
@@ -59,10 +60,41 @@ __codes: list[_InternalCode] = [
 
 __codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
 
+@dataclass_validate
+@dataclass(frozen = True)
+class ConnectionData:
+    user: str
+    password: str
+    host: str
+    port: int
+    database: str
+
+    @staticmethod
+    def create( \
+            *, \
+            user: str, \
+            password: str, \
+            host: str, \
+            port: int = 3306, \
+            database: str, \
+    ) -> "ConnectionData":
+        return ConnectionData(user, password, host, port, database)
+
+    def connect(self) -> TransactedConnection:
+        def make_connection() -> _MySQLConnectionWrapper:
+            return _MySQLConnectionWrapper(cast(MySQLConnection, db_connect( \
+                user = self.user, \
+                password = self.password, \
+                host = self.host, \
+                port = self.port, \
+                database = self.database \
+            )))
+        return TransactedConnection(make_connection)
+
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
 
-class MySQLConnectionWrapper(SimpleConnection):
+class _MySQLConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: MySQLConnection) -> None:
         self.__conn: MySQLConnection = conn
