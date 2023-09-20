@@ -8,7 +8,8 @@ class Connection:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         ...
 
-    def cursor(self, \
+    def cursor( \
+            self, \
             cursorclass: MariaDBCursor = ..., \
             *, \
             buffered: bool = ..., \
@@ -16,7 +17,7 @@ class Connection:
             named_tuple: bool = ..., \
             cursor_type: Literal[0] | Literal[1] = ..., \
             prepared: bool = ..., \
-            binary: bool = ...
+            binary: bool = ... \
     ) -> MariaDBCursor:
         ...
 

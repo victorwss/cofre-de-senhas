@@ -1,7 +1,10 @@
-from typing import Any, Callable, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, FieldFlags, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from typing import Any, Callable, cast, Self, Sequence, TypeVar
+from decorators.for_all import for_all_methods
+from functools import wraps
+from .conn import ColumnDescriptor, Descriptor, FieldFlags, IntegrityViolationException, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
 from .trans import TransactedConnection
 from mariadb import connect as db_connect
+from mariadb.errors import IntegrityError
 from mariadb.connections import Connection as MariaDBConnection
 from mariadb.cursors import Cursor as MariaDBCursor
 from mariadb.constants import FIELD_FLAG, FIELD_TYPE
@@ -135,6 +138,20 @@ def _find_flags(code: int) -> FieldFlags:
             result.append(f.name)
     return FieldFlags(code, frozenset(result))
 
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
+
+def _wrap_exceptions(operation: _TRANS) -> _TRANS:
+
+    @wraps(operation)
+    def inner(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return operation(*args, **kwargs)
+        except IntegrityError as x:
+            raise IntegrityViolationException(str(x))
+
+    return cast(_TRANS, inner)
+
+@for_all_methods(_wrap_exceptions)
 class _MariaDBConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: MariaDBConnection) -> None:

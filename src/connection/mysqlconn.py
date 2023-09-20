@@ -1,7 +1,9 @@
-from typing import Any, cast, Self, Sequence, TypeVar
-from .conn import ColumnDescriptor, Descriptor, SimpleConnection, NullStatus, RAW_DATA, TypeCode
+from typing import Any, Callable, cast, Self, Sequence, TypeVar
+from decorators.for_all import for_all_methods
+from functools import wraps
+from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, SimpleConnection, NullStatus, RAW_DATA, TypeCode
 from .trans import TransactedConnection
-from mysql.connector import connect as db_connect
+from mysql.connector import connect as db_connect, IntegrityError
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
 from dataclasses import dataclass
@@ -95,6 +97,20 @@ class ConnectionData:
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
 
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
+
+def _wrap_exceptions(operation: _TRANS) -> _TRANS:
+
+    @wraps(operation)
+    def inner(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return operation(*args, **kwargs)
+        except IntegrityError as x:
+            raise IntegrityViolationException(str(x))
+
+    return cast(_TRANS, inner)
+
+@for_all_methods(_wrap_exceptions)
 class _MySQLConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: MySQLConnection) -> None:

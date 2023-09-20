@@ -1,7 +1,9 @@
-from typing import Any, cast, Self, Sequence
-from .conn import ColumnDescriptor, Descriptor, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from typing import Any, Callable, cast, Self, Sequence, TypeVar
+from decorators.for_all import for_all_methods
+from functools import wraps
+from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
 from .trans import TransactedConnection
-from sqlite3 import Connection, connect as db_connect, Cursor
+from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
 from dataclasses import dataclass
 from validator import dataclass_validate
 
@@ -22,11 +24,26 @@ class ConnectionData:
             return _Sqlite3ConnectionWrapper(db_connect(self.file_name))
         return TransactedConnection(make_connection)
 
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
+
+def _wrap_exceptions(operation: _TRANS) -> _TRANS:
+
+    @wraps(operation)
+    def inner(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return operation(*args, **kwargs)
+        except IntegrityError as x:
+            raise IntegrityViolationException(str(x))
+
+    return cast(_TRANS, inner)
+
+@for_all_methods(_wrap_exceptions)
 class _Sqlite3ConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: Connection) -> None:
         self.__conn: Connection = conn
         self.__curr: Cursor = conn.cursor()
+        self.execute("PRAGMA foreign_keys = ON;")
 
     def commit(self) -> None:
         self.__conn.commit()
