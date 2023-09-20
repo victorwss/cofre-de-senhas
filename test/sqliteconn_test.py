@@ -1,6 +1,6 @@
 import sqlite3
 from typing import Any, Callable, Sequence
-from connection.conn import TransactionNotActiveException
+from connection.conn import IntegrityViolationException, TransactionNotActiveException
 from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
@@ -17,6 +17,16 @@ CREATE TABLE IF NOT EXISTS fruit (
 INSERT INTO fruit (name) VALUES ('orange');
 INSERT INTO fruit (name) VALUES ('strawberry');
 INSERT INTO fruit (name) VALUES ('lemon');
+
+CREATE TABLE IF NOT EXISTS juice_1 (
+    pk_fruit INTEGER NOT NULL PRIMARY KEY,
+    FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE CASCADE ON UPDATE CASCADE
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS juice_2 (
+    pk_fruit INTEGER NOT NULL PRIMARY KEY,
+    FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE RESTRICT ON UPDATE RESTRICT
+) STRICT;
 """;
 
 @db.decorator
@@ -116,3 +126,100 @@ def test_no_transaction() -> None:
     conn: TransactedConnection = db.new_connection()
     with raises(TransactionNotActiveException):
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
+
+@db.decorator
+def test_check_constraint_1() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with raises(IntegrityViolationException):
+        with conn as c:
+            c.execute("INSERT INTO fruit (name) VALUES ('abc')")
+            c.commit()
+
+@db.decorator
+def test_check_constraint_2() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with raises(IntegrityViolationException):
+        with conn as c:
+            c.execute("INSERT INTO fruit (name) VALUES ('123456789012345678901234567890123456789012345678901')")
+            c.commit()
+
+@db.decorator
+def test_foreign_key_constraint_on_orphan_insert() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with raises(IntegrityViolationException):
+        with conn as c:
+            c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (666)")
+            c.commit()
+
+@db.decorator
+def test_foreign_key_constraint_on_update_cascade() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (1)")
+        c.commit()
+
+    with conn as c:
+        c.execute("UPDATE fruit SET pk_fruit = 777 WHERE pk_fruit = 1")
+        c.commit()
+
+    with conn as c:
+        c.execute("SELECT pk_fruit FROM juice_1")
+        t: tuple[Any, ...] | None = c.fetchone()
+        assert t == (777, )
+
+@db.decorator
+def test_foreign_key_constraint_on_delete_cascade() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (1)")
+        c.commit()
+
+    with conn as c:
+        c.execute("DELETE FROM fruit WHERE pk_fruit = 1")
+        c.commit()
+
+    with conn as c:
+        c.execute("SELECT pk_fruit FROM juice_1 WHERE pk_fruit = 1")
+        t: Sequence[tuple[Any, ...]] | None  = c.fetchone()
+        assert t is None
+
+@db.decorator
+def test_foreign_key_constraint_on_update_restrict() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        c.execute("INSERT INTO juice_2 (pk_fruit) VALUES (1)")
+        c.commit()
+
+    with raises(IntegrityViolationException):
+        with conn as c:
+            c.execute("UPDATE fruit SET pk_fruit = 777 WHERE pk_fruit = 1")
+            c.commit()
+
+    with conn as c:
+        c.execute("SELECT pk_fruit FROM juice_2")
+        t: tuple[Any, ...] | None = c.fetchone()
+        assert t == (1, )
+
+@db.decorator
+def test_foreign_key_constraint_on_delete_restrict() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        c.execute("INSERT INTO juice_2 (pk_fruit) VALUES (1)")
+        c.commit()
+
+    with raises(IntegrityViolationException):
+        with conn as c:
+            c.execute("DELETE FROM fruit WHERE pk_fruit = 1")
+            c.commit()
+
+    with conn as c:
+        c.execute("SELECT a.pk_fruit FROM juice_2 a INNER JOIN fruit b ON a.pk_fruit = b.pk_fruit WHERE a.pk_fruit = 1")
+        t: Sequence[tuple[Any, ...]] | None  = c.fetchone()
+        assert t == (1, )
