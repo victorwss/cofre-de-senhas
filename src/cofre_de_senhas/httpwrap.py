@@ -96,7 +96,23 @@ class ConteudoIncompreensivelException(Exception):
     def status(self) -> int:
         return 422
 
+def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart: bool) -> Any:
+    if content_type is None:
+        raise RequisicaoMalFormadaException()
+
+    if (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart):
+        return request.form
+
+    if content_type == "application/json" and json:
+        try:
+            return request.json
+        except:
+            raise RequisicaoMalFormadaException()
+
+    raise ConteudoNaoReconhecidoException()
+
 _T = TypeVar("_T")
+
 def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> _T:
     """
     Lê o corpo da requisição. O corpo é interpretado primeiramente como um dicionário. Em seguida, a partir desse dicionário (graças à função from_dict), uma instância de uma dataclass é criada.
@@ -114,21 +130,10 @@ def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, m
 
     content_type: str | None = request.headers.get("Content-Type")
 
-    conteudo: Any
-    if content_type is None:
-        raise RequisicaoMalFormadaException()
-    if content_type == "application/json" and json:
-        try:
-            conteudo = request.json
-        except:
-            raise RequisicaoMalFormadaException()
-    elif (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart):
-        conteudo = request.form
-    else:
-        raise ConteudoNaoReconhecidoException()
+    body: Any = _get_body(content_type, json, urlencoded, multipart)
 
     try:
-        return from_dict(data_class = target, data = conteudo, config = Config(cast = [Enum]))
+        return from_dict(data_class = target, data = body, config = Config(cast = [Enum]))
     except:
         raise ConteudoIncompreensivelException()
 

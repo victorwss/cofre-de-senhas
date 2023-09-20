@@ -86,26 +86,30 @@ class TypeValidationError(Exception):
 
 
 def _validate_type(expected_type: type[Any], value: Any) -> str | None:
-    if expected_type is Any or isinstance(value, expected_type): return None
+    if expected_type is Any or isinstance(value, expected_type):
+        return None
     return f"must be an instance of {expected_type}, but received {type(value)}"
 
 
 def _validate_iterable_items(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
-    if len(expected_type.__args__) != 1: return f"bad parameters for {expected_type}"
+    if len(expected_type.__args__) != 1:
+        return f"bad parameters for {expected_type}"
     expected_item_type = expected_type.__args__[0]
-    errors = [_validate_types(expected_type = expected_item_type, value = v, globalns = globalns) for v in value]
-    errors = [x for x in errors if x]
-    if len(errors) == 0: return None
+    errors = _filter_nones_out([_validate_types(expected_type = expected_item_type, value = v, globalns = globalns) for v in value])
+    if len(errors) == 0:
+        return None
     return f"must be an instance of {expected_type}, but there are some errors: {errors}"
 
 
 def _validate_typing_list(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
-    if not isinstance(value, list): return f"must be an instance of list, but received {type(value)}"
+    if not isinstance(value, list):
+        return f"must be an instance of list, but received {type(value)}"
     return _validate_iterable_items(expected_type, value, globalns)
 
 
 def _validate_typing_tuple(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
-    if not isinstance(value, tuple): return f"must be an instance of tuple, but received {type(value)}"
+    if not isinstance(value, tuple):
+        return f"must be an instance of tuple, but received {type(value)}"
 
     types: list[type[Any]] = list(expected_type.__args__[:])
 
@@ -115,6 +119,7 @@ def _validate_typing_tuple(expected_type: _GenericType, value: Any, globalns: Gl
         types.pop()
         while len(types) < len(value):
             types.append(types[0])
+
     elif len(value) != len(types):
         return f"must be an instance of {expected_type}, but there aren't enough elements"
 
@@ -139,8 +144,10 @@ def _filter_nones_out(some_list: list[_U | None]) -> list[_U]:
 
 
 def _validate_typing_dict(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
-    if not isinstance(value, dict): return f"must be an instance of dict, but received {type(value)}"
-    if len(expected_type.__args__) != 2: return f"bad parameters for {expected_type}"
+    if not isinstance(value, dict):
+        return f"must be an instance of dict, but received {type(value)}"
+    if len(expected_type.__args__) != 2:
+        return f"bad parameters for {expected_type}"
 
     expected_key_type  : type[Any] = expected_type.__args__[0]
     expected_value_type: type[Any] = expected_type.__args__[1]
@@ -223,12 +230,8 @@ _validate_typing_mappings: dict[str, Callable[[_GenericType, Any, GlobalNS_T], s
 
 def _validate_types(expected_type: type[Any] | _GenericType | _UnionType | _OptionalType | _LiteralType | _CallableTypeFormal | ForwardRef, value: Any, globalns: GlobalNS_T) -> str | None:
     name: str = f"{expected_type}"
-    if "[" in name: name = name[0: name.index("[")]
-
-    if type(expected_type) is _GenericType:
-        _g = _validate_typing_mappings.get(name)
-        if _g is not None:
-            return _g(expected_type, value, globalns)
+    if "[" in name:
+        name = name[0 : name.index("[")]
 
     if type(expected_type) is _UnionType or type(expected_type) is _OptionalType:
         return _validate_union_types(expected_type = expected_type, value = value, globalns = globalns)
@@ -245,6 +248,11 @@ def _validate_types(expected_type: type[Any] | _GenericType | _UnionType | _Opti
 
     if isinstance(expected_type, type):
         return _validate_type(expected_type = expected_type, value = value)
+
+    if type(expected_type) is _GenericType:
+        _g = _validate_typing_mappings.get(name)
+        if _g is not None:
+            return _g(expected_type, value, globalns)
 
     return f"Can't validate {expected_type} of {expected_type.__class__} with {value} - {type(value)}"
 
