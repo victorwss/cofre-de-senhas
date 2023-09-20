@@ -77,15 +77,16 @@ INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Dumbledore' 
 INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Hermione'    , 1, 'omvLRPnylB93e43c3ee36d19ac037811848cad5fd626d599c76e0117f5f213945a'); -- expelliarmus
 
 INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Dragon Ball Z', 'Segredos acerca de Dragon Ball Z.', 3);
-INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Senhor dos Anéis', 'Segredos acerca de Senhor dos Anéis.', 2);
+INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Senhor dos Anéis', 'Segredos acerca do Senhor dos Anéis.', 2);
 INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Star Wars', 'Guerra nas estrelas.', 1);
 
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (1, 'Nome do Goku', 'Kakaroto');
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (1, 'Número de esferas do dragão', '7');
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (2, 'Nome da montanha dos anões', 'Monte Erebus');
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (3, 'Nome do imperador', 'Palpatine');
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (3, 'Nome do cara vestido de preto', 'Darth Vader');
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (3, 'Robô chato e falastrão', 'C3PO');
+UPDATE campo_segredo SET valor = '0123456789ABCDEFFEDCBA9876543210' WHERE pfk_segredo = -1 AND pk_nome = 'Chave da sessão';
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (1, 'Nome do Goku', 'Kakaroto');
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (1, 'Número de esferas do dragão', '7');
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (2, 'Nome da montanha dos anões', 'Monte Erebus');
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (3, 'Nome do imperador', 'Palpatine');
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (3, 'Nome do cara vestido de preto', 'Darth Vader');
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (3, 'Robô chato e falastrão', 'C3PO');
 
 INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (1, 8);
 INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (2, 2);

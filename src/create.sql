@@ -33,7 +33,7 @@ INSERT INTO enum_tipo_segredo (pk_tipo_segredo, nome, descricao) VALUES
 
 CREATE TABLE IF NOT EXISTS categoria (
     pk_categoria INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    nome         TEXT    NOT NULL UNIQUE      CHECK (LENGTH(nome) <= 50)
+    nome         TEXT    NOT NULL UNIQUE      CHECK (LENGTH(nome) >= 1 AND LENGTH(nome) <= 50)
 ) STRICT;
 
 INSERT INTO categoria (pk_categoria, nome) VALUES
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS segredo (
 
 CREATE TABLE IF NOT EXISTS campo_segredo (
     pfk_segredo INTEGER NOT NULL,
-    pk_nome     TEXT    NOT NULL CHECK (LENGTH(pk_nome) >= 0 AND LENGTH(pk_nome) <=  500),
+    pk_nome     TEXT    NOT NULL CHECK (LENGTH(pk_nome) >= 1 AND LENGTH(pk_nome) <=  500),
     valor       TEXT    NOT NULL CHECK (                         LENGTH(valor  ) <= 5000),
     PRIMARY KEY (pfk_segredo, pk_nome),
     FOREIGN KEY (pfk_segredo) REFERENCES segredo (pk_segredo) ON DELETE CASCADE ON UPDATE CASCADE
@@ -91,5 +91,5 @@ CREATE TABLE IF NOT EXISTS permissao (
 ) STRICT, WITHOUT ROWID;
 
 INSERT INTO segredo (pk_segredo, nome, descricao, fk_tipo_segredo) VALUES (-1, 'Cofre de senhas', 'Segredos acerca do guardador de segredos.', 2);
-INSERT INTO campo_segredo (pfk_segredo, pk_chave, valor) VALUES (-1, 'Chave da sessão', HEX(RANDOMBLOB(256)));
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (-1, 'Chave da sessão', HEX(RANDOMBLOB(256)));
 INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (-1, 2);
