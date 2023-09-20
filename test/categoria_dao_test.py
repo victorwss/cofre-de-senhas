@@ -1,7 +1,9 @@
 from .fixtures import *
+from connection.conn import IntegrityViolationException
 from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
 from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
+from pytest import raises
 
 @db.decorator
 def test_instanciar() -> None:
@@ -136,12 +138,23 @@ def test_listar_tudo_apos_insercao() -> None:
 @db.transacted
 def test_excluir_categoria_por_pk() -> None:
     dao: CategoriaDAOImpl = CategoriaDAOImpl()
-    pk: CategoriaPK = CategoriaPK(qa.pk_categoria)
+    pk: CategoriaPK = CategoriaPK(desenvolvimento.pk_categoria)
     lido1: DadosCategoria | None = dao.buscar_por_pk(pk)
-    assert lido1 == qa
+    assert lido1 == desenvolvimento
     dao.deletar_por_pk(pk)
     lido2: DadosCategoria | None = dao.buscar_por_pk(pk)
     assert lido2 is None
+
+@db.transacted
+def test_excluir_categoria_por_pk_viola_chave_estrangeira() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    pk: CategoriaPK = CategoriaPK(qa.pk_categoria)
+
+    with raises(IntegrityViolationException):
+        dao.deletar_por_pk(pk)
+
+    lido: DadosCategoria | None = dao.buscar_por_pk(pk)
+    assert lido == qa
 
 @db.transacted
 def test_excluir_categoria_por_pk_nao_existe() -> None:

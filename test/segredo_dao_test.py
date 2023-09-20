@@ -1,7 +1,9 @@
 from .fixtures import *
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo
+from connection.conn import IntegrityViolationException
+from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, PermissaoDeSegredo
 from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.segredo.segredo_dao_impl import SegredoDAOImpl
+from pytest import raises
 
 @db.decorator
 def test_instanciar() -> None:
@@ -159,7 +161,64 @@ def test_ler_campos_segredo() -> None:
     pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
     campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
     assert campos == [
-        CampoDeSegredo(3, "Nome do cara vestido de preto", "Darth Vader"), \
-        CampoDeSegredo(3, "Nome do imperador", "Palpatine"), \
-        CampoDeSegredo(3, "Robô chato e falastrão", "C3PO") \
+        CampoDeSegredo(star_wars.pk_segredo, "Nome do cara vestido de preto", "Darth Vader"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Nome do imperador", "Palpatine"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Robô chato e falastrão", "C3PO") \
     ]
+
+@db.transacted
+def test_ler_campos_segredo_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    pk: SegredoPK = SegredoPK(lixo1)
+    campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
+    assert campos == []
+
+@db.transacted
+def test_criar_campo_segredo() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    campo: CampoDeSegredo = CampoDeSegredo(star_wars.pk_segredo, "Pequeno, mas poderoso", "Yoda")
+    dao.criar_campo_segredo(campo)
+    pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
+    campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
+    assert campos == [
+        CampoDeSegredo(star_wars.pk_segredo, "Nome do cara vestido de preto", "Darth Vader"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Nome do imperador", "Palpatine"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Pequeno, mas poderoso", "Yoda"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Robô chato e falastrão", "C3PO") \
+    ]
+
+@db.transacted
+def test_criar_campo_segredo_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    campo: CampoDeSegredo = CampoDeSegredo(lixo1, "Patati", "Patatá")
+
+    with raises(IntegrityViolationException):
+        dao.criar_campo_segredo(campo)
+
+    pk: SegredoPK = SegredoPK(lixo1)
+    campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
+    assert campos == []
+
+@db.transacted
+def test_criar_campo_segredo_duplicado() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    campo: CampoDeSegredo = CampoDeSegredo(star_wars.pk_segredo, "Robô chato e falastrão", "R2D2")
+
+    with raises(IntegrityViolationException):
+        dao.criar_campo_segredo(campo)
+
+    pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
+    campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
+    assert campos == [
+        CampoDeSegredo(star_wars.pk_segredo, "Nome do cara vestido de preto", "Darth Vader"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Nome do imperador", "Palpatine"), \
+        CampoDeSegredo(star_wars.pk_segredo, "Robô chato e falastrão", "C3PO") \
+    ]
+
+@db.transacted
+def test_criar_permissao() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    perm: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
+    dao.criar_permissao(perm)
+    lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
+    assert lido == todos_segredos
