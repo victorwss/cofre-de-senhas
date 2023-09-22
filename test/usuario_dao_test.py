@@ -1,7 +1,9 @@
 from .fixtures import *
+from connection.conn import IntegrityViolationException
 from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, LoginUsuario
 from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
+from pytest import raises
 
 @db.decorator
 def test_instanciar() -> None:
@@ -139,6 +141,15 @@ def test_excluir_usuario_por_pk() -> None:
     lido2: DadosUsuario | None = dao.buscar_por_pk(pk)
     assert lido2 is None
 
+#@db.transacted
+#def test_excluir_usuario_por_pk_cascateia_permissao() -> None:
+#    dao: UsuarioDAOImpl = UsuarioDAOImpl()
+#    pk: UsuarioPK = UsuarioPK(harry_potter.pk_usuario)
+#
+#    dao.deletar_por_pk(pk)
+#
+#    assert False # INCOMPLETO
+
 @db.transacted
 def test_excluir_usuario_por_pk_nao_existe() -> None:
     dao: UsuarioDAOImpl = UsuarioDAOImpl()
@@ -165,6 +176,50 @@ def test_salvar_usuario_com_pk_nao_existe() -> None:
 
     pk: UsuarioPK = UsuarioPK(lixo3)
     lido: DadosUsuario | None = dao.buscar_por_pk(pk)
+    assert lido is None
+
+@db.transacted
+def test_criar_usuario_tipo_nao_existe() -> None:
+    dao: UsuarioDAOImpl = UsuarioDAOImpl()
+    dados: DadosUsuarioSemPK = DadosUsuarioSemPK("Snape", lixo1, sectumsempra)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosUsuario | None = dao.buscar_por_login(login_snape)
+    assert lido is None
+
+@db.transacted
+def test_criar_usuario_login_repetido() -> None:
+    dao: UsuarioDAOImpl = UsuarioDAOImpl()
+    dados: DadosUsuarioSemPK = DadosUsuarioSemPK("Harry Potter", 0, sectumsempra)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosUsuario | None = dao.buscar_por_login(login_harry_potter)
+    assert lido == harry_potter
+
+@db.transacted
+def test_criar_usuario_login_curto() -> None:
+    dao: UsuarioDAOImpl = UsuarioDAOImpl()
+    dados: DadosUsuarioSemPK = DadosUsuarioSemPK(nome_curto, 0, sectumsempra)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosUsuario | None = dao.buscar_por_login(LoginUsuario(nome_curto))
+    assert lido is None
+
+@db.transacted
+def test_criar_usuario_login_longo() -> None:
+    dao: UsuarioDAOImpl = UsuarioDAOImpl()
+    dados: DadosUsuarioSemPK = DadosUsuarioSemPK(nome_longo, 0, sectumsempra)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosUsuario | None = dao.buscar_por_login(LoginUsuario(nome_longo))
     assert lido is None
 
 # TODO:

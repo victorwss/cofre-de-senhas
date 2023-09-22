@@ -184,5 +184,80 @@ def test_salvar_categoria_com_pk_nao_existe() -> None:
     lido: DadosCategoria | None = dao.buscar_por_pk(pk)
     assert lido is None
 
+@db.transacted
+def test_criar_categoria_nome_repetido() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    dados: DadosCategoriaSemPK = DadosCategoriaSemPK("QA")
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    assert lido == qa
+
+@db.transacted
+def test_criar_categoria_nome_curto() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    dados: DadosCategoriaSemPK = DadosCategoriaSemPK("")
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(""))
+    assert lido is None
+
+@db.transacted
+def test_criar_categoria_nome_longo() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    dados: DadosCategoriaSemPK = DadosCategoriaSemPK(nome_longo)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_longo))
+    assert lido is None
+
+@db.transacted
+def test_salvar_categoria_com_pk_nome_repetido() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, "Produção")
+
+    with raises(IntegrityViolationException):
+        dao.salvar_com_pk(dados)
+
+    lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    assert lido1 == qa
+
+    lido2: DadosCategoria | None = dao.buscar_por_nome(nome_producao)
+    assert lido2 == producao
+
+@db.transacted
+def test_salvar_categoria_com_pk_nome_curto() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, "")
+
+    with raises(IntegrityViolationException):
+        dao.salvar_com_pk(dados)
+
+    lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    assert lido1 == qa
+
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(""))
+    assert lido2 is None
+
+@db.transacted
+def test_salvar_categoria_com_pk_nome_longo() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, nome_longo)
+
+    with raises(IntegrityViolationException):
+        dao.salvar_com_pk(dados)
+
+    lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    assert lido1 == qa
+
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_longo))
+    assert lido2 is None
+
 # TODO:
 # Testar listar_por_segredo

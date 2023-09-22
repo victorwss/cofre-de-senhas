@@ -222,3 +222,36 @@ def test_criar_permissao() -> None:
     dao.criar_permissao(perm)
     lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
     assert lido == todos_segredos
+
+@db.transacted
+def test_criar_permissao_usuario_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    perm: PermissaoDeSegredo = PermissaoDeSegredo(lixo1, dbz.pk_segredo, 2)
+
+    with raises(IntegrityViolationException):
+        dao.criar_permissao(perm)
+
+    #lido: list[DadosSegredo] = dao.listar_visiveis(lixo1)
+    #assert lido == []
+
+@db.transacted
+def test_criar_permissao_segredo_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    perm: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, lixo1, 2)
+
+    with raises(IntegrityViolationException):
+        dao.criar_permissao(perm)
+
+    #lido: list[DadosSegredo] = dao.listar_visiveis(hermione.pk_usuario)
+    #assert lido == []
+
+@db.transacted
+def test_criar_permissao_tipo_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    perm: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, lixo1)
+
+    with raises(IntegrityViolationException):
+        dao.criar_permissao(perm)
+
+    #lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuario())
+    #assert lido == []

@@ -84,12 +84,10 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Campos
 
-    # TESTAR
     def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
         sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [campo.pfk_segredo, campo.pk_nome, campo.valor])
 
-    # TESTAR (está parcial)
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
         sql: str = "SELECT pfk_segredo, pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ? ORDER BY pk_nome"
         Raiz.instance().execute(sql, [pk.pk_segredo])

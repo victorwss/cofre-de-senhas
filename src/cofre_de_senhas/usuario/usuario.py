@@ -1,5 +1,5 @@
-import hashlib
-from typing import Self, TypeGuard
+import hasher
+from typing import Self
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from cofre_de_senhas.erro import *
@@ -27,17 +27,17 @@ class Usuario:
     # Propriedades e métodos de instância.
 
     def __validar_senha(self, senha: str) -> None:
-        if not self.__comparar_hash(senha): raise SenhaErradaException()
+        if not hasher.comparar_hash(self.hash_com_sal, senha): raise SenhaErradaException()
 
     def __redefinir_senha(self, nova_senha: str) -> "Usuario":
-        return replace(self, hash_com_sal = Usuario.__criar_hash(nova_senha)).__salvar()
+        return replace(self, hash_com_sal = hasher.criar_hash(nova_senha)).__salvar()
 
     def __trocar_senha(self, dados: TrocaSenha) -> "Usuario":
         self.__validar_senha(dados.antiga)
         return self.__redefinir_senha(dados.nova)
 
     def __resetar_senha(self) -> tuple["Usuario", str]:
-        nova_senha: str = Usuario.__string_random()
+        nova_senha: str = hasher.string_random(20)
         return self.__redefinir_senha(nova_senha), nova_senha
 
     def __alterar_nivel_de_acesso(self, novo_nivel_acesso: NivelAcesso) -> "Usuario":
@@ -84,24 +84,6 @@ class Usuario:
     @property
     def __down(self) -> DadosUsuario:
         return DadosUsuario(self.pk_usuario, self.login, self.nivel_acesso.value, self.hash_com_sal)
-
-    # Métodos internos.
-
-    @staticmethod
-    def __string_random() -> str:
-        import random
-        import string
-        letters = string.ascii_letters
-        return "".join(random.choice(letters) for i in range(10))
-
-    @staticmethod
-    def __criar_hash(senha: str) -> str:
-        sal = Usuario.__string_random()
-        return sal + hashlib.sha3_224((sal + senha).encode("utf-8")).hexdigest()
-
-    def __comparar_hash(self, senha: str) -> bool:
-        sal = self.hash_com_sal[0:10]
-        return sal + hashlib.sha3_224((sal + senha).encode("utf-8")).hexdigest() == self.hash_com_sal
 
     # Métodos estáticos de fábrica.
 
@@ -224,7 +206,7 @@ class Usuario:
 
         def __criar_interno(self, dados: UsuarioNovo) -> UsuarioComChave:
             Usuario.__nao_existente_por_login(dados.login)
-            hash_com_sal: str = Usuario.__criar_hash(dados.senha)
+            hash_com_sal: str = hasher.criar_hash(dados.senha)
             pk: UsuarioPK = UsuarioDAO.instance().criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
             return Usuario(pk.pk_usuario, dados.login, dados.nivel_acesso, hash_com_sal).__up
 

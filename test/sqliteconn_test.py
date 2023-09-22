@@ -221,5 +221,5 @@ def test_foreign_key_constraint_on_delete_restrict() -> None:
 
     with conn as c:
         c.execute("SELECT a.pk_fruit FROM juice_2 a INNER JOIN fruit b ON a.pk_fruit = b.pk_fruit WHERE a.pk_fruit = 1")
-        t: Sequence[tuple[Any, ...]] | None  = c.fetchone()
+        t: tuple[Any, ...] | None = c.fetchone()
         assert t == (1, )

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     pk_usuario      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     login           TEXT    NOT NULL UNIQUE      CHECK (LENGTH(login) >= 4 AND LENGTH(login) <= 50),
     fk_nivel_acesso INTEGER NOT NULL,
-    hash_com_sal    TEXT    NOT NULL,
+    hash_com_sal    TEXT    NOT NULL             CHECK (LENGTH(hash_com_sal) = 144),
     FOREIGN KEY (fk_nivel_acesso) REFERENCES enum_nivel_acesso (pk_nivel_acesso) ON DELETE RESTRICT ON UPDATE CASCADE
 ) STRICT;
 

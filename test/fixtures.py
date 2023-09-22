@@ -6,11 +6,14 @@ from cofre_de_senhas.dao import \
 
 db: DbTestConfig = DbTestConfig("test/cofre-teste.db", "test/cofre-teste-run.db")
 
-alohomora       : str = "azOtltNwtdffb9debae4824dae79896e7b0a8d401fbd4e44fa99fac184b107f564"
-avada_kedavra   : str = "FqOZTDhozi01501c59c673335d6d851868ae23e35823cc96b9057c81dfbca306e8"
-expecto_patronum: str = "nHknWfqwmLa6d2afe45e8420f15941c1a27265acfdf88a9d45c11a9ca48ba5b12f"
-sectumsempra    : str = "ifBgTTmWRy668c168f35e51cc9f9c1334cbd9e084801f71a326d434f3e70b674ad"
-expelliarmus    : str = "omvLRPnylB93e43c3ee36d19ac037811848cad5fd626d599c76e0117f5f213945a"
+alohomora       : str = "SbhhiMEETzPiquOxabc178eb35f26c8f59981b01a11cbec48b16f6a8e2c204f4a9a1b633c9199e0b3b2a64b13e49226306bb451c57c851f3c6e872885115404cb74279db7f5372ea"
+avada_kedavra   : str = "ZisNWkdEImMneIcX8ac8780d30e67df14c1afbaf256e1ee45afd1d3cf2654d154b2e9c63541a40d4132a9beed69c4a47b3f2e5612c2751cdfa3abfaed9797fe54777e2f3dfe6aaa0"
+expecto_patronum: str = "sMIIsuQpzUZswvbW8bc81f083ae783d5dc4f4ae688b6d41d7c5d4b0da55bdb6f42d07453031c046ed4151d0cead5e647f307f96701e586dbb38e197222b645807f10f7b4c124d68c"
+sectumsempra    : str = "VaVnCicwVrQUJaCR39f3afe61dd624f7c3fb3da1ca1249bcb938d35dce3af64910ac3341c5f15cd1bfa2f1312ed3f89ceee2b126c834176f8202f5aca0e43fd8c5eea6a036c7f9b5"
+expelliarmus    : str = "VPJWqamYPZTUKxsxe79b2fdd41d88c308f2be7c92432d68c9d55ecc9fb9b277c1424d5626777b6e26067875b5a28f10d64db83e41a7537b21850d1bd8359b8e9bfe68e7acb02ff1d"
+
+nome_curto = "ABC"
+nome_longo = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy"
 
 harry_potter: DadosUsuario = DadosUsuario(1, "Harry Potter", 1, alohomora       )
 voldemort   : DadosUsuario = DadosUsuario(2, "Voldemort"   , 0, avada_kedavra   )
@@ -48,6 +51,7 @@ nao_existe      : DadosCategoria = DadosCategoria(88, "Coisas feitas com boa qua
 dados_millenium_falcon: DadosCategoriaSemPK = DadosCategoriaSemPK("Millenium Falcon")
 nome_millenium_falcon : NomeCategoria = NomeCategoria("Millenium Falcon")
 nome_producao         : NomeCategoria = NomeCategoria("Produção")
+nome_qa               : NomeCategoria = NomeCategoria("QA")
 nome_nao_existe       : NomeCategoria = NomeCategoria("Coisas feitas com boa qualidade pela Prodam")
 
 todas_categorias: list[DadosCategoria] = [banco_de_dados, aplicacao, servidor, api, producao, homologacao, desenvolvimento, qa, integracao]
