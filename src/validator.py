@@ -3,7 +3,8 @@ import dataclasses
 import typing
 import functools
 import sys
-from typing import Any, Callable, cast, ForwardRef, Literal, Optional, Protocol, runtime_checkable, Self, Type, TypeVar
+import collections
+from typing import Any, Callable, cast, Dict, ForwardRef, FrozenSet, Iterable, List, Literal, Optional, Protocol, runtime_checkable, Self, Set, Tuple, Type, TypeVar
 
 GlobalNS_T = dict[str, Any]
 _U = TypeVar("_U")
@@ -39,6 +40,28 @@ if typing.TYPE_CHECKING:
         def __args__(self) -> list[type[Any]]:
             pass
 
+        @property
+        def __name__(self) -> str:
+            pass
+
+        @property
+        def __origin__(self) -> type:
+            pass
+
+    @runtime_checkable
+    class _GenericAlias(Protocol):
+        @property
+        def __args__(self) -> list[type[Any]]:
+            pass
+
+        @property
+        def __name__(self) -> str:
+            pass
+
+        @property
+        def __origin__(self) -> type:
+            pass
+
     class _Ellipsis(Protocol):
         pass
 
@@ -52,8 +75,10 @@ else:
     _OptionalType = type(Optional[int])
     _LiteralType = type(Literal[True])
     _GenericType = type(list[str])
+    _GenericAlias = type(List[str])
     _Ellipsis = tuple[Any, ...].__args__[-1]
     _CallableTypeFormal = type(Callable[[], Any])
+
 
 class TypeValidationError(Exception):
     """Exception raised on type validation errors.
@@ -91,23 +116,25 @@ def _validate_type(expected_type: type[Any], value: Any) -> str | None:
     return f"must be an instance of {expected_type}, but received {type(value)}"
 
 
-def _validate_iterable_items(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
+def _validate_typing_iterable(field_name: str, expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
     if len(expected_type.__args__) != 1:
-        return f"bad parameters for {expected_type}"
+        raise TypeError(f"bad parameters for {expected_type}")
+
+    if not isinstance(value, expected_type.__origin__):
+        return f"must be an instance of {expected_type.__origin__.__name__}, but received {type(value)}"
+
+    assert isinstance(value, Iterable)
+
     expected_item_type = expected_type.__args__[0]
-    errors = _filter_nones_out([_validate_types(expected_type = expected_item_type, value = v, globalns = globalns) for v in value])
+    errors = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_item_type, value = v, globalns = globalns) for v in value])
+
     if len(errors) == 0:
         return None
+
     return f"must be an instance of {expected_type}, but there are some errors: {errors}"
 
 
-def _validate_typing_list(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
-    if not isinstance(value, list):
-        return f"must be an instance of list, but received {type(value)}"
-    return _validate_iterable_items(expected_type, value, globalns)
-
-
-def _validate_typing_tuple(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
+def _validate_typing_tuple(field_name: str, expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
     if not isinstance(value, tuple):
         return f"must be an instance of tuple, but received {type(value)}"
 
@@ -127,36 +154,32 @@ def _validate_typing_tuple(expected_type: _GenericType, value: Any, globalns: Gl
     for k in range(0, len(types)):
         t = types[k]
         v = value[k]
-        z = _validate_types(expected_type = types[k], value = value[k], globalns = globalns)
+        z = _validate_types(field_name = field_name, expected_type = types[k], value = value[k], globalns = globalns)
         if z: errors.append(z)
 
     if len(errors) == 0: return None
     return f"must be an instance of {expected_type}, but there are some errors: {errors}"
 
 
-def _validate_typing_frozenset(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
-    if not isinstance(value, frozenset): return f"must be an instance of frozenset, but received {type(value)}"
-    return _validate_iterable_items(expected_type, value, globalns)
-
-
 def _filter_nones_out(some_list: list[_U | None]) -> list[_U]:
     return [v for v in some_list if v]
 
 
-def _validate_typing_dict(expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
+def _validate_typing_dict(field_name: str, expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
+    if len(expected_type.__args__) != 2:
+        raise TypeError(f"bad parameters for {expected_type}")
+
     if not isinstance(value, dict):
         return f"must be an instance of dict, but received {type(value)}"
-    if len(expected_type.__args__) != 2:
-        return f"bad parameters for {expected_type}"
 
     expected_key_type  : type[Any] = expected_type.__args__[0]
     expected_value_type: type[Any] = expected_type.__args__[1]
 
-    key_errors: list[str] = _filter_nones_out([_validate_types(expected_type = expected_key_type, value = k, globalns = globalns) for k in value.keys()])
-    val_errors: list[str] = _filter_nones_out([_validate_types(expected_type = expected_value_type, value = v, globalns = globalns) for v in value.values()])
+    key_errors: list[str] = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_key_type, value = k, globalns = globalns) for k in value.keys()])
+    val_errors: list[str] = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_value_type, value = v, globalns = globalns) for v in value.values()])
 
     if len(key_errors) > 0 and len(val_errors) > 0:
-        return f"must be an instance of {expected_type}, but there are some errors in keys and values. "\
+        return f"must be an instance of {expected_type}, but there are some errors in keys and values. " \
             f"key errors: {key_errors}, value errors: {val_errors}"
     if len(key_errors) > 0:
         return f"must be an instance of {expected_type}, but there are some errors in keys: {key_errors}"
@@ -209,52 +232,85 @@ def _validate_typing_literal(expected_type: _LiteralType, value: Any) -> str | N
     return f"must be one of [{', '.join([x.__str__() for x in expected_type.__args__])}] but received {value}"
 
 
-def _validate_union_types(expected_type: _UnionType | _OptionalType, value: Any, globalns: GlobalNS_T) -> str | None:
-    is_valid = any(_validate_types(expected_type = t, value = value, globalns = globalns) is None for t in expected_type.__args__)
+def _validate_union_types(field_name: str, expected_type: _UnionType | _OptionalType, value: Any, globalns: GlobalNS_T) -> str | None:
+    is_valid = any(_validate_types(field_name = field_name, expected_type = t, value = value, globalns = globalns) is None for t in expected_type.__args__)
     if not is_valid:
         return f"must be an instance of {expected_type}, but received {value}"
     return None
 
 
-_validate_typing_mappings: dict[str, Callable[[_GenericType, Any, GlobalNS_T], str | None]] = {
-    "List": _validate_typing_list,
-    "list": _validate_typing_list,
-    "Tuple": _validate_typing_tuple,
-    "tuple": _validate_typing_tuple,
-    "FrozenSet": _validate_typing_frozenset,
-    "frozenset": _validate_typing_frozenset,
-    "Dict": _validate_typing_dict,
-    "dict": _validate_typing_dict
+_validate_typing_mappings: dict[type, Callable[[str, _GenericType, Any, GlobalNS_T], str | None]] = {
+    tuple                   : _validate_typing_tuple,
+    dict                    : _validate_typing_dict,
+    list                    : _validate_typing_iterable,
+    frozenset               : _validate_typing_iterable,
+    set                     : _validate_typing_iterable,
+    collections.abc.Sequence: _validate_typing_iterable,
+    collections.abc.Iterable: _validate_typing_iterable
 }
 
 
-def _validate_types(expected_type: type[Any] | _GenericType | _UnionType | _OptionalType | _LiteralType | _CallableTypeFormal | ForwardRef, value: Any, globalns: GlobalNS_T) -> str | None:
-    name: str = f"{expected_type}"
-    if "[" in name:
-        name = name[0 : name.index("[")]
+def _reduce_alias(alias: _GenericAlias, globalns: GlobalNS_T) -> _GenericType:
+    origin: type = alias.__origin__
+    module: str = origin.__module__
+    short_name: str = origin.__name__
+    new_globalns: GlobalNS_T = globalns
 
-    if type(expected_type) is _UnionType or type(expected_type) is _OptionalType:
-        return _validate_union_types(expected_type = expected_type, value = value, globalns = globalns)
+    full_name: str
+    if module == "builtins":
+        full_name = short_name
+    elif module in new_globalns:
+        full_name = module + "." + short_name
+    else:
+        new_globalns = globalns.copy()
+        i: int = 1
+        while f"temp_{i}" in new_globalns:
+            i += 1
+        var_name: str = f"temp_{i}"
+        new_globalns[var_name] = eval(module)
+        full_name = var_name + "." + short_name
 
-    if type(expected_type) is _LiteralType:
-        return _validate_typing_literal(expected_type = expected_type, value = value)
+    new_name: str = full_name + "[" + ",".join([x.__name__ for x in alias.__args__]) + "]"
+    return cast(_GenericType, eval(new_name, new_globalns))
 
-    if isinstance(expected_type, ForwardRef):
-        referenced_type = _evaluate_forward_reference(expected_type, globalns)
+
+def _validate_types(field_name: str, expected_type: type[Any] | _GenericType | _GenericAlias | _UnionType | _OptionalType | _LiteralType | _CallableTypeFormal | ForwardRef | str, value: Any, globalns: GlobalNS_T) -> str | None:
+
+    reworked_type: Any = expected_type
+    if type(expected_type) is str:
+        reworked_type = eval(expected_type, globalns)
+
+    if type(reworked_type) is _GenericAlias:
+        reworked_type = _reduce_alias(reworked_type, globalns)
+
+    if type(reworked_type) is _GenericAlias:
+        print(f"{expected_type} - {reworked_type} - {reworked_type.__origin__}")
+        assert False
+
+    if type(reworked_type) is _UnionType or type(reworked_type) is _OptionalType:
+        return _validate_union_types(field_name = field_name, expected_type = reworked_type, value = value, globalns = globalns)
+
+    if type(reworked_type) is _LiteralType:
+        return _validate_typing_literal(expected_type = reworked_type, value = value)
+
+    if isinstance(reworked_type, ForwardRef):
+        referenced_type = _evaluate_forward_reference(reworked_type, globalns)
         return _validate_type(expected_type = referenced_type, value = value)
 
-    if type(expected_type) is _CallableTypeFormal:
-        return _validate_typing_callable(expected_type = expected_type, value = value, globalns = globalns)
+    if type(reworked_type) is _CallableTypeFormal:
+        return _validate_typing_callable(expected_type = reworked_type, value = value, globalns = globalns)
 
-    if isinstance(expected_type, type):
-        return _validate_type(expected_type = expected_type, value = value)
+    if isinstance(reworked_type, type):
+        return _validate_type(expected_type = reworked_type, value = value)
 
-    if type(expected_type) is _GenericType:
-        _g = _validate_typing_mappings.get(name)
-        if _g is not None:
-            return _g(expected_type, value, globalns)
+    if type(reworked_type) is _GenericType:
+        raw_type: type = reworked_type.__origin__
+        _g = _validate_typing_mappings.get(raw_type)
+        if _g is None:
+            return f"Can't validate field {field_name} from {reworked_type} - unknown generic type"
+        return _g(field_name, reworked_type, value, globalns)
 
-    return f"Can't validate {expected_type} of {expected_type.__class__} with {value} - {type(value)}"
+    return f"Can't validate field {field_name} from {reworked_type} (type is {type(reworked_type).__name__}) with {value} (type is {type(value).__name__})"
 
 
 def _evaluate_forward_reference(ref_type: ForwardRef, globalns: GlobalNS_T) -> Type[Any]:
@@ -272,13 +328,13 @@ def dataclass_type_validator(target: Any) -> None:
         expected_type: Any = field.type
         value = getattr(target, field_name)
 
-        err = _validate_types(expected_type = expected_type, value = value, globalns = globalns)
+        err = _validate_types(field_name = field_name, expected_type = expected_type, value = value, globalns = globalns)
         if err is not None:
             errors[field_name] = err
 
     if len(errors) > 0:
-        raise TypeValidationError(
-            "Dataclass Type Validation Error", target = target, errors = errors
+        raise TypeValidationError( \
+            "Dataclass Type Validation Error", target = target, errors = errors \
         )
 
 
