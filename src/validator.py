@@ -283,10 +283,6 @@ def _validate_types(field_name: str, expected_type: type[Any] | _GenericType | _
     if type(reworked_type) is _GenericAlias:
         reworked_type = _reduce_alias(reworked_type, globalns)
 
-    if type(reworked_type) is _GenericAlias:
-        print(f"{expected_type} - {reworked_type} - {reworked_type.__origin__}")
-        assert False
-
     if type(reworked_type) is _UnionType or type(reworked_type) is _OptionalType:
         return _validate_union_types(field_name = field_name, expected_type = reworked_type, value = value, globalns = globalns)
 
