@@ -1,5 +1,7 @@
 from cofre_de_senhas.bd.raiz import Raiz
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, LoginComPermissao, LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
+from cofre_de_senhas.dao import \
+    SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, \
+    LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 
 class SegredoDAOImpl(SegredoDAO):
 
@@ -77,7 +79,6 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Categoria de segredo
 
-    # TESTAR
     def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> None:
         sql: str = "INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (?, ?)"
         Raiz.instance().execute(sql, [c.pk_segredo, c.pk_categoria])
@@ -95,12 +96,10 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Permissões
 
-    # TESTAR
     def criar_permissao(self, permissao: PermissaoDeSegredo) -> None:
         sql: str = "INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [permissao.pfk_usuario, permissao.pfk_segredo, permissao.fk_tipo_permissao])
 
-    # TESTAR
     def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
         sql: str = "" \
             + "SELECT p.pfk_usuario, p.pfk_segredo, p.fk_tipo_permissao " \
@@ -109,14 +108,3 @@ class SegredoDAOImpl(SegredoDAO):
             + "WHERE p.pfk_segredo = ? AND u.login = ?"
         Raiz.instance().execute(sql, [busca.pfk_segredo, busca.login])
         return Raiz.instance().fetchone_class(PermissaoDeSegredo)
-
-    # TESTAR
-    def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:
-        sql: str = "" \
-            + "SELECT u.login, p.fk_tipo_permissao AS permissao " \
-            + "FROM permissao p " \
-            + "INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario " \
-            + "WHERE p.pfk_segredo = ? " \
-            + "ORDER BY u.login"
-        Raiz.instance().execute(sql, [pk.pk_segredo])
-        return Raiz.instance().fetchall_class(LoginComPermissao)

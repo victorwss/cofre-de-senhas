@@ -1,7 +1,10 @@
 from .fixtures import *
 from connection.conn import IntegrityViolationException
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, PermissaoDeSegredo
+from cofre_de_senhas.dao import \
+    BuscaPermissaoPorLogin, SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, PermissaoDeSegredo, \
+    DadosCategoria, CategoriaDAO, CategoriaDeSegredo
 from cofre_de_senhas.bd.raiz import Raiz
+from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
 from cofre_de_senhas.segredo.segredo_dao_impl import SegredoDAOImpl
 from pytest import raises
 
@@ -218,40 +221,171 @@ def test_criar_campo_segredo_duplicado() -> None:
 @db.transacted
 def test_criar_permissao() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
-    perm: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
-    dao.criar_permissao(perm)
+    perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
+    dao.criar_permissao(perm1)
+
     lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
     assert lido == todos_segredos
 
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Hermione")
+    perm2: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm1 == perm2
+
 @db.transacted
 def test_criar_permissao_usuario_nao_existe() -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl()
+    dao1: SegredoDAOImpl = SegredoDAOImpl()
     perm: PermissaoDeSegredo = PermissaoDeSegredo(lixo1, dbz.pk_segredo, 2)
 
     with raises(IntegrityViolationException):
-        dao.criar_permissao(perm)
+        dao1.criar_permissao(perm)
 
-    #lido: list[DadosSegredo] = dao.listar_visiveis(lixo1)
+    #lido: list[DadosSegredo] = dao1.listar_visiveis(lixo1)
     #assert lido == []
 
 @db.transacted
 def test_criar_permissao_segredo_nao_existe() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
-    perm: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, lixo1, 2)
+    perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, lixo1, 2)
 
     with raises(IntegrityViolationException):
-        dao.criar_permissao(perm)
+        dao.criar_permissao(perm1)
 
-    #lido: list[DadosSegredo] = dao.listar_visiveis(hermione.pk_usuario)
-    #assert lido == []
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lixo1, "Hermione")
+    perm2: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm2 is None
 
 @db.transacted
 def test_criar_permissao_tipo_nao_existe() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
-    perm: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, lixo1)
+    perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, lixo1)
 
     with raises(IntegrityViolationException):
-        dao.criar_permissao(perm)
+        dao.criar_permissao(perm1)
 
-    #lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuario())
-    #assert lido == []
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Hermione")
+    perm2: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm2 is None
+
+@db.transacted
+def test_criar_permissao_ja_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    perm1: PermissaoDeSegredo = PermissaoDeSegredo(harry_potter.pk_usuario, dbz.pk_segredo, 3)
+
+    with raises(IntegrityViolationException):
+        dao.criar_permissao(perm1)
+
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Harry Potter")
+    perm2: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm2 == PermissaoDeSegredo(harry_potter.pk_usuario, dbz.pk_segredo, 1)
+
+@db.transacted
+def test_buscar_permissao_1() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Harry Potter")
+    perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm == PermissaoDeSegredo(harry_potter.pk_usuario, dbz.pk_segredo, 1)
+
+@db.transacted
+def test_buscar_permissao_2() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lotr.pk_segredo, "Harry Potter")
+    perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm == PermissaoDeSegredo(harry_potter.pk_usuario, lotr.pk_segredo, 2)
+
+@db.transacted
+def test_buscar_permissao_nao_tem() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lotr.pk_segredo, "Hermione")
+    perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm is None
+
+@db.transacted
+def test_buscar_permissao_login_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lotr.pk_segredo, "Dollynho")
+    perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm is None
+
+@db.transacted
+def test_buscar_permissao_segredo_nao_existe() -> None:
+    dao: SegredoDAOImpl = SegredoDAOImpl()
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lixo1, "Harry Potter")
+    perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
+    assert perm is None
+
+@db.transacted
+def test_criar_categoria_segredo() -> None:
+    dao1: SegredoDAOImpl = SegredoDAOImpl()
+    cs: CategoriaDeSegredo = CategoriaDeSegredo(star_wars.pk_segredo, qa.pk_categoria)
+    dao1.criar_categoria_segredo(cs)
+
+    dao2: CategoriaDAOImpl = CategoriaDAOImpl()
+    spk: SegredoPK = SegredoPK(star_wars.pk_segredo)
+    dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
+
+    assert dados == [producao, qa]
+
+@db.transacted
+def test_criar_categoria_segredo_com_segredo_que_nao_existe() -> None:
+    dao1: SegredoDAOImpl = SegredoDAOImpl()
+    cs: CategoriaDeSegredo = CategoriaDeSegredo(lixo1, qa.pk_categoria)
+
+    with raises(IntegrityViolationException):
+        dao1.criar_categoria_segredo(cs)
+
+    dao2: CategoriaDAOImpl = CategoriaDAOImpl()
+    spk: SegredoPK = SegredoPK(lixo1)
+    dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
+
+    assert dados == []
+
+@db.transacted
+def test_criar_categoria_segredo_com_categoria_que_nao_existe() -> None:
+    dao1: SegredoDAOImpl = SegredoDAOImpl()
+    cs: CategoriaDeSegredo = CategoriaDeSegredo(star_wars.pk_segredo, lixo3)
+
+    with raises(IntegrityViolationException):
+        dao1.criar_categoria_segredo(cs)
+
+    dao2: CategoriaDAOImpl = CategoriaDAOImpl()
+    spk: SegredoPK = SegredoPK(star_wars.pk_segredo)
+    dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
+
+    assert dados == [producao]
+
+@db.transacted
+def test_criar_categoria_segredo_ja_existe() -> None:
+    dao1: SegredoDAOImpl = SegredoDAOImpl()
+    cs: CategoriaDeSegredo = CategoriaDeSegredo(dbz.pk_segredo, qa.pk_categoria)
+
+    with raises(IntegrityViolationException):
+        dao1.criar_categoria_segredo(cs)
+
+    dao2: CategoriaDAOImpl = CategoriaDAOImpl()
+    spk: SegredoPK = SegredoPK(dbz.pk_segredo)
+    dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
+
+    assert dados == [qa]
+
+@db.transacted
+def test_buscar_categoria_segredo() -> None:
+    dao2: CategoriaDAOImpl = CategoriaDAOImpl()
+    spk: SegredoPK = SegredoPK(lotr.pk_segredo)
+    dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
+    assert dados == [aplicacao, integracao]
+
+@db.transacted
+def test_buscar_categoria_segredo_nao_existe() -> None:
+    dao: CategoriaDAOImpl = CategoriaDAOImpl()
+    spk: SegredoPK = SegredoPK(lixo1)
+    dados: list[DadosCategoria] = dao.listar_por_segredo(spk)
+    assert dados == []
+
+#@db.transacted
+#def test_criar_listar_por_permissao() -> None:
+#    pk: SegredoPk = SegredoPK(dbz.pk_segredo)
+#    dao: UsuarioDAOImpl = UsuarioDAOImpl()
+#    permissoes: list[DadosUsuarioComPermissao] = dao.listar_por_permissao(pk)
+#    assert permissoes = [
+#        DadosUsuarioComPermissao(harry_potter.pk_usuario, harry_potter.login, harry_potter.fk_nivel_acesso, harry_potter)
+#    ]

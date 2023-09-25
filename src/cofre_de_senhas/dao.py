@@ -82,12 +82,6 @@ class CampoDeSegredo:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class LoginComPermissao:
-    login: str
-    permissao: int
-
-@dataclass_validate
-@dataclass(frozen = True)
 class LoginUsuario:
     valor: str
 
@@ -191,10 +185,6 @@ class SegredoDAO(ABC):
 
     @abstractmethod
     def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
-        pass
-
-    @abstractmethod
-    def ler_login_com_permissoes(self, pk: SegredoPK) -> list[LoginComPermissao]:
         pass
 
     @staticmethod
