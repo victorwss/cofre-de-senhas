@@ -897,6 +897,11 @@ class Crazy2:
 class Crazy3:
     x1: "List[Crazy2]"
 
+@dataclass_validate
+@dataclass(frozen = True)
+class Crazy4:
+    x1: List["Crazy4"]
+
 def test_crazy_1() -> None:
     a: Crazy1 = Crazy1(5)
     b: Crazy1 = Crazy1(8)
@@ -919,3 +924,10 @@ def test_crazy_2() -> None:
 def test_crazy_3() -> None:
     with raises(TypeValidationError):
         Crazy3(Crazy1(5)) # type: ignore
+
+def test_crazy_4() -> None:
+    a: Crazy4 = Crazy4([])
+    b: Crazy4 = Crazy4([a])
+    c: Crazy4 = Crazy4([a, b, a])
+    d: Crazy4 = Crazy4([c, b, a, b, c])
+    e: Crazy4 = Crazy4([d, b, a, c, d, a, c])

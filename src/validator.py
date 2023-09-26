@@ -4,7 +4,9 @@ import typing
 import functools
 import sys
 import collections
-from typing import Any, Callable, cast, Dict, ForwardRef, FrozenSet, Iterable, List, Literal, Optional, Protocol, runtime_checkable, Self, Set, Tuple, Type, TypeVar
+from typing import \
+    Any, Callable, cast, Dict, ForwardRef, FrozenSet, Iterable, List, Literal, \
+    Optional, Protocol, runtime_checkable, Self, Set, Tuple, Type, TypeVar
 
 GlobalNS_T = dict[str, Any]
 _U = TypeVar("_U")
@@ -15,29 +17,29 @@ _NoneType = type(None)
 if typing.TYPE_CHECKING:
     class _UnionType(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
     class _OptionalType(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
     class _LiteralType(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
     @runtime_checkable
     class _CallableType(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
     @runtime_checkable
     class _GenericType(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
         @property
@@ -51,7 +53,7 @@ if typing.TYPE_CHECKING:
     @runtime_checkable
     class _GenericAlias(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
         @property
@@ -67,7 +69,7 @@ if typing.TYPE_CHECKING:
 
     class _CallableTypeFormal(Protocol):
         @property
-        def __args__(self) -> list[type[Any]]:
+        def __args__(self) -> list[type[Any] | ForwardRef]:
             pass
 
 else:
@@ -138,7 +140,7 @@ def _validate_typing_tuple(field_name: str, expected_type: _GenericType, value: 
     if not isinstance(value, tuple):
         return f"must be an instance of tuple, but received {type(value)}"
 
-    types: list[type[Any]] = list(expected_type.__args__[:])
+    types: list[type[Any]] = [_type_resolve(x, globalns) for x in expected_type.__args__]
 
     if len(types) == 2 and types[1] == _Ellipsis:
         if len(value) == 0:
@@ -172,8 +174,8 @@ def _validate_typing_dict(field_name: str, expected_type: _GenericType, value: A
     if not isinstance(value, dict):
         return f"must be an instance of dict, but received {type(value)}"
 
-    expected_key_type  : type[Any] = expected_type.__args__[0]
-    expected_value_type: type[Any] = expected_type.__args__[1]
+    expected_key_type  : type[Any] = _type_resolve(expected_type.__args__[0], globalns)
+    expected_value_type: type[Any] = _type_resolve(expected_type.__args__[1], globalns)
 
     key_errors: list[str] = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_key_type, value = k, globalns = globalns) for k in value.keys()])
     val_errors: list[str] = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_value_type, value = v, globalns = globalns) for v in value.values()])
@@ -206,8 +208,8 @@ def _validate_typing_callable(expected_type: _CallableTypeFormal, value: Any, gl
         return f"must be an instance of {expected_type.__str__()}, but received {type(value)}"
 
     names  : list[str]              = list(value.__annotations__.keys())
-    reals  : list[type[Any]]        = list(value.__annotations__.values())
-    formals: list[type[Any] | None] = [None if k == _NoneType else k for k in expected_type.__args__] # type: ignore [comparison-overlap]
+    reals  : list[type[Any]]        = [_type_resolve(x, globalns) for x in value.__annotations__.values()]
+    formals: list[type[Any] | None] = [None if x == _NoneType else _type_resolve(x, globalns) for x in expected_type.__args__]
 
     if formals[0] == _Ellipsis:
         if formals[-1] == Any or formals[-1] == reals[-1]:
@@ -250,6 +252,12 @@ _validate_typing_mappings: dict[type, Callable[[str, _GenericType, Any, GlobalNS
 }
 
 
+def _type_resolve(x: type[Any] | ForwardRef, globalns: GlobalNS_T) -> type[Any]:
+    if isinstance(x, ForwardRef):
+        return _evaluate_forward_reference(x, globalns)
+    return x
+
+
 def _reduce_alias(alias: _GenericAlias, globalns: GlobalNS_T) -> _GenericType:
     origin: type = alias.__origin__
     module: str = origin.__module__
@@ -270,7 +278,7 @@ def _reduce_alias(alias: _GenericAlias, globalns: GlobalNS_T) -> _GenericType:
         new_globalns[var_name] = eval(module)
         full_name = var_name + "." + short_name
 
-    new_name: str = full_name + "[" + ",".join([x.__name__ for x in alias.__args__]) + "]"
+    new_name: str = full_name + "[" + ",".join([_type_resolve(x, new_globalns).__name__ for x in alias.__args__]) + "]"
     return cast(_GenericType, eval(new_name, new_globalns))
 
 
