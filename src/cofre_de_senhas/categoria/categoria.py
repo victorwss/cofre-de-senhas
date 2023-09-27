@@ -96,7 +96,7 @@ class Categoria:
         return {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_segredo(pk)}
 
     @staticmethod
-    def __mapear_todos(dados: list[DadosCategoria]) -> dict[str, Categoria]:
+    def __mapear_todos(dados: list[DadosCategoria]) -> dict[str, "Categoria"]:
         return {c.nome: Categoria.__promote(c) for c in dados}
 
     # Exportado para a classe Segredo.

@@ -139,7 +139,7 @@ class Usuario:
         return [Usuario.__promote(u) for u in UsuarioDAO.instance().listar()]
 
     @staticmethod
-    def __mapear_todos(dados: list[DadosUsuario]) -> dict[str, Usuario]:
+    def __mapear_todos(dados: list[DadosUsuario]) -> dict[str, "Usuario"]:
         return {u.login: Usuario.__promote(u) for u in dados}
 
     # Exportado para a classe Segredo.
