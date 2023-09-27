@@ -1,6 +1,6 @@
 from validator import TypeValidationError, dataclass_validate
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Set, Tuple
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Set, Tuple, TypedDict
 from pytest import raises
 
 @dataclass_validate
@@ -267,6 +267,47 @@ def test_hasdict2_6() -> None:
     with raises(TypeValidationError):
         HasDict2([]) # type: ignore
 
+"""
+class SomeTyped(TypedDict):
+    bla: str
+    gua: float
+    ta: int
+
+@dataclass_validate
+@dataclass(frozen = True)
+class HasDict3:
+    x1: SomeTyped
+
+def test_hasdict3_1() -> None:
+    t1: HasDict3 = HasDict3({"bla": "xx", "gua": 3.9, "ta": 6})
+    assert [t1.x1["bla"], t1.x1["gua"], t1.x1["ta"]] == ["xx", 3.9, 6]
+    assert len(t1.x1) == 3
+
+def test_hasdict3_2() -> None:
+    with raises(TypeValidationError):
+        t1: HasDict3 = HasDict3({}) # type: ignore
+
+def test_hasdict3_3() -> None:
+    with raises(TypeValidationError):
+        t1: HasDict3 = HasDict3({"hjhk": 555}) # type: ignore
+
+def test_hasdict3_4() -> None:
+    with raises(TypeValidationError):
+        t1: HasDict3 = HasDict3({"bla": "xx", "ta": 6}) # type: ignore
+
+def test_hasdict3_5() -> None:
+    with raises(TypeValidationError):
+        t1: HasDict3 = HasDict3({"bla": "xx", "gua": 3.9, "ta": 6, "jjjj": 4568}) # type: ignore
+
+def test_hasdict3_6() -> None:
+    with raises(TypeValidationError):
+        t1: HasDict3 = HasDict3({"bla": 5, "gua": 3.9, "ta": 6}) # type: ignore
+
+def test_hasdict3_7() -> None:
+    with raises(TypeValidationError):
+        t1: HasDict3 = HasDict3({"bla": "xx", "gua": 3.9, "ta": "6"}) # type: ignore
+"""
+
 @dataclass_validate
 @dataclass(frozen = True)
 class BadDict1:
@@ -322,6 +363,36 @@ def test_bad_dict4_1() -> None:
 def test_bad_dict4_2() -> None:
     with raises(TypeError):
         BadDict4("xxx") # type: ignore
+
+"""
+@dataclass_validate
+@dataclass(frozen = True)
+class BadDict5:
+    # Invalid type! Should always fail!
+    x1: "TypedDict[str, float, int]" # type: ignore
+
+def test_bad_dict5_1() -> None:
+    with raises(TypeError):
+        BadDict5({})
+
+def test_bad_dict5_2() -> None:
+    with raises(TypeError):
+        BadDict5("xxx") # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BadDict6:
+    # Invalid type! Should always fail!
+    x1: "TypedDict[str]" # type: ignore
+
+def test_bad_dict6_1() -> None:
+    with raises(TypeError):
+        BadDict6({})
+
+def test_bad_dict6_2() -> None:
+    with raises(TypeError):
+        BadDict6("xxx") # type: ignore
+"""
 
 @dataclass_validate
 @dataclass(frozen = True)
