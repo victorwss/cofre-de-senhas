@@ -85,10 +85,18 @@ class CampoDeSegredo:
 class LoginUsuario:
     valor: str
 
+    @staticmethod
+    def para_todos(logins: set[str]) -> list["LoginUsuario"]:
+        return [LoginUsuario(v) for v in logins]
+
 @dataclass_validate
 @dataclass(frozen = True)
 class NomeCategoria:
     valor: str
+
+    @staticmethod
+    def para_todos(nomes: set[str]) -> list["NomeCategoria"]:
+        return [NomeCategoria(v) for v in nomes]
 
 @dataclass_validate
 @dataclass(frozen = True)

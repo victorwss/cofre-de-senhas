@@ -47,23 +47,35 @@ class Segredo:
         SegredoDAO.instance().salvar_com_pk(self.__down)
         return self.__salvar_dados_internos()
 
+    def __limpar(self) -> None:
+        spk: SegredoPK = self.__pk
+        SegredoDAO.instance().limpar_segredo(spk)
+
+    def __criar_campos(self) -> None:
+        spk: SegredoPK = self.__pk
+        for descricao in self.campos.keys():
+            valor: str = self.campos[descricao]
+            SegredoDAO.instance().criar_campo_segredo(CampoDeSegredo(spk.pk_segredo, descricao, valor))
+
+    def __criar_permissoes(self) -> None:
+        spk: SegredoPK = self.__pk
+        for permissao in self.usuarios.values():
+            SegredoDAO.instance().criar_permissao(PermissaoDeSegredo(permissao.usuario.pk.pk_usuario, spk.pk_segredo, permissao.tipo.value))
+
+    def __criar_categorias(self) -> None:
+        spk: SegredoPK = self.__pk
+        for categoria in self.categorias.values():
+            SegredoDAO.instance().criar_categoria_segredo(CategoriaDeSegredo(spk.pk_segredo, categoria.pk.pk_categoria))
+
     def __salvar_dados_internos(self) -> Self:
         assert self.usuarios is not None
         assert self.categorias is not None
         assert self.campos is not None
 
-        spk: SegredoPK = self.__pk
-        SegredoDAO.instance().limpar_segredo(spk)
-
-        for descricao in self.campos.keys():
-            valor: str = self.campos[descricao]
-            SegredoDAO.instance().criar_campo_segredo(CampoDeSegredo(spk.pk_segredo, descricao, valor))
-
-        for permissao in self.usuarios.values():
-            SegredoDAO.instance().criar_permissao(PermissaoDeSegredo(permissao.usuario.pk.pk_usuario, spk.pk_segredo, permissao.tipo.value))
-
-        for categoria in self.categorias.values():
-            SegredoDAO.instance().criar_categoria_segredo(CategoriaDeSegredo(spk.pk_segredo, categoria.pk.pk_categoria))
+        self.__limpar()
+        self.__criar_campos()
+        self.__criar_permissoes()
+        self.__criar_categorias()
 
         return self
 
@@ -106,7 +118,7 @@ class Segredo:
 
     @staticmethod
     def __mapear_permissoes(usuarios: dict[str, TipoPermissao]) -> dict[str, Permissao]:
-        todos_usuarios: dict[str, Usuario] = Usuario.listar_por_login(set(usuarios.keys()))
+        todos_usuarios: dict[str, Usuario] = Usuario.listar_por_logins(set(usuarios.keys()))
         permissoes: dict[str, Permissao] = {}
 
         for k in usuarios:

@@ -138,15 +138,21 @@ class Usuario:
     def __listar() -> list["Usuario"]:
         return [Usuario.__promote(u) for u in UsuarioDAO.instance().listar()]
 
+    @staticmethod
+    def __mapear_todos(dados: list[DadosUsuario]) -> dict[str, Usuario]:
+        return {u.login: Usuario.__promote(u) for u in dados}
+
     # Exportado para a classe Segredo.
     @staticmethod
-    def listar_por_login(logins: set[str]) -> dict[str, "Usuario"]:
-        dl: list[LoginUsuarioDAO] = [LoginUsuarioDAO(v) for v in logins]
-        r: dict[str, Usuario] = {u.login: Usuario.__promote(u) for u in UsuarioDAO.instance().listar_por_logins(dl)}
+    def listar_por_logins(logins: set[str]) -> dict[str, "Usuario"]:
+        dl: list[LoginUsuarioDAO] = LoginUsuarioDAO.para_todos(logins)
+        dados: list[DadosUsuario] = UsuarioDAO.instance().listar_por_logins(dl)
+        r: dict[str, Usuario] = Usuario.__mapear_todos(dados)
 
         if len(r) != len(logins):
             for login in logins:
-                if login not in r: raise UsuarioNaoExisteException(login)
+                if login not in r:
+                    raise UsuarioNaoExisteException(login)
 
         return r
 

@@ -96,14 +96,20 @@ class ConteudoIncompreensivelException(Exception):
     def status(self) -> int:
         return 422
 
+def _is_form(content_type: str, urlencoded: bool, multipart: bool) -> bool:
+    return (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart)
+
+def _is_json(content_type: str, json: bool) -> bool:
+    return content_type == "application/json" and json
+
 def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart: bool) -> Any:
     if content_type is None:
         raise RequisicaoMalFormadaException()
 
-    if (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart):
+    if _is_form(content_type, urlencoded, multipart):
         return request.form
 
-    if content_type == "application/json" and json:
+    if _is_json(content_type, json):
         try:
             return request.json
         except:

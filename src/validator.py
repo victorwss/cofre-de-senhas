@@ -12,7 +12,6 @@ GlobalNS_T = dict[str, Any]
 _U = TypeVar("_U")
 
 _CallableTypeReal = type(lambda a: a)
-_NoneType = type(None)
 
 if typing.TYPE_CHECKING:
     class _UnionType(Protocol):
@@ -140,7 +139,7 @@ def _validate_typing_tuple(field_name: str, expected_type: _GenericType, value: 
     if not isinstance(value, tuple):
         return f"must be an instance of tuple, but received {type(value)}"
 
-    types: list[type[Any]] = [_type_resolve(x, globalns) for x in expected_type.__args__]
+    types: list[type[Any]] = _type_resolve_all(expected_type.__args__, globalns)
 
     if len(types) == 2 and types[1] == _Ellipsis:
         if len(value) == 0:
@@ -167,6 +166,17 @@ def _filter_nones_out(some_list: list[_U | None]) -> list[_U]:
     return [v for v in some_list if v]
 
 
+def _validate_typing_dict_error_message(expected_type: _GenericType, key_errors: list[str], val_errors: list[str]) -> str | None:
+    if len(key_errors) > 0 and len(val_errors) > 0:
+        return f"must be an instance of {expected_type}, but there are some errors in keys and values. " \
+            + f"key errors: {key_errors}, value errors: {val_errors}"
+    if len(key_errors) > 0:
+        return f"must be an instance of {expected_type}, but there are some errors in keys: {key_errors}"
+    if len(val_errors) > 0:
+        return f"must be an instance of {expected_type}, but there are some errors in values: {val_errors}"
+    return None
+
+
 def _validate_typing_dict(field_name: str, expected_type: _GenericType, value: Any, globalns: GlobalNS_T) -> str | None:
     if len(expected_type.__args__) != 2:
         raise TypeError(f"bad parameters for {expected_type}")
@@ -180,17 +190,10 @@ def _validate_typing_dict(field_name: str, expected_type: _GenericType, value: A
     key_errors: list[str] = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_key_type, value = k, globalns = globalns) for k in value.keys()])
     val_errors: list[str] = _filter_nones_out([_validate_types(field_name = field_name, expected_type = expected_value_type, value = v, globalns = globalns) for v in value.values()])
 
-    if len(key_errors) > 0 and len(val_errors) > 0:
-        return f"must be an instance of {expected_type}, but there are some errors in keys and values. " \
-            f"key errors: {key_errors}, value errors: {val_errors}"
-    if len(key_errors) > 0:
-        return f"must be an instance of {expected_type}, but there are some errors in keys: {key_errors}"
-    if len(val_errors) > 0:
-        return f"must be an instance of {expected_type}, but there are some errors in values: {val_errors}"
-    return None
+    return _validate_typing_dict_error_message(expected_type, key_errors, val_errors)
 
 
-def _validate_parameters(names: list[str], reals: list[type[Any]], formals: list[type[Any] | None]) -> list[str]:
+def _validate_parameters(names: list[str], reals: list[type[Any]], formals: list[type[Any]]) -> list[str]:
     errors: list[str] = []
 
     for k in range(0, len(reals) - 1):
@@ -207,9 +210,9 @@ def _validate_typing_callable(expected_type: _CallableTypeFormal, value: Any, gl
     if not isinstance(value, _CallableTypeReal):
         return f"must be an instance of {expected_type.__str__()}, but received {type(value)}"
 
-    names  : list[str]              = list(value.__annotations__.keys())
-    reals  : list[type[Any]]        = [_type_resolve(x, globalns) for x in value.__annotations__.values()]
-    formals: list[type[Any] | None] = [None if x == _NoneType else _type_resolve(x, globalns) for x in expected_type.__args__]
+    names  : list[str]       = list(value.__annotations__.keys())
+    reals  : list[type[Any]] = _type_resolve_all(value.__annotations__.values(), globalns)
+    formals: list[type[Any]] = _type_resolve_all(expected_type.__args__, globalns)
 
     if formals[0] == _Ellipsis:
         if formals[-1] == Any or formals[-1] == reals[-1]:
@@ -252,10 +255,28 @@ _validate_typing_mappings: dict[type, Callable[[str, _GenericType, Any, GlobalNS
 }
 
 
-def _type_resolve(x: type[Any] | ForwardRef, globalns: GlobalNS_T) -> type[Any]:
+def _type_resolve(x: type[Any] | ForwardRef | None, globalns: GlobalNS_T) -> type[Any]:
+    if x is None:
+        return type(None)
     if isinstance(x, ForwardRef):
-        return _evaluate_forward_reference(x, globalns)
+        x = _evaluate_forward_reference(x, globalns)
     return x
+
+
+def _type_resolve_all(types: Iterable[type[Any] | ForwardRef | None], globalns: GlobalNS_T) -> list[type[Any]]:
+    return [_type_resolve(x, globalns) for x in types]
+
+
+def _type_resolve_name(x: type[Any] | ForwardRef, globalns: GlobalNS_T) -> str:
+    if x == type(None):
+        return "None"
+    if isinstance(x, ForwardRef):
+        x = _evaluate_forward_reference(x, globalns)
+    return x.__name__
+
+
+def _type_resolve_all_names(types: Iterable[type[Any] | ForwardRef], globalns: GlobalNS_T) -> list[str]:
+    return [_type_resolve_name(x, globalns) for x in types]
 
 
 def _reduce_alias(alias: _GenericAlias, globalns: GlobalNS_T) -> _GenericType:
@@ -278,7 +299,8 @@ def _reduce_alias(alias: _GenericAlias, globalns: GlobalNS_T) -> _GenericType:
         new_globalns[var_name] = eval(module)
         full_name = var_name + "." + short_name
 
-    new_name: str = full_name + "[" + ",".join([_type_resolve(x, new_globalns).__name__ for x in alias.__args__]) + "]"
+    names: str = ",".join(_type_resolve_all_names(alias.__args__, new_globalns))
+    new_name: str = full_name + "[" + names + "]"
     return cast(_GenericType, eval(new_name, new_globalns))
 
 
@@ -290,6 +312,9 @@ def _validate_types(field_name: str, expected_type: type[Any] | _GenericType | _
 
     if type(reworked_type) is _GenericAlias:
         reworked_type = _reduce_alias(reworked_type, globalns)
+
+    #if reworked_type is None:
+    #    return _validate_type(expected_type = type(None), value = value)
 
     if type(reworked_type) is _UnionType or type(reworked_type) is _OptionalType:
         return _validate_union_types(field_name = field_name, expected_type = reworked_type, value = value, globalns = globalns)

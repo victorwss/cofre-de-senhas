@@ -95,11 +95,16 @@ class Categoria:
     def listar_por_segredo(pk: SegredoPK) -> dict[str, "Categoria"]:
         return {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_segredo(pk)}
 
+    @staticmethod
+    def __mapear_todos(dados: list[DadosCategoria]) -> dict[str, Categoria]:
+        return {c.nome: Categoria.__promote(c) for c in dados}
+
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_nomes(nomes: set[str]) -> dict[str, "Categoria"]:
-        dl: list[NomeCategoriaDAO] = [NomeCategoriaDAO(nome) for nome in nomes]
-        r: dict[str, Categoria] = {c.nome: Categoria.__promote(c) for c in CategoriaDAO.instance().listar_por_nomes(dl)}
+        dl: list[NomeCategoriaDAO] = NomeCategoriaDAO.para_todos(nomes)
+        dados: list[DadosCategoria] = CategoriaDAO.instance().listar_por_nomes(dl)
+        r: dict[str, Categoria] = Categoria.__mapear_todos(dados)
 
         if len(r) != len(nomes):
             for nome in nomes:
