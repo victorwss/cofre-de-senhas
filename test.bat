@@ -8,8 +8,8 @@ IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
 :RADON
 @echo ON
-radon cc -nb -s .\src
-radon mi -nb -s .\src
+radon cc -nb -s --no-assert .\src
+radon mi -nb -s             .\src
 @echo OFF
 
 :COVERAGE

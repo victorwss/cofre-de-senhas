@@ -267,7 +267,6 @@ def test_hasdict2_6() -> None:
     with raises(TypeValidationError):
         HasDict2([]) # type: ignore
 
-"""
 class SomeTyped(TypedDict):
     bla: str
     gua: float
@@ -306,7 +305,6 @@ def test_hasdict3_6() -> None:
 def test_hasdict3_7() -> None:
     with raises(TypeValidationError):
         t1: HasDict3 = HasDict3({"bla": "xx", "gua": 3.9, "ta": "6"}) # type: ignore
-"""
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -363,36 +361,6 @@ def test_bad_dict4_1() -> None:
 def test_bad_dict4_2() -> None:
     with raises(TypeError):
         BadDict4("xxx") # type: ignore
-
-"""
-@dataclass_validate
-@dataclass(frozen = True)
-class BadDict5:
-    # Invalid type! Should always fail!
-    x1: "TypedDict[str, float, int]" # type: ignore
-
-def test_bad_dict5_1() -> None:
-    with raises(TypeError):
-        BadDict5({})
-
-def test_bad_dict5_2() -> None:
-    with raises(TypeError):
-        BadDict5("xxx") # type: ignore
-
-@dataclass_validate
-@dataclass(frozen = True)
-class BadDict6:
-    # Invalid type! Should always fail!
-    x1: "TypedDict[str]" # type: ignore
-
-def test_bad_dict6_1() -> None:
-    with raises(TypeError):
-        BadDict6({})
-
-def test_bad_dict6_2() -> None:
-    with raises(TypeError):
-        BadDict6("xxx") # type: ignore
-"""
 
 @dataclass_validate
 @dataclass(frozen = True)
