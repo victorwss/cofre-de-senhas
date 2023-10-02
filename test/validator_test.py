@@ -1,6 +1,6 @@
 from validator import TypeValidationError, dataclass_validate
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Set, Tuple, TypedDict
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Sequence, Set, Tuple, TypedDict
 from pytest import raises
 
 @dataclass_validate
@@ -93,13 +93,54 @@ def test_tupled2_6() -> None:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class Tupled3:
+    x1: tuple[str, tuple[int, str], float, tuple[float, str, list[str]]]
+
+def test_tupled3_1() -> None:
+    t1: Tupled3 = Tupled3(("a", (5, "xx"), 3.3, (2.0, "b", ["c", "d"])))
+    assert t1.x1 == ("a", (5, "xx"), 3.3, (2.0, "b", ["c", "d"]))
+
+def test_tupled3_2() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, "xx", "y"), 3.3, (2.0, "b", ["c", "d"]))) # type: ignore
+
+def test_tupled3_3() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, ), 3.3, (2.0, "b", ["c", "d"]))) # type: ignore
+
+def test_tupled3_4() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", ("x", ), 3.3, (2.0, "b", ["c", "d"]))) # type: ignore
+
+def test_tupled3_5() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, "xx"), 3.3, (2.0, 5, ["c", "d"]))) # type: ignore
+
+def test_tupled3_6() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, "xx"), 3.3, (2.0, "b", ["c", "d"], "e"))) # type: ignore
+
+def test_tupled3_7() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, "xx"), 3.3, (2.0, "b"))) # type: ignore
+
+def test_tupled3_8() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, "xx"), 3.3, (2.0, "b", ("c", "d")))) # type: ignore
+
+def test_tupled3_9() -> None:
+    with raises(TypeValidationError):
+        Tupled3(("a", (5, "xx"), 3.3, (2.0, "b", [4, 6]))) # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
 class TupledCont:
     # Invalid type! Should always fail!
     x1: tuple[str, int, float, str, ...] # type: ignore
 
 def test_tupled_cont_1() -> None:
     with raises(TypeValidationError):
-        t1: TupledCont = TupledCont(("a", 5, 3.3, "b")) # type: ignore
+        TupledCont(("a", 5, 3.3, "b")) # type: ignore
 
 def test_tupled_cont_2() -> None:
     with raises(TypeValidationError):
@@ -107,7 +148,7 @@ def test_tupled_cont_2() -> None:
 
 def test_tupled_cont_3() -> None:
     with raises(TypeValidationError):
-        t1: TupledCont = TupledCont(("a", 5, 3.3, "b", "x"))
+        TupledCont(("a", 5, 3.3, "b", "x"))
 
 def test_tupled_cont_4() -> None:
     with raises(TypeValidationError):
@@ -313,11 +354,11 @@ class BadDict1:
     x1: dict[str, float, int] # type: ignore
 
 def test_bad_dict1_1() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict1({})
 
 def test_bad_dict1_2() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict1("xxx") # type: ignore
 
 @dataclass_validate
@@ -327,11 +368,11 @@ class BadDict2:
     x1: dict[str] # type: ignore
 
 def test_bad_dict2_1() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict2({})
 
 def test_bad_dict2_2() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict2("xxx") # type: ignore
 
 @dataclass_validate
@@ -341,11 +382,11 @@ class BadDict3:
     x1: "Dict[str, float, int]" # type: ignore
 
 def test_bad_dict3_1() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict3({})
 
 def test_bad_dict3_2() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict3("xxx") # type: ignore
 
 @dataclass_validate
@@ -355,12 +396,68 @@ class BadDict4:
     x1: "Dict[str]" # type: ignore
 
 def test_bad_dict4_1() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict4({})
 
 def test_bad_dict4_2() -> None:
-    with raises(TypeError):
+    with raises(TypeValidationError):
         BadDict4("xxx") # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BadDict5:
+    # Invalid type! Should always fail!
+    x1: dict[str, ...] # type: ignore
+
+def test_bad_dict5_1() -> None:
+    with raises(TypeValidationError):
+        BadDict5({})
+
+def test_bad_dict5_2() -> None:
+    with raises(TypeValidationError):
+        BadDict5("xxx") # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BadDict6:
+    # Invalid type! Should always fail!
+    x1: dict[..., str] # type: ignore
+
+def test_bad_dict6_1() -> None:
+    with raises(TypeValidationError):
+        BadDict6({})
+
+def test_bad_dict6_2() -> None:
+    with raises(TypeValidationError):
+        BadDict6("xxx") # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BadDict7:
+    # Invalid type! Should always fail!
+    x1: dict[lambda x: x, str] # type: ignore
+
+def test_bad_dict7_1() -> None:
+    with raises(TypeValidationError):
+        BadDict6({})
+
+def test_bad_dict7_2() -> None:
+    with raises(TypeValidationError):
+        BadDict6("xxx") # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BadDict8:
+    # Invalid type! Should always fail!
+    x1: dict["compile error", "bad type"] # type: ignore
+
+def test_bad_dict8_1() -> None:
+    with raises(TypeValidationError):
+        BadDict8({})
+
+def test_bad_dict8_2() -> None:
+    with raises(TypeValidationError):
+        BadDict8("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -580,6 +677,35 @@ def test_hasiterable_5() -> None:
 def test_hasiterable_6() -> None:
     with raises(TypeValidationError):
         HasIterable("xxx") # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class HasSequence:
+    x1: Sequence[float]
+
+def test_hassequence_1() -> None:
+    t1: HasSequence = HasSequence([3.5, 7.8])
+    assert t1.x1 == [3.5, 7.8]
+
+def test_hassequence_2() -> None:
+    with raises(TypeValidationError):
+        HasSequence({3.5, 7.8}) # type: ignore
+
+def test_hassequence_3() -> None:
+    with raises(TypeValidationError):
+        HasSequence(frozenset([3.5, 7.8])) # type: ignore
+
+def test_hassequence_4() -> None:
+    with raises(TypeValidationError):
+        HasSequence(["a", 3.3]) # type: ignore
+
+def test_hassequence_5() -> None:
+    with raises(TypeValidationError):
+        HasSequence([3.3, "a"]) # type: ignore
+
+def test_hassequence_6() -> None:
+    with raises(TypeValidationError):
+        HasSequence("xxx") # type: ignore
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -970,3 +1096,19 @@ def test_crazy_4() -> None:
     c: Crazy4 = Crazy4([a, b, a])
     d: Crazy4 = Crazy4([c, b, a, b, c])
     e: Crazy4 = Crazy4([d, b, a, c, d, a, c])
+
+@dataclass_validate
+@dataclass(frozen = True)
+class BadCrap:
+    # Invalid type! Should always fail!
+    x1: "compile error" # type: ignore
+
+def test_bad_crap() -> None:
+    with raises(TypeValidationError):
+        BadCrap("aaa")
+    with raises(TypeError):
+        BadCrap() # type: ignore
+    with raises(TypeError):
+        BadCrap(5, 7) # type: ignore
+    with raises(TypeValidationError):
+        BadCrap(3)
