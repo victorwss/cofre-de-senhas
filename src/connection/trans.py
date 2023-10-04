@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Literal, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, Literal, override, Self, Sequence, TypeVar
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
@@ -20,6 +20,7 @@ class TransactedConnection(SimpleConnection):
         self.__count += 1
         return self
 
+    @override
     def close(self) -> None:
         self.__count -= 1
         if self.__count == 0:
@@ -70,96 +71,123 @@ class TransactedConnection(SimpleConnection):
     def force_close(self) -> None:
         self.__wrapped.close()
 
+    @override
     def commit(self) -> None:
         self.__wrapped.commit()
 
+    @override
     def rollback(self) -> None:
         self.__wrapped.rollback()
 
+    @override
     def fetchone(self) -> tuple[Any, ...] | None:
         return self.__wrapped.fetchone()
 
+    @override
     def fetchall(self) -> Sequence[tuple[Any, ...]]:
         return self.__wrapped.fetchall()
 
+    @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__wrapped.fetchmany(size)
 
+    @override
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__wrapped.callproc(sql, parameters)
         return self
 
+    @override
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__wrapped.execute(sql, parameters)
         return self
 
+    @override
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__wrapped.executemany(sql, parameters)
         return self
 
+    @override
     def executescript(self, sql: str) -> Self:
         self.__wrapped.executescript(sql)
         return self
 
+    @override
     def fetchone_dict(self) -> dict[str, Any] | None:
         return self.__wrapped.fetchone_dict()
 
+    @override
     def fetchall_dict(self) -> list[dict[str, Any]]:
         return self.__wrapped.fetchall_dict()
 
+    @override
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, Any]]:
         return self.__wrapped.fetchmany_dict(size)
 
+    @override
     def fetchone_class(self, klass: type[_T]) -> _T | None:
         return self.__wrapped.fetchone_class(klass)
 
+    @override
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
         return self.__wrapped.fetchall_class(klass)
 
+    @override
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
+    @override
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         return self.__wrapped.fetchone_class_lambda(ctor)
 
+    @override
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         return self.__wrapped.fetchall_class_lambda(ctor)
 
+    @override
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class_lambda(ctor, size)
 
     @property
+    @override
     def arraysize(self) -> int:
         return self.__wrapped.arraysize
 
     @arraysize.setter
+    @override
     def arraysize(self, size: int) -> None:
         self.__wrapped.arraysize = size
 
     @property
+    @override
     def rowcount(self) -> int:
         return self.__wrapped.rowcount
 
     @property
+    @override
     def description(self) -> Descriptor:
         return self.__wrapped.description
 
     @property
+    @override
     def column_names(self) -> ColumnNames:
         return self.__wrapped.column_names
 
     @property
+    @override
     def lastrowid(self) -> int | None:
         return self.__wrapped.lastrowid
 
     @property
+    @override
     def asserted_lastrowid(self) -> int:
         return self.__wrapped.asserted_lastrowid
 
     @property
+    @override
     def raw_connection(self) -> object:
         return self.__wrapped.raw_connection
 
     @property
+    @override
     def raw_cursor(self) -> object:
         return self.__wrapped.raw_cursor

@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, override, Self, Sequence, TypeVar
 from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, SimpleConnection, NullStatus, RAW_DATA, TypeCode
@@ -117,22 +117,29 @@ class _MySQLConnectionWrapper(SimpleConnection):
         self.__conn: MySQLConnection = conn
         self.__curr: MySQLCursor = conn.cursor()
 
+    @override
     def commit(self) -> None:
         self.__conn.commit()
 
+    @override
     def rollback(self) -> None:
         self.__conn.rollback()
 
+    @override
     def close(self) -> None:
         self.__curr.close()
         self.__conn.close()
 
+    @override
     def fetchone(self) -> tuple[Any, ...] | None:
         return self.__curr.fetchone()
 
+    @override
     def fetchall(self) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchall()
 
+    @override
+    @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchmany(size)
 
@@ -140,27 +147,33 @@ class _MySQLConnectionWrapper(SimpleConnection):
         self.__curr.callproc(sql, parameters)
         return self
 
+    @override
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters)
         return self
 
+    @override
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__curr.executemany(sql, parameters)
         return self
 
+    @override
     def executescript(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters, multi = True)
         return self
 
     @property
+    @override
     def arraysize(self) -> int:
         return self.__curr.arraysize
 
     @arraysize.setter
+    @override
     def arraysize(self, size: int) -> None:
         self.__curr.arraysize = size
 
     @property
+    @override
     def rowcount(self) -> int:
         return self.__curr.rowcount
 
@@ -174,18 +187,22 @@ class _MySQLConnectionWrapper(SimpleConnection):
         )
 
     @property
+    @override
     def description(self) -> Descriptor:
         if self.__curr.description is None: return Descriptor([])
         return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
 
     @property
+    @override
     def lastrowid(self) -> int | None:
         return self.__curr.lastrowid
 
     @property
+    @override
     def raw_connection(self) -> MySQLConnection:
         return self.__conn
 
     @property
+    @override
     def raw_cursor(self) -> MySQLCursor:
         return self.__curr

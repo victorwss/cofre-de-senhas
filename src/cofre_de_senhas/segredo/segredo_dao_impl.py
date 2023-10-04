@@ -1,3 +1,4 @@
+from typing import override
 from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.dao import \
     SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, \
@@ -10,25 +11,30 @@ class SegredoDAOImpl(SegredoDAO):
 
     # CRUD básico
 
+    @override
     def buscar_por_pk(self, pk: SegredoPK) -> DadosSegredo | None:
         sql: str = "SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo = ?"
         Raiz.instance().execute(sql, [pk.pk_segredo])
         return Raiz.instance().fetchone_class(DadosSegredo)
 
+    @override
     def listar(self) -> list[DadosSegredo]:
         sql: str = "SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo ORDER BY pk_segredo"
         Raiz.instance().execute(sql)
         return Raiz.instance().fetchall_class(DadosSegredo)
 
+    @override
     def criar(self, dados: DadosSegredoSemPK) -> SegredoPK:
         sql: str = "INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [dados.nome, dados.descricao, dados.fk_tipo_segredo])
         return SegredoPK(Raiz.instance().asserted_lastrowid)
 
+    @override
     def salvar_com_pk(self, dados: DadosSegredo) -> None:
         sql: str = "UPDATE segredo SET pk_segredo = ?, nome = ?, descricao = ?, fk_tipo_segredo = ? WHERE pk_segredo = ?"
         Raiz.instance().execute(sql, [dados.pk_segredo, dados.nome, dados.descricao, dados.fk_tipo_segredo, dados.pk_segredo])
 
+    @override
     def deletar_por_pk(self, pk: SegredoPK) -> None:
         # self.limpar_segredo(pk) # Desnecessário, pois deleta nas outras tabelas graças ao ON DELETE CASCADE.
         sql: str = "DELETE FROM segredo WHERE pk_segredo = ?"
@@ -36,6 +42,7 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Métodos auxiliares.
 
+    @override
     def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
         sql: str = "" \
             + "SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo " \
@@ -52,6 +59,7 @@ class SegredoDAOImpl(SegredoDAO):
         return Raiz.instance().fetchall_class(DadosSegredo)
 
     # TESTAR
+    @override
     def limpar_segredo(self, pk: SegredoPK) -> None:
         sql1: str = "DELETE FROM campo_segredo WHERE pfk_segredo = ?"
         sql2: str = "DELETE FROM permissao WHERE pfk_segredo = ?"
@@ -60,6 +68,7 @@ class SegredoDAOImpl(SegredoDAO):
         Raiz.instance().execute(sql2, [pk.pk_segredo])
         Raiz.instance().execute(sql3, [pk.pk_segredo])
 
+    @override
     def listar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
         wildcards: str = ", ".join(["?" for pk in pks])
         sql: str = f"SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN ({wildcards}) ORDER BY pk_segredo"
@@ -79,16 +88,19 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Categoria de segredo
 
+    @override
     def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> None:
         sql: str = "INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (?, ?)"
         Raiz.instance().execute(sql, [c.pk_segredo, c.pk_categoria])
 
     # Campos
 
+    @override
     def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
         sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [campo.pfk_segredo, campo.pk_nome, campo.valor])
 
+    @override
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
         sql: str = "SELECT pfk_segredo, pk_nome, valor FROM campo_segredo WHERE pfk_segredo = ? ORDER BY pk_nome"
         Raiz.instance().execute(sql, [pk.pk_segredo])
@@ -96,10 +108,12 @@ class SegredoDAOImpl(SegredoDAO):
 
     # Permissões
 
+    @override
     def criar_permissao(self, permissao: PermissaoDeSegredo) -> None:
         sql: str = "INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [permissao.pfk_usuario, permissao.pfk_segredo, permissao.fk_tipo_permissao])
 
+    @override
     def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
         sql: str = "" \
             + "SELECT p.pfk_usuario, p.pfk_segredo, p.fk_tipo_permissao " \

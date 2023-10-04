@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, override, Self, Sequence, TypeVar
 from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
@@ -45,49 +45,62 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
         self.__curr: Cursor = conn.cursor()
         self.execute("PRAGMA foreign_keys = ON;")
 
+    @override
     def commit(self) -> None:
         self.__conn.commit()
 
+    @override
     def rollback(self) -> None:
         self.__conn.rollback()
 
+    @override
     def close(self) -> None:
         self.__curr.close()
         self.__conn.close()
 
+    @override
     def fetchone(self) -> tuple[Any, ...] | None:
         return cast(tuple[Any, ...], self.__curr.fetchone())
 
+    @override
     def fetchall(self) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchall()
 
+    @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchmany(size)
 
+    @override
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         raise NotImplementedError("Sorry. The callproc method was not implemented yet.")
 
+    @override
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.execute(sql, parameters)
         return self
 
+    @override
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
         self.__curr.executemany(sql, parameters)
         return self
 
+    @override
     def executescript(self, sql: str) -> Self:
         self.__curr.executescript(sql)
         return self
 
     @property
+    @override
     def arraysize(self) -> int:
         return self.__curr.arraysize
 
     @arraysize.setter
+    @override
     def arraysize(self, size: int) -> None:
         self.__curr.arraysize = size
 
     @property
+    @override
     def rowcount(self) -> int:
         return self.__curr.rowcount
 
@@ -95,18 +108,22 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
         return ColumnDescriptor.create(name = k[0])
 
     @property
+    @override
     def description(self) -> Descriptor:
         if self.__curr.description is None: return Descriptor([])
         return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
 
     @property
+    @override
     def lastrowid(self) -> int | None:
         return self.__curr.lastrowid
 
     @property
+    @override
     def raw_connection(self) -> Connection:
         return self.__conn
 
     @property
+    @override
     def raw_cursor(self) -> Cursor:
         return self.__curr

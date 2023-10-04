@@ -7,7 +7,7 @@ import collections
 from abc import ABC, abstractmethod
 from typing import \
     Any, Callable, cast, Dict, ForwardRef, FrozenSet, Generic, get_type_hints, Iterable, List, Literal, \
-    Optional, Protocol, runtime_checkable, Self, Set, Tuple, Type, TypedDict, TypeVar
+    Optional, override, Protocol, runtime_checkable, Self, Set, Tuple, Type, TypedDict, TypeVar
 
 GlobalNS_T = dict[str, Any]
 _U = TypeVar("_U")
@@ -81,6 +81,7 @@ else:
 class _FieldChain:
     fields: list[str | int]
 
+    @override
     def __str__(self) -> str:
         x: str = ""
         for k in self.fields:
@@ -96,6 +97,7 @@ class _ErrorSet(ABC):
     def as_list(self) -> list[str]:
         return self.list_all(_FieldChain([]))
 
+    @override
     def __str__(self) -> str:
         return ",".join(self.as_list)
 
@@ -107,6 +109,7 @@ class _ErrorSet(ABC):
 class _ErrorSetLeaf(_ErrorSet):
     error: str
 
+    @override
     def list_all(self, fields: _FieldChain) -> list[str]:
         return [f"{fields}: {self.error}"]
 
@@ -114,6 +117,7 @@ class _ErrorSetLeaf(_ErrorSet):
 class _ErrorSetDict(_ErrorSet, Generic[_SI]):
     errors: dict[_SI, _ErrorSet]
 
+    @override
     def list_all(self, fields: _FieldChain) -> list[str]:
         return _flatten([self.errors[k].list_all(fields.append(k)) for k in self.errors])
 
@@ -121,6 +125,7 @@ class _ErrorSetDict(_ErrorSet, Generic[_SI]):
 class _ErrorSetEmpty(_ErrorSet):
     pass
 
+    @override
     def list_all(self, fields: _FieldChain) -> list[str]:
         return []
 
@@ -134,12 +139,14 @@ class TypeValidationError(TypeError):
         self.class_: type[Any] = target.__class__
         self.errors: _ErrorSet = errors
 
+    @override
     def __repr__(self: Self) -> str:
         cls: type[Any] = self.class_
         cls_name: str = f"{cls.__module__}.{cls.__name__}" if cls.__module__ != "__main__" else cls.__name__
         attrs: str = ", ".join([repr(v) for v in self.args])
         return f"{cls_name}({attrs}, errors={repr(self.errors)})"
 
+    @override
     def __str__(self: Self) -> str:
         cls: type[Any] = self.class_
         cls_name: str = f"{cls.__module__}.{cls.__name__}" if cls.__module__ != "__main__" else cls.__name__

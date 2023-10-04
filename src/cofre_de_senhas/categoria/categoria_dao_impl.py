@@ -1,3 +1,4 @@
+from typing import override
 from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
 
@@ -8,11 +9,13 @@ class CategoriaDAOImpl(CategoriaDAO):
 
     # CRUD básico
 
+    @override
     def buscar_por_pk(self, pk: CategoriaPK) -> DadosCategoria | None:
         sql: str = "SELECT pk_categoria, nome FROM categoria WHERE pk_categoria = ?"
         Raiz.instance().execute(sql, [pk.pk_categoria])
         return Raiz.instance().fetchone_class(DadosCategoria)
 
+    @override
     def listar_por_pks(self, pks: list[CategoriaPK]) -> list[DadosCategoria]:
         wildcards: str = ", ".join(["?" for pk in pks])
         ns: list[int] = [pk.pk_categoria for pk in pks]
@@ -20,11 +23,13 @@ class CategoriaDAOImpl(CategoriaDAO):
         Raiz.instance().execute(sql, ns)
         return Raiz.instance().fetchall_class(DadosCategoria)
 
+    @override
     def listar(self) -> list[DadosCategoria]:
         sql: str = "SELECT c.pk_categoria, c.nome FROM categoria c ORDER BY pk_categoria"
         Raiz.instance().execute(sql)
         return Raiz.instance().fetchall_class(DadosCategoria)
 
+    @override
     def listar_por_nomes(self, nomes: list[NomeCategoria]) -> list[DadosCategoria]:
         wildcards: str = ", ".join(["?" for nome in nomes])
         ns: list[str] = [nome.valor for nome in nomes]
@@ -32,21 +37,25 @@ class CategoriaDAOImpl(CategoriaDAO):
         Raiz.instance().execute(sql, ns)
         return Raiz.instance().fetchall_class(DadosCategoria)
 
+    @override
     def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
         sql: str = "INSERT INTO categoria (nome) VALUES (?)"
         Raiz.instance().execute(sql, [dados.nome])
         return CategoriaPK(Raiz.instance().asserted_lastrowid)
 
+    @override
     def salvar_com_pk(self, dados: DadosCategoria) -> None:
         sql: str = "UPDATE categoria SET pk_categoria = ?, nome = ? WHERE pk_categoria = ?"
         Raiz.instance().execute(sql, [dados.pk_categoria, dados.nome, dados.pk_categoria])
 
+    @override
     def deletar_por_pk(self, pk: CategoriaPK) -> None:
         sql: str = "DELETE FROM categoria WHERE pk_categoria = ?"
         Raiz.instance().execute(sql, [pk.pk_categoria])
 
     # Métodos auxiliares
 
+    @override
     def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
         Raiz.instance().execute("SELECT pk_categoria, nome FROM categoria WHERE nome = ?", [nome.valor])
         return Raiz.instance().fetchone_class(DadosCategoria)
@@ -56,6 +65,7 @@ class CategoriaDAOImpl(CategoriaDAO):
 
     # Métodos com joins em outras tabelas
 
+    @override
     def listar_por_segredo(self, pk: SegredoPK) -> list[DadosCategoria]:
         sql: str = "" \
             + "SELECT c.pk_categoria, c.nome " \

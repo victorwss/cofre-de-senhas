@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS fruit (
     pk_fruit        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
 ) STRICT;
+
 INSERT INTO fruit (name) VALUES ('orange');
 INSERT INTO fruit (name) VALUES ('strawberry');
 INSERT INTO fruit (name) VALUES ('lemon');
@@ -27,6 +28,18 @@ CREATE TABLE IF NOT EXISTS juice_2 (
     pk_fruit INTEGER NOT NULL PRIMARY KEY,
     FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) STRICT;
+
+CREATE TABLE IF NOT EXISTS animal (
+    pk_animal       INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name            TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 2 AND LENGTH(name) <= 50),
+    gender          TEXT    NOT NULL             CHECK (gender = 'M' OR gender = 'F' OR gender = '-'),
+    species         TEXT    NOt NULL             CHECK (LENGTH(species) >= 4 AND LENGTH(species) <= 50),
+    age             INTEGER NOT NULL
+) STRICT;
+
+INSERT INTO animal (name, gender, species, age) VALUES ('mimosa'   , 'F', 'bos taurus'      , 4);
+INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis familiaris', 6);
+INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
 """;
 
 @db.decorator
@@ -44,6 +57,18 @@ def test_fetchall() -> None:
         c.execute("SELECT pk_fruit, name FROM fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
+
+@db.decorator
+def test_fetchmany() -> None:
+    conn: TransactedConnection = db.new_connection()
+    with conn as c:
+        c.execute("SELECT pk_fruit, name FROM fruit")
+        p1: Sequence[tuple[Any, ...]] = c.fetchmany(2)
+        assert p1 == [(1, "orange"), (2, "strawberry")]
+        p2: Sequence[tuple[Any, ...]] = c.fetchmany(2)
+        assert p2 == [(3, "lemon")]
+        p3: Sequence[tuple[Any, ...]] = c.fetchmany(2)
+        assert p3 == []
 
 @db.decorator
 def test_fetchall_class() -> None:
@@ -65,6 +90,49 @@ def test_fetchall_class() -> None:
         assert all[1].name == "strawberry"
         assert all[2].pk_fruit == 3
         assert all[2].name == "lemon"
+
+@db.decorator
+def test_execute_insert() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        c.execute("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", ["bozo", "M", "bos taurus", 65])
+        c.commit()
+
+    with conn as c:
+        c.execute("SELECT pk_animal, name, gender, species, age FROM animal")
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert all == [ \
+            (1, "mimosa", "F", "bos taurus", 4), \
+            (2, "rex", "M", "canis familiaris", 6), \
+            (3, "sylvester", "M", "felis catus", 8), \
+            (4, "bozo", "M", "bos taurus", 65) \
+        ]
+
+@db.decorator
+def test_executemany() -> None:
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        data: list[list[Any]] = [ \
+            ["bozo", "M", "bos taurus", 65], \
+            ["1000xeks", "F", "bos taurus", 42], \
+            ["sheik edu", "M", "musa acuminata", 36], \
+        ]
+        c.executemany("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", data)
+        c.commit()
+
+    with conn as c:
+        c.execute("SELECT pk_animal, name, gender, species, age FROM animal")
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert all == [ \
+            (1, "mimosa", "F", "bos taurus", 4), \
+            (2, "rex", "M", "canis familiaris", 6), \
+            (3, "sylvester", "M", "felis catus", 8), \
+            (4, "bozo", "M", "bos taurus", 65), \
+            (5, "1000xeks", "F", "bos taurus", 42), \
+            (6, "sheik edu", "M", "musa acuminata", 36) \
+        ]
 
 @db.decorator
 def test_commit() -> None:
