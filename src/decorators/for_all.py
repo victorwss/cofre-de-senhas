@@ -10,16 +10,25 @@ _D = TypeVar("_D", bound = Callable[[_F], _F])
 
 # From https://stackoverflow.com/a/6307868/540552 and https://stackoverflow.com/a/9087626/540552
 # Unknown author (used to be named delnan, but now is simply presented as user395760)
-def for_all_methods(decorator: _D, *, even_dunders: bool = False) -> Callable[[type[_T]], type[_T]]:
+def for_all_methods(decorator: _D, *, even_dunders: bool = False, even_privates: bool = True) -> Callable[[type[_T]], type[_T]]:
 
     def decorate(cls: type[_T]) -> type[_T]:
         for name, fn in inspect.getmembers(cls, inspect.isroutine):
-            if even_dunders or (not name.startswith("__") and not name.endswith("__")):
+            meth_name = fn.__name__
+            dunder_method : bool = meth_name.startswith("__") and meth_name.endswith("__")
+            private_method: bool = meth_name != name
+            print(f"{name}, {meth_name}, {'dunder' if dunder_method else 'private' if private_method else 'public'}")
+            if (even_dunders and dunder_method) or (even_privates and private_method) or (not dunder_method and not private_method):
                 setattr(cls, name, decorator(fn))
 
         for name, fn in inspect.getmembers(cls, lambda x: isinstance(x, property)):
-            if even_dunders or (not name.startswith("__") and not name.endswith("__")):
-                prop: property = cast(property, fn)
+            prop: property = cast(property, fn)
+            prop_name: str | None = prop.fget.__name__ if prop.fget else prop.fset.__name__ if prop.fset else  prop.fdel.__name__ if prop.fdel else None
+            assert prop_name is not None
+            dunder_prop : bool = prop_name.startswith("__") and prop_name.endswith("__")
+            private_prop: bool = prop_name != name
+            print(f"{name}, {prop_name}, {'dunder' if dunder_prop else 'private' if private_prop else 'public'}")
+            if (even_dunders and dunder_prop) or (even_privates and private_prop) or (not dunder_prop and not private_prop):
                 setter: Callable[[Callable[[Any, Any], None]], Callable[[Any, Any], None]] = cast(Callable[[Callable[[Any, Any], None]], Callable[[Any, Any], None]], decorator)
                 deleter: Callable[[Callable[[Any], None]], Callable[[Any], None]] = cast(Callable[[Callable[[Any], None]], Callable[[Any], None]], decorator)
                 p: property = prop

@@ -299,6 +299,13 @@ def test_was_wrapped_sequence_with_dunders() -> None:
         def __test6__(self) -> str:
             return "x"
 
+        def test7__(self) -> str:
+            return "x"
+
+        @property
+        def test8__(self) -> str:
+            return "x"
+
     global which
     which = []
 
@@ -330,5 +337,222 @@ def test_was_wrapped_sequence_with_dunders() -> None:
     x: str = f"{f}"
     assert which == ["__new__", "__init__", "__getattribute__", "test1", "__getattribute__", "test2", "__getattribute__", "test3", "test4", "test5", "__getattribute__", "test5", "__setattr__", "test5", "__delattr__", "__str__", "__format__"]
 
-    f.__test6__()
+    assert "x" == f.__test6__()
     assert which == ["__new__", "__init__", "__getattribute__", "test1", "__getattribute__", "test2", "__getattribute__", "test3", "test4", "test5", "__getattribute__", "test5", "__setattr__", "test5", "__delattr__", "__str__", "__format__", "__getattribute__", "__test6__"]
+
+    assert "x" == f.test7__()
+    assert which == ["__new__", "__init__", "__getattribute__", "test1", "__getattribute__", "test2", "__getattribute__", "test3", "test4", "test5", "__getattribute__", "test5", "__setattr__", "test5", "__delattr__", "__str__", "__format__", "__getattribute__", "__test6__", "__getattribute__", "test7__"]
+
+    assert "x" == f.test8__
+    assert which == ["__new__", "__init__", "__getattribute__", "test1", "__getattribute__", "test2", "__getattribute__", "test3", "test4", "test5", "__getattribute__", "test5", "__setattr__", "test5", "__delattr__", "__str__", "__format__", "__getattribute__", "__test6__", "__getattribute__", "test7__", "test8__", "__getattribute__"]
+
+def test_was_wrapped_sequence_without_dunders() -> None:
+
+    @for_all_methods(the_wrapper, even_dunders = False)
+    class Foo:
+
+        def __init__(self) -> None:
+            pass
+
+        def test1(self) -> str:
+            return "x"
+
+        def test2(self, x: int) -> int:
+            return 2 * x
+
+        def test3(self) -> None:
+            raise ValueError("fooooo")
+
+        @staticmethod
+        def test4() -> str:
+            return "y"
+
+        @property
+        def test5(self) -> str:
+            return "z"
+
+        @test5.setter
+        def test5(self, v: str) -> None:
+            pass
+
+        @test5.deleter
+        def test5(self) -> None:
+            pass
+
+        def __str__(self) -> str:
+            return "x"
+
+        def __test6__(self) -> str:
+            return "x"
+
+        def test7__(self) -> str:
+            return "x"
+
+        @property
+        def test8__(self) -> str:
+            return "x"
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == []
+
+    assert f.test1() == "x"
+    assert which == ["test1"]
+
+    assert f.test2(5) == 10
+    assert which == ["test1", "test2"]
+
+    with raises(ValueError, match = "^fooooo$"):
+        f.test3()
+    assert which == ["test1", "test2", "test3"]
+
+    assert Foo.test4() == "y"
+    assert which == ["test1", "test2", "test3", "test4"]
+
+    assert f.test5 == "z"
+    assert which == ["test1", "test2", "test3", "test4", "test5"]
+
+    f.test5 = "u"
+    assert which == ["test1", "test2", "test3", "test4", "test5", "test5"]
+
+    del f.test5
+    assert which == ["test1", "test2", "test3", "test4", "test5", "test5", "test5"]
+
+    x: str = f"{f}"
+    assert which == ["test1", "test2", "test3", "test4", "test5", "test5", "test5"]
+
+    assert "x" == f.__test6__()
+    assert which == ["test1", "test2", "test3", "test4", "test5", "test5", "test5"]
+
+    assert "x" == f.test7__()
+    assert which == ["test1", "test2", "test3", "test4", "test5", "test5", "test5", "test7__"]
+
+    assert "x" == f.test8__
+    assert which == ["test1", "test2", "test3", "test4", "test5", "test5", "test5", "test7__", "test8__"]
+
+def test_dunders_privates() -> None:
+
+    @for_all_methods(the_wrapper, even_dunders = True, even_privates = True)
+    class Foo:
+
+        def __test1(self) -> str:
+            return "a"
+
+        def __test2__(self) -> str:
+            return "b"
+
+        @property
+        def __test3(self) -> str:
+            return "c"
+
+        @property
+        def __test4__(self) -> str:
+            return "d"
+
+        def work(self) -> str:
+            return self.__test1() + self.__test2__() + self.__test3 + self.__test4__
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == ["__new__", "__init__"]
+
+    assert "abcd" == f.work()
+    print(which)
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "__test1", "__test2__", "__test3", "__test4__", "work"]
+
+def test_dunders_no_privates() -> None:
+
+    @for_all_methods(the_wrapper, even_dunders = True, even_privates = False)
+    class Foo:
+
+        def __test1(self) -> str:
+            return "a"
+
+        def __test2__(self) -> str:
+            return "b"
+
+        @property
+        def __test3(self) -> str:
+            return "c"
+
+        @property
+        def __test4__(self) -> str:
+            return "d"
+
+        def work(self) -> str:
+            return self.__test1() + self.__test2__() + self.__test3 + self.__test4__
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == ["__new__", "__init__"]
+
+    assert "abcd" == f.work()
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "__test2__", "__test4__", "work"]
+
+def test_no_dunders_privates() -> None:
+
+    @for_all_methods(the_wrapper, even_dunders = False, even_privates = True)
+    class Foo:
+
+        def __test1(self) -> str:
+            return "a"
+
+        def __test2__(self) -> str:
+            return "b"
+
+        @property
+        def __test3(self) -> str:
+            return "c"
+
+        @property
+        def __test4__(self) -> str:
+            return "d"
+
+        def work(self) -> str:
+            return self.__test1() + self.__test2__() + self.__test3 + self.__test4__
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == []
+
+    assert "abcd" == f.work()
+    assert which == ["__test1", "__test3", "work"]
+
+def test_no_dunders_no_privates() -> None:
+
+    @for_all_methods(the_wrapper, even_dunders = False, even_privates = False)
+    class Foo:
+
+        def __test1(self) -> str:
+            return "a"
+
+        def __test2__(self) -> str:
+            return "b"
+
+        @property
+        def __test3(self) -> str:
+            return "c"
+
+        @property
+        def __test4__(self) -> str:
+            return "d"
+
+        def work(self) -> str:
+            return self.__test1() + self.__test2__() + self.__test3 + self.__test4__
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == []
+
+    assert "abcd" == f.work()
+    assert which == ["work"]

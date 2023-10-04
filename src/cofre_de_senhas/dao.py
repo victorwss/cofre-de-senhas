@@ -152,11 +152,11 @@ class SegredoDAO(ABC):
         pass
 
     @abstractmethod
-    def salvar_com_pk(self, dados: DadosSegredo) -> None:
+    def salvar_com_pk(self, dados: DadosSegredo) -> bool:
         pass
 
     @abstractmethod
-    def deletar_por_pk(self, pk: SegredoPK) -> None:
+    def deletar_por_pk(self, pk: SegredoPK) -> bool:
         pass
 
     # Métodos auxiliares.
@@ -172,13 +172,13 @@ class SegredoDAO(ABC):
     # Categoria de segredo
 
     @abstractmethod
-    def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> None:
+    def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> bool:
         pass
 
     # Campos
 
     @abstractmethod
-    def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
+    def criar_campo_segredo(self, campo: CampoDeSegredo) -> bool:
         pass
 
     @abstractmethod
@@ -188,7 +188,7 @@ class SegredoDAO(ABC):
     # Permissões
 
     @abstractmethod
-    def criar_permissao(self, permissao: PermissaoDeSegredo) -> None:
+    def criar_permissao(self, permissao: PermissaoDeSegredo) -> bool:
         pass
 
     @abstractmethod
@@ -228,11 +228,11 @@ class CategoriaDAO:
         pass
 
     @abstractmethod
-    def salvar_com_pk(self, dados: DadosCategoria) -> None:
+    def salvar_com_pk(self, dados: DadosCategoria) -> bool:
         pass
 
     @abstractmethod
-    def deletar_por_pk(self, pk_categoria: CategoriaPK) -> None:
+    def deletar_por_pk(self, pk_categoria: CategoriaPK) -> bool:
         pass
 
     # Métodos auxiliares
@@ -286,11 +286,11 @@ class UsuarioDAO:
         pass
 
     @abstractmethod
-    def salvar_com_pk(self, dados: DadosUsuario) -> None:
+    def salvar_com_pk(self, dados: DadosUsuario) -> bool:
         pass
 
     @abstractmethod
-    def deletar_por_pk(self, pk_usuario: UsuarioPK) -> None:
+    def deletar_por_pk(self, pk_usuario: UsuarioPK) -> bool:
         pass
 
     # Métodos auxiliares

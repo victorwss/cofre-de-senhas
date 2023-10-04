@@ -137,7 +137,7 @@ def test_excluir_usuario_por_pk() -> None:
     pk: UsuarioPK = UsuarioPK(voldemort.pk_usuario)
     lido1: DadosUsuario | None = dao.buscar_por_pk(pk)
     assert lido1 == voldemort
-    dao.deletar_por_pk(pk)
+    assert dao.deletar_por_pk(pk)
     lido2: DadosUsuario | None = dao.buscar_por_pk(pk)
     assert lido2 is None
 
@@ -154,7 +154,7 @@ def test_excluir_usuario_por_pk() -> None:
 def test_excluir_usuario_por_pk_nao_existe() -> None:
     dao: UsuarioDAOImpl = UsuarioDAOImpl()
     pk: UsuarioPK = UsuarioPK(lixo2)
-    dao.deletar_por_pk(pk)
+    assert not dao.deletar_por_pk(pk)
     lido: DadosUsuario | None = dao.buscar_por_pk(pk)
     assert lido is None
 
@@ -162,7 +162,7 @@ def test_excluir_usuario_por_pk_nao_existe() -> None:
 def test_salvar_usuario_com_pk() -> None:
     dao: UsuarioDAOImpl = UsuarioDAOImpl()
     dados: DadosUsuario = DadosUsuario(voldemort.pk_usuario, "Snape", 1, sectumsempra)
-    dao.salvar_com_pk(dados) # Substitui Voldemort por Snape.
+    assert dao.salvar_com_pk(dados) # Substitui Voldemort por Snape.
 
     pk: UsuarioPK = UsuarioPK(voldemort.pk_usuario)
     lido: DadosUsuario | None = dao.buscar_por_pk(pk)
@@ -172,7 +172,7 @@ def test_salvar_usuario_com_pk() -> None:
 def test_salvar_usuario_com_pk_nao_existe() -> None:
     dao: UsuarioDAOImpl = UsuarioDAOImpl()
     dados: DadosUsuario = DadosUsuario(lixo3, "Snape", 1, sectumsempra)
-    dao.salvar_com_pk(dados) # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
+    assert not dao.salvar_com_pk(dados) # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
 
     pk: UsuarioPK = UsuarioPK(lixo3)
     lido: DadosUsuario | None = dao.buscar_por_pk(pk)

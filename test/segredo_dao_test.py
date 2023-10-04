@@ -126,7 +126,7 @@ def test_excluir_segredo_por_pk() -> None:
     pk: SegredoPK = SegredoPK(dbz.pk_segredo)
     lido1: DadosSegredo | None = dao.buscar_por_pk(pk)
     assert lido1 == dbz
-    dao.deletar_por_pk(pk)
+    assert dao.deletar_por_pk(pk)
     lido2: DadosSegredo | None = dao.buscar_por_pk(pk)
     assert lido2 is None
 
@@ -134,7 +134,7 @@ def test_excluir_segredo_por_pk() -> None:
 def test_excluir_segredo_por_pk_nao_existe() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
     pk: SegredoPK = SegredoPK(lixo2)
-    dao.deletar_por_pk(pk)
+    assert not dao.deletar_por_pk(pk)
     lido: DadosSegredo | None = dao.buscar_por_pk(pk)
     assert lido is None
 
@@ -142,7 +142,7 @@ def test_excluir_segredo_por_pk_nao_existe() -> None:
 def test_salvar_segredo_com_pk() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
     dados: DadosSegredo = DadosSegredo(dbz.pk_segredo, "Pokémon", "Segredos da Equipe Rocket", 1)
-    dao.salvar_com_pk(dados) # Transforma Dragon Ball Z em Pokémon.
+    assert dao.salvar_com_pk(dados) # Transforma Dragon Ball Z em Pokémon.
 
     pk: SegredoPK = SegredoPK(dbz.pk_segredo)
     lido: DadosSegredo | None = dao.buscar_por_pk(pk)
@@ -152,7 +152,7 @@ def test_salvar_segredo_com_pk() -> None:
 def test_salvar_segredo_com_pk_nao_existe() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
     dados: DadosSegredo = DadosSegredo(lixo3, "Pokémon", "Segredos da Equipe Rocket", 1)
-    dao.salvar_com_pk(dados) # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
+    assert not dao.salvar_com_pk(dados) # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
 
     pk: SegredoPK = SegredoPK(lixo3)
     lido: DadosSegredo | None = dao.buscar_por_pk(pk)
@@ -180,7 +180,7 @@ def test_ler_campos_segredo_nao_existe() -> None:
 def test_criar_campo_segredo() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
     campo: CampoDeSegredo = CampoDeSegredo(star_wars.pk_segredo, "Pequeno, mas poderoso", "Yoda")
-    dao.criar_campo_segredo(campo)
+    assert dao.criar_campo_segredo(campo)
     pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
     campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
     assert campos == [
@@ -222,7 +222,7 @@ def test_criar_campo_segredo_duplicado() -> None:
 def test_criar_permissao() -> None:
     dao: SegredoDAOImpl = SegredoDAOImpl()
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
-    dao.criar_permissao(perm1)
+    assert dao.criar_permissao(perm1)
 
     lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
     assert lido == todos_segredos
@@ -317,7 +317,7 @@ def test_buscar_permissao_segredo_nao_existe() -> None:
 def test_criar_categoria_segredo() -> None:
     dao1: SegredoDAOImpl = SegredoDAOImpl()
     cs: CategoriaDeSegredo = CategoriaDeSegredo(star_wars.pk_segredo, qa.pk_categoria)
-    dao1.criar_categoria_segredo(cs)
+    assert dao1.criar_categoria_segredo(cs)
 
     dao2: CategoriaDAOImpl = CategoriaDAOImpl()
     spk: SegredoPK = SegredoPK(star_wars.pk_segredo)

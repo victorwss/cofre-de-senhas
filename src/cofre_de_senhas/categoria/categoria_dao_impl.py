@@ -44,14 +44,16 @@ class CategoriaDAOImpl(CategoriaDAO):
         return CategoriaPK(Raiz.instance().asserted_lastrowid)
 
     @override
-    def salvar_com_pk(self, dados: DadosCategoria) -> None:
+    def salvar_com_pk(self, dados: DadosCategoria) -> bool:
         sql: str = "UPDATE categoria SET pk_categoria = ?, nome = ? WHERE pk_categoria = ?"
         Raiz.instance().execute(sql, [dados.pk_categoria, dados.nome, dados.pk_categoria])
+        return Raiz.instance().rowcount > 0
 
     @override
-    def deletar_por_pk(self, pk: CategoriaPK) -> None:
+    def deletar_por_pk(self, pk: CategoriaPK) -> bool:
         sql: str = "DELETE FROM categoria WHERE pk_categoria = ?"
         Raiz.instance().execute(sql, [pk.pk_categoria])
+        return Raiz.instance().rowcount > 0
 
     # Métodos auxiliares
 

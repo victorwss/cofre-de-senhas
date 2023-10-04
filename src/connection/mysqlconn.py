@@ -110,7 +110,7 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 
     return cast(_TRANS, inner)
 
-@for_all_methods(_wrap_exceptions)
+@for_all_methods(_wrap_exceptions, even_privates = False)
 class _MySQLConnectionWrapper(SimpleConnection):
 
     def __init__(self, conn: MySQLConnection) -> None:

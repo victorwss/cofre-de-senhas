@@ -42,14 +42,16 @@ class UsuarioDAOImpl(UsuarioDAO):
         return UsuarioPK(Raiz.instance().asserted_lastrowid)
 
     @override
-    def salvar_com_pk(self, dados: DadosUsuario) -> None:
+    def salvar_com_pk(self, dados: DadosUsuario) -> bool:
         sql: str = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
         Raiz.instance().execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
+        return Raiz.instance().rowcount > 0
 
     @override
-    def deletar_por_pk(self, pk: UsuarioPK) -> None:
+    def deletar_por_pk(self, pk: UsuarioPK) -> bool:
         sql: str = "DELETE FROM usuario WHERE pk_usuario = ?"
         Raiz.instance().execute(sql, [pk.pk_usuario])
+        return Raiz.instance().rowcount > 0
 
     # Métodos auxiliares
 

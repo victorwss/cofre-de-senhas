@@ -30,15 +30,17 @@ class SegredoDAOImpl(SegredoDAO):
         return SegredoPK(Raiz.instance().asserted_lastrowid)
 
     @override
-    def salvar_com_pk(self, dados: DadosSegredo) -> None:
+    def salvar_com_pk(self, dados: DadosSegredo) -> bool:
         sql: str = "UPDATE segredo SET pk_segredo = ?, nome = ?, descricao = ?, fk_tipo_segredo = ? WHERE pk_segredo = ?"
         Raiz.instance().execute(sql, [dados.pk_segredo, dados.nome, dados.descricao, dados.fk_tipo_segredo, dados.pk_segredo])
+        return Raiz.instance().rowcount > 0
 
     @override
-    def deletar_por_pk(self, pk: SegredoPK) -> None:
+    def deletar_por_pk(self, pk: SegredoPK) -> bool:
         # self.limpar_segredo(pk) # Desnecessário, pois deleta nas outras tabelas graças ao ON DELETE CASCADE.
         sql: str = "DELETE FROM segredo WHERE pk_segredo = ?"
         Raiz.instance().execute(sql, [pk.pk_segredo])
+        return Raiz.instance().rowcount > 0
 
     # Métodos auxiliares.
 
@@ -89,16 +91,18 @@ class SegredoDAOImpl(SegredoDAO):
     # Categoria de segredo
 
     @override
-    def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> None:
+    def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> bool:
         sql: str = "INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (?, ?)"
         Raiz.instance().execute(sql, [c.pk_segredo, c.pk_categoria])
+        return Raiz.instance().rowcount > 0
 
     # Campos
 
     @override
-    def criar_campo_segredo(self, campo: CampoDeSegredo) -> None:
+    def criar_campo_segredo(self, campo: CampoDeSegredo) -> bool:
         sql: str = "INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [campo.pfk_segredo, campo.pk_nome, campo.valor])
+        return Raiz.instance().rowcount > 0
 
     @override
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
@@ -109,9 +113,10 @@ class SegredoDAOImpl(SegredoDAO):
     # Permissões
 
     @override
-    def criar_permissao(self, permissao: PermissaoDeSegredo) -> None:
+    def criar_permissao(self, permissao: PermissaoDeSegredo) -> bool:
         sql: str = "INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (?, ?, ?)"
         Raiz.instance().execute(sql, [permissao.pfk_usuario, permissao.pfk_segredo, permissao.fk_tipo_permissao])
+        return Raiz.instance().rowcount > 0
 
     @override
     def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:

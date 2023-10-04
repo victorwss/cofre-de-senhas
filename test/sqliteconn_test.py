@@ -83,13 +83,7 @@ def test_fetchall_class() -> None:
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
         all: Sequence[Fruit] = c.fetchall_class(Fruit)
-        assert len(all) == 3
-        assert all[0].pk_fruit == 1
-        assert all[0].name == "orange"
-        assert all[1].pk_fruit == 2
-        assert all[1].name == "strawberry"
-        assert all[2].pk_fruit == 3
-        assert all[2].name == "lemon"
+        assert all == [Fruit(1, "orange"), Fruit(2, "strawberry"), Fruit(3, "lemon")]
 
 @db.decorator
 def test_execute_insert() -> None:
@@ -97,6 +91,7 @@ def test_execute_insert() -> None:
 
     with conn as c:
         c.execute("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", ["bozo", "M", "bos taurus", 65])
+        assert c.rowcount == 1
         c.commit()
 
     with conn as c:
@@ -120,6 +115,7 @@ def test_executemany() -> None:
             ["sheik edu", "M", "musa acuminata", 36], \
         ]
         c.executemany("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", data)
+        assert c.rowcount == 3
         c.commit()
 
     with conn as c:
@@ -132,6 +128,33 @@ def test_executemany() -> None:
             (4, "bozo", "M", "bos taurus", 65), \
             (5, "1000xeks", "F", "bos taurus", 42), \
             (6, "sheik edu", "M", "musa acuminata", 36) \
+        ]
+
+script: str = """
+CREATE TABLE IF NOT EXISTS tree (
+    pk_tree INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name    TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
+) STRICT;
+
+INSERT INTO tree (name) VALUES ('acacia');
+INSERT INTO tree (name) VALUES ('ginkgo');
+"""
+
+@db.decorator
+def test_executescipt() -> None:
+
+    conn: TransactedConnection = db.new_connection()
+
+    with conn as c:
+        c.executescript(script)
+        c.commit()
+
+    with conn as c:
+        c.execute("SELECT pk_tree, name FROM tree")
+        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert all == [ \
+            (1, "acacia"), \
+            (2, "ginkgo") \
         ]
 
 @db.decorator
@@ -202,7 +225,6 @@ def test_check_constraint_1() -> None:
     with raises(IntegrityViolationException):
         with conn as c:
             c.execute("INSERT INTO fruit (name) VALUES ('abc')")
-            c.commit()
 
 @db.decorator
 def test_check_constraint_2() -> None:
@@ -211,7 +233,6 @@ def test_check_constraint_2() -> None:
     with raises(IntegrityViolationException):
         with conn as c:
             c.execute("INSERT INTO fruit (name) VALUES ('123456789012345678901234567890123456789012345678901')")
-            c.commit()
 
 @db.decorator
 def test_foreign_key_constraint_on_orphan_insert() -> None:
@@ -220,7 +241,6 @@ def test_foreign_key_constraint_on_orphan_insert() -> None:
     with raises(IntegrityViolationException):
         with conn as c:
             c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (666)")
-            c.commit()
 
 @db.decorator
 def test_foreign_key_constraint_on_update_cascade() -> None:
@@ -267,7 +287,6 @@ def test_foreign_key_constraint_on_update_restrict() -> None:
     with raises(IntegrityViolationException):
         with conn as c:
             c.execute("UPDATE fruit SET pk_fruit = 777 WHERE pk_fruit = 1")
-            c.commit()
 
     with conn as c:
         c.execute("SELECT pk_fruit FROM juice_2")
@@ -285,7 +304,6 @@ def test_foreign_key_constraint_on_delete_restrict() -> None:
     with raises(IntegrityViolationException):
         with conn as c:
             c.execute("DELETE FROM fruit WHERE pk_fruit = 1")
-            c.commit()
 
     with conn as c:
         c.execute("SELECT a.pk_fruit FROM juice_2 a INNER JOIN fruit b ON a.pk_fruit = b.pk_fruit WHERE a.pk_fruit = 1")
