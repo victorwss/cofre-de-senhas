@@ -9,10 +9,7 @@ from dataclasses import dataclass
 from validator import dataclass_validate
 from ..db_test_util import DbTestConfig
 
-def register(file: str) -> None:
-    Single.register("Raiz", lambda: ConnectionData.create(file_name = file).connect())
-
-db: DbTestConfig = DbTestConfig("test/fruits-ok.db", "test/fruits.db", register)
+db: DbTestConfig = DbTestConfig("test/fruits-ok.db", "test/fruits.db")
 
 create = """
 CREATE TABLE IF NOT EXISTS fruit (

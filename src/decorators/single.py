@@ -29,7 +29,7 @@ class Single:
     @staticmethod
     def instance(what: str) -> Any:
         if what in Single.__maked(): return Single.__maked()[what]
-        if what not in Single.__main: raise Exception("Not registered")
+        if what not in Single.__main: raise Exception(f"Not registered {what}")
 
         x: Any = Single.__main[what]()
         Single.__maked()[what] = x

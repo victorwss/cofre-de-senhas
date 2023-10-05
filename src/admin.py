@@ -1,7 +1,7 @@
 from cofre_de_senhas.service import LoginComSenha
 from cofre_de_senhas.service_impl import ServicoBDImpl, ServicoUsuarioImpl
-from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
+from cofre_de_senhas.bd.raiz import cofre
 
 def criar_bd() -> None:
     login1: str = input("Informe o login do usuário administrador : ")
@@ -18,6 +18,6 @@ def criar_bd() -> None:
 
     ServicoBDImpl().criar_bd(LoginComSenha(login1, senha1))
 
-Raiz.register_sqlite("cofre.db")
-CofreDeSenhasDAOImpl()
+cofre.register_sqlite()
+CofreDeSenhasDAOImpl(cofre)
 criar_bd()

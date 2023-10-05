@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
 from decorators.single import Single
+from cofre_de_senhas.bd.raiz import Raiz, cofre
+from connection.trans import TransactedConnection
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -117,7 +119,19 @@ class BuscaPermissaoPorLogin:
     pfk_segredo: int
     login: str
 
-class CofreDeSenhasDAO(ABC):
+class DAO(ABC):
+
+    def __init__(self, raiz: Raiz) -> None:
+        self.__raiz = raiz
+
+    @property
+    def _raiz(self) -> TransactedConnection:
+        return self.__raiz.instance
+
+class CofreDeSenhasDAO(DAO):
+
+    def __init__(self, raiz: Raiz) -> None:
+        super().__init__(raiz)
 
     @abstractmethod
     def criar_bd(self) -> None:
@@ -131,7 +145,10 @@ class CofreDeSenhasDAO(ABC):
     def instance() -> "CofreDeSenhasDAO":
         return cast(CofreDeSenhasDAO, Single.instance("CofreDeSenhasDAO"))
 
-class SegredoDAO(ABC):
+class SegredoDAO(DAO):
+
+    def __init__(self, raiz: Raiz) -> None:
+        super().__init__(raiz)
 
     # CRUD básico.
 
@@ -203,7 +220,10 @@ class SegredoDAO(ABC):
     def instance() -> "SegredoDAO":
         return cast(SegredoDAO, Single.instance("SegredoDAO"))
 
-class CategoriaDAO:
+class CategoriaDAO(DAO):
+
+    def __init__(self, raiz: Raiz) -> None:
+        super().__init__(raiz)
 
     # CRUD básico
 
@@ -259,9 +279,10 @@ class CategoriaDAO:
     def instance() -> "CategoriaDAO":
         return cast(CategoriaDAO, Single.instance("CategoriaDAO"))
 
-class UsuarioDAO:
+class UsuarioDAO(DAO):
 
-    __instance: "UsuarioDAO | None" = None
+    def __init__(self, raiz: Raiz) -> None:
+        super().__init__(raiz)
 
     # CRUD básico
 

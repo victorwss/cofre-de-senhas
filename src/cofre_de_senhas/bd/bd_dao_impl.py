@@ -4,7 +4,8 @@ from cofre_de_senhas.bd.raiz import Raiz
 
 class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
-    def __init__(self) -> None:
+    def __init__(self, raiz: Raiz) -> None:
+        super().__init__(raiz)
         CofreDeSenhasDAO.register(self)
 
     def sql_criar_bd(self) -> str:
@@ -13,4 +14,4 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
     @override
     def criar_bd(self) -> None:
-        Raiz.instance().executescript(self.sql_criar_bd())
+        self._raiz.executescript(self.sql_criar_bd())

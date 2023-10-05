@@ -10,26 +10,26 @@ _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
 class Raiz:
 
-    def __init__(self) -> None:
-        raise Exception()
+    def __init__(self, name: str, file: str) -> None:
+        self.__name: str = name
+        self.__file: str = file
 
-    @staticmethod
-    def register_sqlite(file: str) -> None:
-        Raiz.register(ConnectionData.create(file_name = file).connect())
+    def register_sqlite(self) -> None:
+        self.register(ConnectionData.create(file_name = self.__file).connect())
 
-    @staticmethod
-    def register(instance: TransactedConnection) -> None:
-        Single.register("Raiz", lambda: instance)
+    def register(self, instance: TransactedConnection) -> None:
+        Single.register(self.__name, lambda: instance)
 
-    @staticmethod
-    def instance() -> TransactedConnection:
-        return cast(TransactedConnection, Single.instance("Raiz"))
+    @property
+    def instance(self) -> TransactedConnection:
+        return cast(TransactedConnection, Single.instance(self.__name))
 
-    @staticmethod
-    def transact(operation: _TRANS) -> _TRANS:
+    def transact(self, operation: _TRANS) -> _TRANS:
         @wraps(operation)
         def transacted_operation(*args: Any, **kwargs: Any) -> Any:
-            return Raiz.instance().transact(operation)(*args, **kwargs)
+            return self.instance.transact(operation)(*args, **kwargs)
         return cast(_TRANS, transacted_operation)
 
-log = Logger.for_print_fn()
+log: Logger = Logger.for_print_fn()
+
+cofre: Raiz = Raiz("Raiz", "cofre.bd")

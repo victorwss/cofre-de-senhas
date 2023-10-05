@@ -4,7 +4,8 @@ from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuari
 
 class UsuarioDAOImpl(UsuarioDAO):
 
-    def __init__(self) -> None:
+    def __init__(self, raiz: Raiz) -> None:
+        super().__init__(raiz)
         UsuarioDAO.register(self)
 
     # CRUD básico
@@ -12,58 +13,58 @@ class UsuarioDAOImpl(UsuarioDAO):
     @override
     def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = ?"
-        Raiz.instance().execute(sql, [pk.pk_usuario])
-        return Raiz.instance().fetchone_class(DadosUsuario)
+        self._raiz.execute(sql, [pk.pk_usuario])
+        return self._raiz.fetchone_class(DadosUsuario)
 
     @override
     def listar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
         wildcards: str = ", ".join(["?" for pk in pks])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario IN ({wildcards}) ORDER BY pk_usuario"
-        Raiz.instance().execute(sql, [pk.pk_usuario for pk in pks])
-        return Raiz.instance().fetchall_class(DadosUsuario)
+        self._raiz.execute(sql, [pk.pk_usuario for pk in pks])
+        return self._raiz.fetchall_class(DadosUsuario)
 
     @override
     def listar(self) -> list[DadosUsuario]:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario ORDER BY pk_usuario"
-        Raiz.instance().execute(sql)
-        return Raiz.instance().fetchall_class(DadosUsuario)
+        self._raiz.execute(sql)
+        return self._raiz.fetchall_class(DadosUsuario)
 
     @override
     def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
         wildcards: str = ", ".join(["?" for login in logins])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login IN ({wildcards}) ORDER BY pk_usuario"
-        Raiz.instance().execute(sql, [login.valor for login in logins])
-        return Raiz.instance().fetchall_class(DadosUsuario)
+        self._raiz.execute(sql, [login.valor for login in logins])
+        return self._raiz.fetchall_class(DadosUsuario)
 
     @override
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
         sql: str = "INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)"
-        Raiz.instance().execute(sql, [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
-        return UsuarioPK(Raiz.instance().asserted_lastrowid)
+        self._raiz.execute(sql, [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
+        return UsuarioPK(self._raiz.asserted_lastrowid)
 
     @override
     def salvar_com_pk(self, dados: DadosUsuario) -> bool:
         sql: str = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
-        Raiz.instance().execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
-        return Raiz.instance().rowcount > 0
+        self._raiz.execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
+        return self._raiz.rowcount > 0
 
     @override
     def deletar_por_pk(self, pk: UsuarioPK) -> bool:
         sql: str = "DELETE FROM usuario WHERE pk_usuario = ?"
-        Raiz.instance().execute(sql, [pk.pk_usuario])
-        return Raiz.instance().rowcount > 0
+        self._raiz.execute(sql, [pk.pk_usuario])
+        return self._raiz.rowcount > 0
 
     # Métodos auxiliares
 
     @override
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = ?"
-        Raiz.instance().execute(sql, [login.valor])
-        return Raiz.instance().fetchone_class(DadosUsuario)
+        self._raiz.execute(sql, [login.valor])
+        return self._raiz.fetchone_class(DadosUsuario)
 
     #def deletar_por_login(self, login: str) -> None:
     #    sql: str = "DELETE usuario WHERE login = ?"
-    #    Raiz.instance().execute(sql, [login])
+    #    self._raiz.execute(sql, [login])
 
     # Métodos com joins em outras tabelas
 
@@ -76,5 +77,5 @@ class UsuarioDAOImpl(UsuarioDAO):
             + "INNER JOIN permissao p ON u.pk_usuario = p.pfk_usuario " \
             + "WHERE p.pfk_segredo = ?" \
             + "ORDER BY u.pk_usuario"
-        Raiz.instance().execute(sql, [pk.pk_segredo])
-        return Raiz.instance().fetchall_class(DadosUsuarioComPermissao)
+        self._raiz.execute(sql, [pk.pk_segredo])
+        return self._raiz.fetchall_class(DadosUsuarioComPermissao)

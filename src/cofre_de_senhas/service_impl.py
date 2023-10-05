@@ -3,7 +3,7 @@ from typing import override
 from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace
 from cofre_de_senhas.service import *
-from cofre_de_senhas.bd.raiz import Raiz, log
+from cofre_de_senhas.bd.raiz import Raiz, cofre, log
 from cofre_de_senhas.dao import CofreDeSenhasDAO
 from cofre_de_senhas.categoria.categoria import Categoria
 from cofre_de_senhas.usuario.usuario import Usuario, SenhaAlterada
@@ -19,7 +19,7 @@ class ServicoLogin:
         return self.__gl.usuario_logado
 
 @for_all_methods(log.trace)
-@for_all_methods(Raiz.transact)
+@for_all_methods(cofre.transact)
 class ServicoBDImpl(ServicoBD):
 
     @override
@@ -29,7 +29,7 @@ class ServicoBDImpl(ServicoBD):
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
-@for_all_methods(Raiz.transact)
+@for_all_methods(cofre.transact)
 class ServicoUsuarioImpl(ServicoUsuario):
 
     def __init__(self, gl: GerenciadorLogin) -> None:
@@ -83,7 +83,7 @@ class ServicoUsuarioImpl(ServicoUsuario):
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
-@for_all_methods(Raiz.transact)
+@for_all_methods(cofre.transact)
 class ServicoSegredoImpl(ServicoSegredo):
 
     def __init__(self, gl: GerenciadorLogin) -> None:
@@ -125,7 +125,7 @@ class ServicoSegredoImpl(ServicoSegredo):
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 @for_all_methods(log.trace)
-@for_all_methods(Raiz.transact)
+@for_all_methods(cofre.transact)
 class ServicoCategoriaImpl(ServicoCategoria):
 
     def __init__(self, gl: GerenciadorLogin) -> None:
