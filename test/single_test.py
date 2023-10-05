@@ -1,3 +1,4 @@
+from pytest import raises
 from decorators.single import Single
 import threading
 
@@ -75,3 +76,11 @@ def test_single_two_values() -> None:
     assert [a1, a2] == [2, 2]
     assert [z1, z3, z4, z6] in [[1, 1, 2, 2], [2, 2, 1, 1]]
     assert [z2, z5] in [[1, 2], [2, 1]]
+
+def test_dont_instantiate() -> None:
+    with raises(Exception):
+        Single()
+
+def test_bad_single() -> None:
+    with raises(Exception):
+        Single.instance("mambo-jambo")
