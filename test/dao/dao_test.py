@@ -1,6 +1,4 @@
-from .db_test_util import DbTestConfig
-
-db: DbTestConfig = DbTestConfig("test/cofre-teste.db", "test/cofre-teste-run.db")
+from .fixtures import *
 
 @db.decorator
 def test_instanciar() -> None:

@@ -1,13 +1,18 @@
 import sqlite3
 from typing import Any, Callable, Sequence
+from connection.sqlite3conn import ConnectionData
 from connection.conn import IntegrityViolationException, TransactionNotActiveException
 from connection.trans import TransactedConnection
+from decorators.single import Single
 from pytest import raises
 from dataclasses import dataclass
 from validator import dataclass_validate
-from .db_test_util import DbTestConfig
+from ..db_test_util import DbTestConfig
 
-db: DbTestConfig = DbTestConfig("test/fruits-ok.db", "test/fruits.db")
+def register(file: str) -> None:
+    Single.register("Raiz", lambda: ConnectionData.create(file_name = file).connect())
+
+db: DbTestConfig = DbTestConfig("test/fruits-ok.db", "test/fruits.db", register)
 
 create = """
 CREATE TABLE IF NOT EXISTS fruit (

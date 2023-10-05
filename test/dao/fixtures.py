@@ -1,10 +1,11 @@
-from .db_test_util import DbTestConfig
+from ..db_test_util import DbTestConfig
+from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.dao import \
     UsuarioPK, DadosUsuario, DadosUsuarioSemPK, LoginUsuario, \
     CategoriaPK, DadosCategoria, DadosCategoriaSemPK, NomeCategoria, \
     SegredoPK, DadosSegredo, DadosSegredoSemPK
 
-db: DbTestConfig = DbTestConfig("test/cofre-teste.db", "test/cofre-teste-run.db")
+db: DbTestConfig = DbTestConfig("test/cofre-teste.db", "test/cofre-teste-run.db", Raiz.register_sqlite)
 
 alohomora       : str = "SbhhiMEETzPiquOxabc178eb35f26c8f59981b01a11cbec48b16f6a8e2c204f4a9a1b633c9199e0b3b2a64b13e49226306bb451c57c851f3c6e872885115404cb74279db7f5372ea"
 avada_kedavra   : str = "ZisNWkdEImMneIcX8ac8780d30e67df14c1afbaf256e1ee45afd1d3cf2654d154b2e9c63541a40d4132a9beed69c4a47b3f2e5612c2751cdfa3abfaed9797fe54777e2f3dfe6aaa0"

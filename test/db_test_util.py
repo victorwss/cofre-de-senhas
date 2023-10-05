@@ -7,9 +7,10 @@ from cofre_de_senhas.bd.raiz import Raiz
 
 class DbTestConfig:
 
-    def __init__(self, pristine: str, sandbox: str) -> None:
+    def __init__(self, pristine: str, sandbox: str, register: Callable[[str], None]) -> None:
         self.__pristine: str = pristine
         self.__sandbox: str = sandbox
+        self.__register: Callable[[str], None] = register
 
     @property
     def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
@@ -46,7 +47,7 @@ class DbTestConfig:
                 def innermost() -> None:
                     call_this()
 
-                Raiz.register_sqlite(self.__sandbox)
+                self.__register(self.__sandbox)
                 innermost()
 
             return inner

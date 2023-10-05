@@ -248,13 +248,6 @@ def _validate_generic_type(expected_type: GenericType, value: Any, globalns: Glo
     return _validate_typing_mappings.get(expected_type.__origin__, _validate_simple_type)(expected_type, value, globalns)
 
 
-#def _validate_simple_type(expected_type: Any, value: Any, globalns: GlobalNS_T) -> ErrorSet:
-#    if isinstance(expected_type, type):
-#        return _validate_direct_type(expected_type, value, globalns)
-#    assert False
-#    return make_errors(f"Incompatible type {type(expected_type).__name__} with value {value} (typed as {type(value).__name__})")
-
-
 class _TypeMapper:
     def __init__(self) -> None:
         self.__mappeds: dict[Any, Callable[..., ErrorSet]] = {}
