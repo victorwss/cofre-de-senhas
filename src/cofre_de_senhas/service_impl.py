@@ -1,5 +1,5 @@
 import hashlib
-from typing import Generic, override, Self, TypeGuard
+from typing import override
 from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace
 from cofre_de_senhas.service import *
