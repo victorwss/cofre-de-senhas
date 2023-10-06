@@ -1,13 +1,13 @@
 from typing import override
-from cofre_de_senhas.bd.raiz import Raiz
+from connection.trans import TransactedConnection
 from cofre_de_senhas.dao import \
     SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, \
     LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 
 class SegredoDAOImpl(SegredoDAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, con: TransactedConnection) -> None:
+        super().__init__(con)
         SegredoDAO.register(self)
 
     # CRUD básico

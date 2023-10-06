@@ -1,11 +1,11 @@
 from typing import override
+from connection.trans import TransactedConnection
 from cofre_de_senhas.dao import CofreDeSenhasDAO
-from cofre_de_senhas.bd.raiz import Raiz
 
 class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, conn: TransactedConnection) -> None:
+        super().__init__(conn)
         CofreDeSenhasDAO.register(self)
 
     def sql_criar_bd(self) -> str:

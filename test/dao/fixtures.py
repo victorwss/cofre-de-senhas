@@ -1,5 +1,4 @@
 from ..db_test_util import DbTestConfig
-from cofre_de_senhas.bd.raiz import Raiz
 from cofre_de_senhas.dao import \
     UsuarioPK, DadosUsuario, DadosUsuarioSemPK, LoginUsuario, \
     CategoriaPK, DadosCategoria, DadosCategoriaSemPK, NomeCategoria, \

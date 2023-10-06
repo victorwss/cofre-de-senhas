@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Callable, cast, Self, TypeVar
+from typing import Any, Callable, cast, TypeVar
 
 __all__ = ["for_all_methods"]
 
@@ -12,12 +12,11 @@ _D = TypeVar("_D", bound = Callable[[_F], _F])
 # Unknown author (used to be named delnan, but now is simply presented as user395760)
 def for_all_methods(decorator: _D, *, even_dunders: bool = False, even_privates: bool = True) -> Callable[[type[_T]], type[_T]]:
 
-    def decorate(cls: type[_T]) -> type[_T]:
+    def inner_decorate(cls: type[_T]) -> type[_T]:
         for name, fn in inspect.getmembers(cls, inspect.isroutine):
             meth_name = fn.__name__
             dunder_method : bool = meth_name.startswith("__") and meth_name.endswith("__")
             private_method: bool = meth_name != name
-            print(f"{name}, {meth_name}, {'dunder' if dunder_method else 'private' if private_method else 'public'}")
             if (even_dunders and dunder_method) or (even_privates and private_method) or (not dunder_method and not private_method):
                 setattr(cls, name, decorator(fn))
 
@@ -27,7 +26,6 @@ def for_all_methods(decorator: _D, *, even_dunders: bool = False, even_privates:
             assert prop_name is not None
             dunder_prop : bool = prop_name.startswith("__") and prop_name.endswith("__")
             private_prop: bool = prop_name != name
-            print(f"{name}, {prop_name}, {'dunder' if dunder_prop else 'private' if private_prop else 'public'}")
             if (even_dunders and dunder_prop) or (even_privates and private_prop) or (not dunder_prop and not private_prop):
                 setter: Callable[[Callable[[Any, Any], None]], Callable[[Any, Any], None]] = cast(Callable[[Callable[[Any, Any], None]], Callable[[Any, Any], None]], decorator)
                 deleter: Callable[[Callable[[Any], None]], Callable[[Any], None]] = cast(Callable[[Callable[[Any], None]], Callable[[Any], None]], decorator)
@@ -38,4 +36,4 @@ def for_all_methods(decorator: _D, *, even_dunders: bool = False, even_privates:
                 setattr(cls, name, p)
 
         return cls
-    return decorate
+    return inner_decorate

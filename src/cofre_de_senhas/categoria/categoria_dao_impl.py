@@ -1,11 +1,11 @@
 from typing import override
-from cofre_de_senhas.bd.raiz import Raiz
+from connection.trans import TransactedConnection
 from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
 
 class CategoriaDAOImpl(CategoriaDAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, con: TransactedConnection) -> None:
+        super().__init__(con)
         CategoriaDAO.register(self)
 
     # CRUD básico

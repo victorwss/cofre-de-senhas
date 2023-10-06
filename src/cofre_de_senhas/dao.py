@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
 from decorators.single import Single
-from cofre_de_senhas.bd.raiz import Raiz, cofre
 from connection.trans import TransactedConnection
 
 @dataclass_validate
@@ -121,17 +120,17 @@ class BuscaPermissaoPorLogin:
 
 class DAO(ABC):
 
-    def __init__(self, raiz: Raiz) -> None:
-        self.__raiz = raiz
+    def __init__(self, con: TransactedConnection) -> None:
+        self.__con: TransactedConnection = con
 
     @property
     def _raiz(self) -> TransactedConnection:
-        return self.__raiz.instance
+        return self.__con
 
 class CofreDeSenhasDAO(DAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, con: TransactedConnection) -> None:
+        super().__init__(con)
 
     @abstractmethod
     def criar_bd(self) -> None:
@@ -147,8 +146,8 @@ class CofreDeSenhasDAO(DAO):
 
 class SegredoDAO(DAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, con: TransactedConnection) -> None:
+        super().__init__(con)
 
     # CRUD básico.
 
@@ -222,8 +221,8 @@ class SegredoDAO(DAO):
 
 class CategoriaDAO(DAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, con: TransactedConnection) -> None:
+        super().__init__(con)
 
     # CRUD básico
 
@@ -281,8 +280,8 @@ class CategoriaDAO(DAO):
 
 class UsuarioDAO(DAO):
 
-    def __init__(self, raiz: Raiz) -> None:
-        super().__init__(raiz)
+    def __init__(self, con: TransactedConnection) -> None:
+        super().__init__(con)
 
     # CRUD básico
 

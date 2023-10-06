@@ -46,7 +46,7 @@ INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis
 
 @db.decorator
 def test_fetchone() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
         one: tuple[Any, ...] | None = c.fetchone()
@@ -54,7 +54,7 @@ def test_fetchone() -> None:
 
 @db.decorator
 def test_fetchall() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
@@ -62,7 +62,7 @@ def test_fetchall() -> None:
 
 @db.decorator
 def test_fetchmany() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
         p1: Sequence[tuple[Any, ...]] = c.fetchmany(2)
@@ -81,7 +81,7 @@ def test_fetchall_class() -> None:
         pk_fruit: int
         name: str
 
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit")
         all: Sequence[Fruit] = c.fetchall_class(Fruit)
@@ -89,7 +89,7 @@ def test_fetchall_class() -> None:
 
 @db.decorator
 def test_execute_insert() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", ["bozo", "M", "bos taurus", 65])
@@ -108,7 +108,7 @@ def test_execute_insert() -> None:
 
 @db.decorator
 def test_executemany() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         data: list[list[Any]] = [ \
@@ -145,7 +145,7 @@ INSERT INTO tree (name) VALUES ('ginkgo');
 @db.decorator
 def test_executescipt() -> None:
 
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.executescript(script)
@@ -161,7 +161,7 @@ def test_executescipt() -> None:
 
 @db.decorator
 def test_commit() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO fruit (name) VALUES ('grape')")
@@ -174,7 +174,7 @@ def test_commit() -> None:
 
 @db.decorator
 def test_rollback() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO fruit (name) VALUES ('grape')")
@@ -187,7 +187,7 @@ def test_rollback() -> None:
 
 @db.decorator
 def test_transact_1() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     def x() -> None:
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
@@ -201,7 +201,7 @@ def test_transact_1() -> None:
 
 @db.decorator
 def test_transact_2() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     @conn.transact
     def x() -> None:
@@ -216,13 +216,13 @@ def test_transact_2() -> None:
 
 @db.decorator
 def test_no_transaction() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
     with raises(TransactionNotActiveException):
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
 
 @db.decorator
 def test_check_constraint_1() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with raises(IntegrityViolationException):
         with conn as c:
@@ -230,7 +230,7 @@ def test_check_constraint_1() -> None:
 
 @db.decorator
 def test_check_constraint_2() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with raises(IntegrityViolationException):
         with conn as c:
@@ -238,7 +238,7 @@ def test_check_constraint_2() -> None:
 
 @db.decorator
 def test_foreign_key_constraint_on_orphan_insert() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with raises(IntegrityViolationException):
         with conn as c:
@@ -246,7 +246,7 @@ def test_foreign_key_constraint_on_orphan_insert() -> None:
 
 @db.decorator
 def test_foreign_key_constraint_on_update_cascade() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (1)")
@@ -263,7 +263,7 @@ def test_foreign_key_constraint_on_update_cascade() -> None:
 
 @db.decorator
 def test_foreign_key_constraint_on_delete_cascade() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (1)")
@@ -280,7 +280,7 @@ def test_foreign_key_constraint_on_delete_cascade() -> None:
 
 @db.decorator
 def test_foreign_key_constraint_on_update_restrict() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO juice_2 (pk_fruit) VALUES (1)")
@@ -297,7 +297,7 @@ def test_foreign_key_constraint_on_update_restrict() -> None:
 
 @db.decorator
 def test_foreign_key_constraint_on_delete_restrict() -> None:
-    conn: TransactedConnection = db.new_connection()
+    conn: TransactedConnection = db.conn
 
     with conn as c:
         c.execute("INSERT INTO juice_2 (pk_fruit) VALUES (1)")

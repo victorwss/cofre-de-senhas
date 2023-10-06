@@ -11,7 +11,7 @@ class DbTestConfig:
     def __init__(self, pristine: str, sandbox: str) -> None:
         self.__pristine: str = pristine
         self.__sandbox: str = sandbox
-        self.__raiz: Raiz = Raiz(pristine, sandbox)
+        self.__raiz: TransactedConnection = Raiz(sandbox).instance
 
     @property
     def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
@@ -44,12 +44,9 @@ class DbTestConfig:
             @wraps(call_this)
             @self.decorator
             def inner() -> None:
-                @self.__raiz.transact
+                @self.conn.transact
                 def innermost() -> None:
                     call_this()
-
-                self.__raiz.register_sqlite()
-                #self.new_registered_connection()
                 innermost()
 
             return inner
@@ -59,8 +56,5 @@ class DbTestConfig:
         return ConnectionData.create(file_name = self.__sandbox).connect()
 
     @property
-    def raiz(self) -> Raiz:
+    def conn(self) -> TransactedConnection:
         return self.__raiz
-
-    #def new_registered_connection(self) -> None:
-    #    Single.register(self.__pristine, self.new_connection)

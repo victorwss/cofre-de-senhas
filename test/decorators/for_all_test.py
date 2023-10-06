@@ -556,3 +556,56 @@ def test_no_dunders_no_privates() -> None:
 
     assert "abcd" == f.work()
     assert which == ["work"]
+
+def test_for_subclasses() -> None:
+
+    class Super:
+
+        def test1(self) -> None:
+            pass
+
+        def __test2__(self) -> None:
+            pass
+
+        def __test3(self) -> None:
+            pass
+
+        def test4(self) -> None:
+            self.__test3()
+
+        @property
+        def test5(self) -> str:
+            return "x"
+
+        @property
+        def __test6(self) -> str:
+            return "x"
+
+        @property
+        def test7(self) -> str:
+            return self.__test6
+
+    @for_all_methods(the_wrapper, even_dunders = True, even_privates = True)
+    class Sub(Super):
+        pass
+
+    global which
+    which = []
+
+    f: Sub = Sub()
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__"]
+
+    f.test1()
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "test1"]
+
+    f.__test2__()
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "test1", "__test2__"]
+
+    f.test4()
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "test1", "__test2__", "__test3", "test4"]
+
+    assert "x" == f.test5
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "test1", "__test2__", "__test3", "test4", "test5"]
+
+    assert "x" == f.test7
+    assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "test1", "__test2__", "__test3", "test4", "test5", "__test6", "test7"]
