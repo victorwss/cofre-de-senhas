@@ -14,4 +14,4 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
     @override
     def criar_bd(self) -> None:
-        self._raiz.executescript(self.sql_criar_bd())
+        self._connection.executescript(self.sql_criar_bd())

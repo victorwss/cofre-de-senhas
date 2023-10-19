@@ -124,7 +124,7 @@ class DAO(ABC):
         self.__con: TransactedConnection = con
 
     @property
-    def _raiz(self) -> TransactedConnection:
+    def _connection(self) -> TransactedConnection:
         return self.__con
 
 class CofreDeSenhasDAO(DAO):

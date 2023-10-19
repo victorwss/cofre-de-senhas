@@ -13,58 +13,58 @@ class UsuarioDAOImpl(UsuarioDAO):
     @override
     def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = ?"
-        self._raiz.execute(sql, [pk.pk_usuario])
-        return self._raiz.fetchone_class(DadosUsuario)
+        self._connection.execute(sql, [pk.pk_usuario])
+        return self._connection.fetchone_class(DadosUsuario)
 
     @override
     def listar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
         wildcards: str = ", ".join(["?" for pk in pks])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario IN ({wildcards}) ORDER BY pk_usuario"
-        self._raiz.execute(sql, [pk.pk_usuario for pk in pks])
-        return self._raiz.fetchall_class(DadosUsuario)
+        self._connection.execute(sql, [pk.pk_usuario for pk in pks])
+        return self._connection.fetchall_class(DadosUsuario)
 
     @override
     def listar(self) -> list[DadosUsuario]:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario ORDER BY pk_usuario"
-        self._raiz.execute(sql)
-        return self._raiz.fetchall_class(DadosUsuario)
+        self._connection.execute(sql)
+        return self._connection.fetchall_class(DadosUsuario)
 
     @override
     def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
         wildcards: str = ", ".join(["?" for login in logins])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login IN ({wildcards}) ORDER BY pk_usuario"
-        self._raiz.execute(sql, [login.valor for login in logins])
-        return self._raiz.fetchall_class(DadosUsuario)
+        self._connection.execute(sql, [login.valor for login in logins])
+        return self._connection.fetchall_class(DadosUsuario)
 
     @override
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
         sql: str = "INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)"
-        self._raiz.execute(sql, [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
-        return UsuarioPK(self._raiz.asserted_lastrowid)
+        self._connection.execute(sql, [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
+        return UsuarioPK(self._connection.asserted_lastrowid)
 
     @override
     def salvar_com_pk(self, dados: DadosUsuario) -> bool:
         sql: str = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
-        self._raiz.execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
-        return self._raiz.rowcount > 0
+        self._connection.execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
+        return self._connection.rowcount > 0
 
     @override
     def deletar_por_pk(self, pk: UsuarioPK) -> bool:
         sql: str = "DELETE FROM usuario WHERE pk_usuario = ?"
-        self._raiz.execute(sql, [pk.pk_usuario])
-        return self._raiz.rowcount > 0
+        self._connection.execute(sql, [pk.pk_usuario])
+        return self._connection.rowcount > 0
 
     # Métodos auxiliares
 
     @override
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = ?"
-        self._raiz.execute(sql, [login.valor])
-        return self._raiz.fetchone_class(DadosUsuario)
+        self._connection.execute(sql, [login.valor])
+        return self._connection.fetchone_class(DadosUsuario)
 
     #def deletar_por_login(self, login: str) -> None:
     #    sql: str = "DELETE usuario WHERE login = ?"
-    #    self._raiz.execute(sql, [login])
+    #    self._connection.execute(sql, [login])
 
     # Métodos com joins em outras tabelas
 
@@ -77,5 +77,5 @@ class UsuarioDAOImpl(UsuarioDAO):
             + "INNER JOIN permissao p ON u.pk_usuario = p.pfk_usuario " \
             + "WHERE p.pfk_segredo = ?" \
             + "ORDER BY u.pk_usuario"
-        self._raiz.execute(sql, [pk.pk_segredo])
-        return self._raiz.fetchall_class(DadosUsuarioComPermissao)
+        self._connection.execute(sql, [pk.pk_segredo])
+        return self._connection.fetchall_class(DadosUsuarioComPermissao)
