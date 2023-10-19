@@ -2,7 +2,8 @@ from typing import override
 from cofre_de_senhas.service import LoginComSenha, GerenciadorLogin, UsuarioComChave, ChaveUsuario
 from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
-from cofre_de_senhas.bd.raiz import Raiz
+from connection.sqlite3conn import connect
+from connection.trans import TransactedConnection
 
 class _Nao(GerenciadorLogin): # pragma: no cover
 
@@ -35,8 +36,8 @@ def _criar_bd() -> None:
         print("As senhas não conferem")
         return
 
-    Servicos(_Nao(), cofre.instance).bd.criar_bd(LoginComSenha(login1, senha1))
+    Servicos(_Nao(), cofre).bd.criar_bd(LoginComSenha(login1, senha1))
 
-cofre: Raiz = Raiz("cofre.bd")
-CofreDeSenhasDAOImpl(cofre.instance)
+cofre: TransactedConnection = connect("cofre.db")
+CofreDeSenhasDAOImpl(cofre)
 _criar_bd()

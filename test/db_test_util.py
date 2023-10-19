@@ -1,17 +1,15 @@
 import sqlite3
 from functools import wraps
 from typing import Callable
-from connection.sqlite3conn import ConnectionData
+from connection.sqlite3conn import connect
 from connection.trans import TransactedConnection
-from cofre_de_senhas.bd.raiz import Raiz
-from decorators.single import Single
 
 class DbTestConfig:
 
     def __init__(self, pristine: str, sandbox: str) -> None:
         self.__pristine: str = pristine
         self.__sandbox: str = sandbox
-        self.__raiz: TransactedConnection = Raiz(sandbox).instance
+        self.__conn: TransactedConnection = connect(sandbox)
 
     @property
     def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
@@ -54,4 +52,4 @@ class DbTestConfig:
 
     @property
     def conn(self) -> TransactedConnection:
-        return self.__raiz
+        return self.__conn

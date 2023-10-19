@@ -24,6 +24,9 @@ class ConnectionData:
             return _Sqlite3ConnectionWrapper(db_connect(self.file_name))
         return TransactedConnection(make_connection)
 
+def connect(file: str) -> TransactedConnection:
+    return ConnectionData.create(file_name = file).connect()
+
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
 def _wrap_exceptions(operation: _TRANS) -> _TRANS:

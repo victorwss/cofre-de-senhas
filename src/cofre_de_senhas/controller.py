@@ -7,11 +7,12 @@ from cofre_de_senhas.service_impl import Servicos
 from validator import dataclass_validate
 from dataclasses import dataclass
 #from werkzeug.datastructures import MultiDict
-from cofre_de_senhas.bd.raiz import Raiz
+from connection.sqlite3conn import connect
 from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
 from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
 from cofre_de_senhas.segredo.segredo_dao_impl import SegredoDAOImpl
+from connection.trans import TransactedConnection
 
 class GerenciadorLoginImpl(GerenciadorLogin):
 
@@ -37,13 +38,13 @@ def servir() -> None:
     app.secret_key = ""
 
     gl: GerenciadorLogin = GerenciadorLoginImpl()
-    cofre: Raiz = Raiz("cofre.db")
+    cofre: TransactedConnection = connect("cofre.db")
 
-    CategoriaDAOImpl(cofre.instance)
-    CofreDeSenhasDAOImpl(cofre.instance)
-    SegredoDAOImpl(cofre.instance)
-    UsuarioDAOImpl(cofre.instance)
-    sx: Servicos = Servicos(gl, cofre.instance)
+    CategoriaDAOImpl(cofre)
+    CofreDeSenhasDAOImpl(cofre)
+    SegredoDAOImpl(cofre)
+    UsuarioDAOImpl(cofre)
+    sx: Servicos = Servicos(gl, cofre)
 
     app.secret_key = sx.segredo.buscar_por_chave_sem_logar(ChaveSegredo(-1)).campos["Chave da sessão"]
 

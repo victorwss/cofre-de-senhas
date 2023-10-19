@@ -3,7 +3,6 @@ from typing import Any, Callable, Sequence
 from connection.sqlite3conn import ConnectionData
 from connection.conn import IntegrityViolationException, TransactionNotActiveException
 from connection.trans import TransactedConnection
-from decorators.single import Single
 from pytest import raises
 from dataclasses import dataclass
 from validator import dataclass_validate

@@ -102,6 +102,16 @@ class ConnectionData:
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
 
+def connect( \
+        *, \
+        user: str, \
+        password: str, \
+        host: str, \
+        port: int = 3306, \
+        database: str, \
+) -> TransactedConnection:
+    return ConnectionData.create(user = user, password = password, host = host, port = port, database = database).connect()
+
 @dataclass_validate
 @dataclass(frozen = True)
 class _Flag:
