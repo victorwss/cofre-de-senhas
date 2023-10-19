@@ -2,7 +2,8 @@ from typing import Any, Callable, cast, Literal, override, Self, Sequence, TypeV
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
-import threading
+from safethreadlocal import SafeThreadLocal
+from threading import get_ident
 
 _T = TypeVar("_T")
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
@@ -11,21 +12,41 @@ class TransactedConnection(SimpleConnection):
 
     def __init__(self, activate: Callable[[], SimpleConnection]) -> None:
         self.__activate: Callable[[], SimpleConnection] = activate
-        self.__local: threading.local = threading.local()
-        self.__count: int = 0
+        self.__conn: SafeThreadLocal[SimpleConnection | None] = SafeThreadLocal(None)
+        self.__count: SafeThreadLocal[int] = SafeThreadLocal(0)
+
+    @property
+    def reenter_count(self) -> int:
+        return self.__count.value
+
+    @property
+    def is_active(self) -> bool:
+        return self.reenter_count > 0
+
+    @property
+    def __wrapped_or_none(self) -> SimpleConnection | None:
+        return self.__conn.value
+
+    @property
+    def __wrapped(self) -> SimpleConnection:
+        x: SimpleConnection | None = self.__wrapped_or_none
+        if x is None:
+            raise TransactionNotActiveException()
+        return x
 
     def __enter__(self) -> Self:
-        if self.__count == 0:
-            self.__local.con = self.__activate()
-        self.__count += 1
+        if self.__count.value == 0:
+            self.__conn.value = self.__activate()
+        self.__count.value += 1
         return self
 
     @override
     def close(self) -> None:
-        self.__count -= 1
-        if self.__count == 0:
-            self.__wrapped.close()
-            del self.__local.con
+        if self.__count.value > 0:
+            self.__count.value -= 1
+            if self.__count.value == 0:
+                self.__wrapped.close()
+                self.__conn.value = None
 
     def __exit__( \
             self, \
@@ -35,14 +56,6 @@ class TransactedConnection(SimpleConnection):
     ) -> Literal[False]:
         self.close()
         return False
-
-    @property
-    def reenter_count(self) -> int:
-        return self.__count
-
-    @property
-    def is_active(self) -> bool:
-        return self.__count > 0
 
     def transact(self, operation: _TRANS) -> _TRANS:
         @wraps(operation)
@@ -60,13 +73,6 @@ class TransactedConnection(SimpleConnection):
                     else:
                         self.rollback()
         return cast(_TRANS, transacted_operation)
-
-    @property
-    def __wrapped(self) -> SimpleConnection:
-        try:
-            return cast(SimpleConnection, self.__local.con)
-        except AttributeError as x:
-            raise TransactionNotActiveException()
 
     def force_close(self) -> None:
         self.__wrapped.close()

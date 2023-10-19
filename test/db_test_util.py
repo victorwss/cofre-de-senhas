@@ -52,9 +52,6 @@ class DbTestConfig:
             return inner
         return middle
 
-    def new_connection(self) -> TransactedConnection:
-        return ConnectionData.create(file_name = self.__sandbox).connect()
-
     @property
     def conn(self) -> TransactedConnection:
         return self.__raiz
