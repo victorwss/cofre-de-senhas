@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from cofre_de_senhas.erro import *
+from .erro import *
 from enum import Enum
 
 class NivelAcesso(Enum):

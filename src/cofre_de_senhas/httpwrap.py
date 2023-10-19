@@ -1,46 +1,10 @@
 from typing import Any, Callable, TypeVar
-from typing_extensions import Protocol, runtime_checkable
-from dataclasses import dataclass
-from validator import dataclass_validate
 from flask import jsonify, request
 from flask.wrappers import Response
 from functools import wraps
 from dacite import Config, from_dict
 from enum import Enum
-
-@runtime_checkable
-class StatusProtocol(Protocol):
-    @property
-    def status(self) -> int:
-        pass
-
-@dataclass_validate
-@dataclass(frozen = True)
-class Erro:
-    sucesso: bool # Sempre falso aqui. Mas o campo se faz presente ainda assim para ser serializado via JSON.
-    mensagem: str
-    tipo: str
-    status: int
-
-    @staticmethod
-    def criar(e: BaseException) -> "Erro":
-        return Erro(False, e.__str__(), e.__class__.__name__, e.status if isinstance(e, StatusProtocol) else 500)
-
-@dataclass_validate
-@dataclass(frozen = True)
-class Ok:
-    pass
-
-@dataclass_validate
-@dataclass(frozen = True)
-class Sucesso:
-    sucesso: bool # Sempre verdadeiro aqui. Mas o campo se faz presente ainda assim para ser serializado via JSON.
-    conteudo: Any
-    status: int
-
-    @staticmethod
-    def criar(conteudo: Any, status: int = 200) -> "Sucesso":
-        return Sucesso(True, conteudo, status)
+from.sucesso import *
 
 def handler(decorate: Callable[..., Response | tuple[Response, int]]) -> Callable[..., tuple[Response, int]]:
     @wraps(decorate)
@@ -75,26 +39,6 @@ def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, i
             erro: Erro = Erro.criar(e)
             return jsonify(erro), erro.status
     return decorator
-
-class RequisicaoMalFormadaException(Exception):
-    @property
-    def status(self) -> int:
-        return 400
-
-class PrecondicaoFalhouException(Exception):
-    @property
-    def status(self) -> int:
-        return 412
-
-class ConteudoNaoReconhecidoException(Exception):
-    @property
-    def status(self) -> int:
-        return 415
-
-class ConteudoIncompreensivelException(Exception):
-    @property
-    def status(self) -> int:
-        return 422
 
 def _is_form(content_type: str, urlencoded: bool, multipart: bool) -> bool:
     return (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart)

@@ -1,10 +1,4 @@
-from abc import ABC, abstractmethod
-
-class Status(ABC):
-    @property
-    @abstractmethod
-    def status(self) -> int:
-        pass
+from .sucesso import Status
 
 class SenhaErradaException(Exception, Status):
     @property

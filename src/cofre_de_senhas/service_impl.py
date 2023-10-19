@@ -28,29 +28,32 @@ class Servicos:
 
     @property
     def usuario(self) -> ServicoUsuario:
+        gl: GerenciadorLogin = self.__gl
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
         class Interna(_ServicoUsuarioImpl):
             def __init__(self2) -> None:
-                super().__init__(self.__gl)
+                super().__init__(gl)
         return Interna()
 
     @property
     def categoria(self) -> ServicoCategoria:
+        gl: GerenciadorLogin = self.__gl
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
         class Interna(_ServicoCategoriaImpl):
             def __init__(self2) -> None:
-                super().__init__(self.__gl)
+                super().__init__(gl)
         return Interna()
 
     @property
     def segredo(self) -> ServicoSegredo:
+        gl: GerenciadorLogin = self.__gl
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
         class Interna(_ServicoSegredoImpl):
             def __init__(self2) -> None:
-                super().__init__(self.__gl)
+                super().__init__(gl)
         return Interna()
 
 class _ServicoBDImpl(ServicoBD):
