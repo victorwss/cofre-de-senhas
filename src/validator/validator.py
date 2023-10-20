@@ -76,6 +76,10 @@ def _split_valids(entering: list[type[Any] | ErrorSet]) -> list[type[Any]]:
     return [t for t in entering if not isinstance(t, ErrorSet) and not isinstance(t, EllipsisType)]
 
 
+def _validate_join(types2: list[type[Any]], tvalue: tuple[Any, ...], globalns: GlobalNS_T) -> list[ErrorSet]:
+    return [_validate_types(types2[k], tvalue[k], globalns) for k in range(0, len(types2))]
+
+
 def _validate_typing_tuple(expected_type: GenericType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
     if not isinstance(value, tuple):
         return make_errors(f"must be an instance of tuple, but received {type(value)}")
@@ -97,7 +101,7 @@ def _validate_typing_tuple(expected_type: GenericType, value: Any, globalns: Glo
     if len(tvalue) != len(types2):
         return make_errors(f"must be an instance of {expected_type} with {len(types2)} element{'s' if len(types2) > 1 else ''}, but there {'are' if len(types2) > 1 else 'is'} {len(types2)} element{'s' if len(types2) > 1 else ''}")
 
-    errors: list[ErrorSet] = [_validate_types(types2[k], tvalue[k], globalns) for k in range(0, len(types2))]
+    errors: list[ErrorSet] = _validate_join(types2, tvalue, globalns)
     return make_errors(errors)
 
 
@@ -271,26 +275,20 @@ _TM.put(GenericType       , _validate_generic_type     )
 def _type_resolve(expected_type: TT1 | TT2, globalns: GlobalNS_T) -> TT2 | ErrorSet:
     reworked_type: Any = expected_type
 
-    if type(expected_type) is str:
-        try:
-            reworked_type = eval(reworked_type, globalns)
-        except Exception as x:
-            return make_errors(f'Could not evaluate "{expected_type}" as a valid type')
+    if type(expected_type) is str or isinstance(reworked_type, ForwardRef):
+        reworked_type = _evaluate_forward_reference(reworked_type, globalns)
 
     if type(reworked_type) is GenericAlias:
-        result: type[Any] | ErrorSet = _reduce_alias(reworked_type, globalns)
-        if isinstance(result, ErrorSet):
-            return result
-        reworked_type = result
-
-    if isinstance(reworked_type, ForwardRef):
-        reworked_type = _evaluate_forward_reference(reworked_type, globalns)
+        reworked_type = _reduce_alias(reworked_type, globalns)
 
     if reworked_type is None:
         return type(None)
 
     if reworked_type is ...:
         return EllipsisType
+
+    if isinstance(reworked_type, ErrorSet):
+        return reworked_type
 
     if not any(isinstance(reworked_type, x) for x in TT3):
         return make_errors(f"{reworked_type} is not a valid type")
@@ -331,10 +329,7 @@ def _reduce_alias(alias: GenericAlias, globalns: GlobalNS_T) -> type[Any] | Erro
 
     names: str = ",".join(x.__name__ for x in ok_found)
     new_name: str = full_name + "[" + names + "]"
-    try:
-        return _evaluate_forward_reference(ForwardRef(new_name), new_globalns)
-    except Exception as x:
-        return make_errors(f'Could not evaluate "{new_name}" as a valid type')
+    return _evaluate_forward_reference(ForwardRef(new_name), new_globalns)
 
 
 def _validate_types(expected_type: TT1 | TT2, value: Any, globalns: GlobalNS_T) -> ErrorSet:
@@ -346,9 +341,14 @@ def _validate_types(expected_type: TT1 | TT2, value: Any, globalns: GlobalNS_T) 
     return _TM.call(reworked_type, value, globalns)
 
 
-def _evaluate_forward_reference(ref_type: ForwardRef, globalns: GlobalNS_T) -> type[Any]:
+def _evaluate_forward_reference(ref_type: ForwardRef | str, globalns: GlobalNS_T) -> type[Any] | ErrorSet:
     """ Support evaluating ForwardRef types on both Python 3.8 and 3.9. """
-    return cast(type[Any], ref_type._evaluate(globalns, None, frozenset()))
+    try:
+        if isinstance(ref_type, str):
+            ref_type = ForwardRef(ref_type)
+        return cast(type[Any], ref_type._evaluate(globalns, None, frozenset()))
+    except BaseException as x:
+        return make_errors(f'Could not evaluate "{ref_type}" as a valid type')
 
 
 def dataclass_type_validator(target: Any) -> None:
