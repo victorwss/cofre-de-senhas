@@ -6,6 +6,7 @@ from .trans import TransactedConnection
 from mysql.connector import connect as db_connect, IntegrityError
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
+from mysql.connector.errors import DataError
 from dataclasses import dataclass
 from validator import dataclass_validate
 
@@ -115,6 +116,8 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:
             return operation(*args, **kwargs)
+        except DataError as x:
+            raise IntegrityViolationException(str(x))
         except IntegrityError as x:
             raise IntegrityViolationException(str(x))
 
