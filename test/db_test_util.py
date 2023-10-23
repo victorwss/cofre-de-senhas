@@ -83,10 +83,10 @@ class SqliteTestConfig(DbTestConfig):
 
 class MariaDbTestConfig(DbTestConfig):
 
-    def __init__(self, create_script: str, clear_script: str, user: str, password: str, host: str, port: int, database: str) -> None:
+    def __init__(self, create_script: str, clear_script: str, user: str, password: str, host: str, port: int, database: str, connect_timeout: int) -> None:
         def inner() -> TransactedConnection:
             from connection.mariadbconn import connect
-            return connect(user = user, password = password, host = host, port = port, database = database)
+            return connect(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout)
         super().__init__(inner)
         self.__create_script: str = create_script
         self.__clear_script: str = clear_script
@@ -94,7 +94,7 @@ class MariaDbTestConfig(DbTestConfig):
     def _poor_execute_script(self, script: str) -> None:
         with self._maker() as conn:
             for part in script.split(";"):
-                if part != "":
+                if part.strip() != "":
                     conn.execute(part)
             conn.commit()
 
@@ -147,12 +147,16 @@ class MysqlTestConfig(DbTestConfig):
             return inner
         return middle
 
-def applier(appliances: dict[str, DbTestConfig]) -> Callable[[Callable[[DbTestConfig], None]], Callable[[str], None]]:
+def _do_nothing(which: DbTestConfig) -> None:
+    pass
+
+def applier(appliances: dict[str, DbTestConfig], pretest: Callable[[DbTestConfig], None] = _do_nothing) -> Callable[[Callable[[DbTestConfig], None]], Callable[[str], None]]:
 
     def outer(applied: Callable[[DbTestConfig], None]) -> Callable[[str], None]:
         @pytest.mark.parametrize("db", appliances.keys())
         def middle(db: str) -> None:
             dbc: DbTestConfig = appliances[db]
+            pretest(dbc)
             @wraps(applied)
             @dbc.decorator
             def call() -> None:

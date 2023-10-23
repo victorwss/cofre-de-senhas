@@ -4,7 +4,7 @@ from functools import wraps
 from .conn import ColumnDescriptor, Descriptor, FieldFlags, IntegrityViolationException, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
 from .trans import TransactedConnection
 from mariadb import connect as db_connect
-from mariadb.errors import IntegrityError
+from mariadb import IntegrityError, DataError
 from mariadb.connections import Connection as MariaDBConnection
 from mariadb.cursors import Cursor as MariaDBCursor
 from mariadb.constants import FIELD_FLAG, FIELD_TYPE
@@ -73,6 +73,7 @@ class ConnectionData:
     host: str
     port: int
     database: str
+    connect_timeout: int
 
     @staticmethod
     def create( \
@@ -82,8 +83,9 @@ class ConnectionData:
             host: str, \
             port: int = 3306, \
             database: str, \
+            connect_timeout: int = 30 \
     ) -> "ConnectionData":
-        return ConnectionData(user, password, host, port, database)
+        return ConnectionData(user, password, host, port, database, connect_timeout)
 
     def connect(self) -> TransactedConnection:
         def mangle(*, user: str, pasword: str, host: str, port: int, database: str) -> MariaDBConnection:
@@ -95,7 +97,8 @@ class ConnectionData:
                 password = self.password, \
                 host = self.host, \
                 port = self.port, \
-                database = self.database \
+                database = self.database, \
+                connect_timeout = self.connect_timeout
             ))
         return TransactedConnection(make_connection)
 
@@ -109,8 +112,9 @@ def connect( \
         host: str, \
         port: int = 3306, \
         database: str, \
+        connect_timeout: int = 30 \
 ) -> TransactedConnection:
-    return ConnectionData.create(user = user, password = password, host = host, port = port, database = database).connect()
+    return ConnectionData.create(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout).connect()
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -118,27 +122,48 @@ class _Flag:
     name: str
     test: Callable[[int], bool]
 
+def _flag_notnull      (x: int) -> bool: return (x & FIELD_FLAG.NOT_NULL      ) != 0
+def _flag_nullable     (x: int) -> bool: return (x & FIELD_FLAG.NOT_NULL      ) == 0
+def _flag_primary_key  (x: int) -> bool: return (x & FIELD_FLAG.PRIMARY_KEY   ) != 0
+def _flag_unique_key   (x: int) -> bool: return (x & FIELD_FLAG.UNIQUE_KEY    ) != 0
+def _flag_multiple_key (x: int) -> bool: return (x & FIELD_FLAG.MULTIPLE_KEY  ) != 0
+def _flag_blob         (x: int) -> bool: return (x & FIELD_FLAG.BLOB          ) != 0
+def _flag_unsigned     (x: int) -> bool: return (x & FIELD_FLAG.UNSIGNED      ) != 0
+def _flag_zerofill     (x: int) -> bool: return (x & FIELD_FLAG.ZEROFILL      ) != 0
+def _flag_binary       (x: int) -> bool: return (x & FIELD_FLAG.BINARY        ) != 0
+def _flag_enum         (x: int) -> bool: return (x & FIELD_FLAG.ENUM          ) != 0
+def _flag_autoincrement(x: int) -> bool: return (x & FIELD_FLAG.AUTO_INCREMENT) != 0
+def _flag_timestamp    (x: int) -> bool: return (x & FIELD_FLAG.TIMESTAMP     ) != 0
+def _flag_set          (x: int) -> bool: return (x & FIELD_FLAG.SET           ) != 0
+def _flag_no_default   (x: int) -> bool: return (x & FIELD_FLAG.NO_DEFAULT    ) != 0
+def _flag_has_default  (x: int) -> bool: return (x & FIELD_FLAG.NO_DEFAULT    ) == 0
+def _flag_on_update_now(x: int) -> bool: return (x & FIELD_FLAG.ON_UPDATE_NOW ) != 0
+def _flag_numeric      (x: int) -> bool: return (x & FIELD_FLAG.NUMERIC       ) != 0
+def _flag_unique       (x: int) -> bool: return (x & FIELD_FLAG.UNIQUE        ) != 0
+def _flag_part_of_key  (x: int) -> bool: return (x & FIELD_FLAG.PART_OF_KEY   ) != 0
+def _flag_signed       (x: int) -> bool: return (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0
+
 __flags: list[_Flag] = [
-    _Flag("Not Null"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) != 0),
-    _Flag("Nullable"     , lambda x: (x & FIELD_FLAG.NOT_NULL      ) == 0),
-    _Flag("Primary Key"  , lambda x: (x & FIELD_FLAG.PRIMARY_KEY   ) != 0),
-    _Flag("Unique Key"   , lambda x: (x & FIELD_FLAG.UNIQUE_KEY    ) != 0),
-    _Flag("Multiple Key" , lambda x: (x & FIELD_FLAG.MULTIPLE_KEY  ) != 0),
-    _Flag("Blob"         , lambda x: (x & FIELD_FLAG.BLOB          ) != 0),
-    _Flag("Unsigned"     , lambda x: (x & FIELD_FLAG.UNSIGNED      ) != 0),
-    _Flag("Zero fill"    , lambda x: (x & FIELD_FLAG.ZEROFILL      ) != 0),
-    _Flag("Binary"       , lambda x: (x & FIELD_FLAG.BINARY        ) != 0),
-    _Flag("Enum"         , lambda x: (x & FIELD_FLAG.ENUM          ) != 0),
-    _Flag("Autoincrement", lambda x: (x & FIELD_FLAG.AUTO_INCREMENT) != 0),
-    _Flag("Timestamp"    , lambda x: (x & FIELD_FLAG.TIMESTAMP     ) != 0),
-    _Flag("Set"          , lambda x: (x & FIELD_FLAG.SET           ) != 0),
-    _Flag("No default"   , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) != 0),
-    _Flag("Has default"  , lambda x: (x & FIELD_FLAG.NO_DEFAULT    ) == 0),
-    _Flag("On update now", lambda x: (x & FIELD_FLAG.ON_UPDATE_NOW ) != 0),
-    _Flag("Numeric"      , lambda x: (x & FIELD_FLAG.NUMERIC       ) != 0),
-   #_Flag("Unique"       , lambda x: (x & FIELD_FLAG.UNIQUE        ) != 0),
-    _Flag("Part of key"  , lambda x: (x & FIELD_FLAG.PART_OF_KEY   ) != 0),
-    _Flag("Signed"       , lambda x: (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0)
+    _Flag("Not Null"     , _flag_notnull      ),
+    _Flag("Nullable"     , _flag_nullable     ),
+    _Flag("Primary Key"  , _flag_primary_key  ),
+    _Flag("Unique Key"   , _flag_unique_key   ),
+    _Flag("Multiple Key" , _flag_multiple_key ),
+    _Flag("Blob"         , _flag_blob         ),
+    _Flag("Unsigned"     , _flag_unsigned     ),
+    _Flag("Zero fill"    , _flag_zerofill     ),
+    _Flag("Binary"       , _flag_binary       ),
+    _Flag("Enum"         , _flag_enum         ),
+    _Flag("Autoincrement", _flag_autoincrement),
+    _Flag("Timestamp"    , _flag_timestamp    ),
+    _Flag("Set"          , _flag_set          ),
+    _Flag("No default"   , _flag_no_default   ),
+    _Flag("Has default"  , _flag_has_default  ),
+    _Flag("On update now", _flag_on_update_now),
+    _Flag("Numeric"      , _flag_numeric      ),
+   #_Flag("Unique"       , _flag_unique       ),
+    _Flag("Part of key"  , _flag_part_of_key  ),
+    _Flag("Signed"       , _flag_signed       )
 ]
 
 def _find_flags(code: int) -> FieldFlags:
@@ -156,6 +181,8 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
     def inner(*args: Any, **kwargs: Any) -> Any:
         try:
             return operation(*args, **kwargs)
+        except DataError as x:
+            raise IntegrityViolationException(str(x))
         except IntegrityError as x:
             raise IntegrityViolationException(str(x))
 

@@ -8,12 +8,12 @@ from validator import dataclass_validate
 from ..db_test_util import applier, DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
 
 sqlite_create: str = """
-DROP TABLE IF NOT EXISTS animal;
-DROP TABLE IF NOT EXISTS juice_2;
-DROP TABLE IF NOT EXISTS juice_1;
-DROP TABLE IF NOT EXISTS fruit;
+DROP TABLE IF EXISTS animal;
+DROP TABLE IF EXISTS juice_2;
+DROP TABLE IF EXISTS juice_1;
+DROP TABLE IF EXISTS fruit;
 
-CREATE TABLE IF NOT EXISTS fruit (
+CREATE TABLE fruit (
     pk_fruit        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
 ) STRICT;
@@ -22,17 +22,17 @@ INSERT INTO fruit (name) VALUES ('orange');
 INSERT INTO fruit (name) VALUES ('strawberry');
 INSERT INTO fruit (name) VALUES ('lemon');
 
-CREATE TABLE IF NOT EXISTS juice_1 (
+CREATE TABLE juice_1 (
     pk_fruit INTEGER NOT NULL PRIMARY KEY,
     FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE CASCADE ON UPDATE CASCADE
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS juice_2 (
+CREATE TABLE juice_2 (
     pk_fruit INTEGER NOT NULL PRIMARY KEY,
     FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS animal (
+CREATE TABLE animal (
     pk_animal       INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 2 AND LENGTH(name) <= 50),
     gender          TEXT    NOT NULL             CHECK (gender = 'M' OR gender = 'F' OR gender = '-'),
@@ -45,19 +45,12 @@ INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis
 INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
 """
 
-sqlite_drop: str = """
-DROP TABLE IF NOT EXISTS animal;
-DROP TABLE IF NOT EXISTS juice_2;
-DROP TABLE IF NOT EXISTS juice_1;
-DROP TABLE IF NOT EXISTS fruit;
-"""
-
 mysql_create: str = """
 DROP DATABASE IF EXISTS test_fruits;
 CREATE DATABASE test_fruits /*!40100 COLLATE 'utf8mb4_general_ci' */;
 USE test_fruits;
 
-CREATE TABLE IF NOT EXISTS fruit (
+CREATE TABLE fruit (
     pk_fruit   INTEGER     NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name       VARCHAR(50) NOT NULL UNIQUE,
     CONSTRAINT name_min_size CHECK (LENGTH(name) >= 4)
@@ -67,17 +60,17 @@ INSERT INTO fruit (name) VALUES ('orange');
 INSERT INTO fruit (name) VALUES ('strawberry');
 INSERT INTO fruit (name) VALUES ('lemon');
 
-CREATE TABLE IF NOT EXISTS juice_1 (
+CREATE TABLE juice_1 (
     pk_fruit INTEGER NOT NULL PRIMARY KEY,
     CONSTRAINT FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = INNODB;
 
-CREATE TABLE IF NOT EXISTS juice_2 (
+CREATE TABLE juice_2 (
     pk_fruit INTEGER NOT NULL PRIMARY KEY,
     CONSTRAINT FOREIGN KEY (pk_fruit) REFERENCES fruit (pk_fruit) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = INNODB;
 
-CREATE TABLE IF NOT EXISTS animal (
+CREATE TABLE animal (
     pk_animal       INTEGER     NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name            VARCHAR(50) NOT NULL                UNIQUE,
     gender          CHAR(1)     NOT NULL,
@@ -93,13 +86,41 @@ INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis
 INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
 """
 
-mysql_drop: str = "DROP DATABASE IF EXISTS test_fruits;"
+mysql_populate = """
+DELETE FROM animal;
+DELETE FROM juice_2;
+DELETE FROM juice_1;
+DELETE FROM fruit;
+DROP TABLE IF EXISTS tree;
+ALTER TABLE fruit AUTO_INCREMENT = 1;
+ALTER TABLE animal AUTO_INCREMENT = 1;
+INSERT INTO fruit (name) VALUES ('orange');
+INSERT INTO fruit (name) VALUES ('strawberry');
+INSERT INTO fruit (name) VALUES ('lemon');
+INSERT INTO animal (name, gender, species, age) VALUES ('mimosa'   , 'F', 'bos taurus'      , 4);
+INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis familiaris', 6);
+INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
+"""
+
+mysql_clear = """
+DELETE FROM animal;
+DELETE FROM juice_2;
+DELETE FROM juice_1;
+DELETE FROM fruit;
+DROP TABLE IF EXISTS tree;
+ALTER TABLE fruit AUTO_INCREMENT = 1;
+ALTER TABLE animal AUTO_INCREMENT = 1;
+"""
 
 sqlite_db : SqliteTestConfig  = SqliteTestConfig ("test/fruits-ok.db", "test/fruits.db")
-mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_create, mysql_drop, "root", "root", "127.0.0.1", 3306, "test_fruits")
-mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_create, mysql_drop, "root", "root", "127.0.0.1", 3306, "test_fruits")
+mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_populate, mysql_clear, "root", "root", "127.0.0.1", 3306, "test_fruits")
+mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_populate, mysql_clear, "root", "root", "127.0.0.1", 3306, "test_fruits", 3)
 
-dbs: dict[str, DbTestConfig] = {"sqlite": sqlite_db, "mysql": mysql_db, "mariadb": mariadb_db}
+dbs: dict[str, DbTestConfig] = { \
+    "sqlite": sqlite_db, \
+    "mysql": mysql_db, \
+    "mariadb": mariadb_db \
+}
 
 run_on_dbs: list[DbTestConfig] = []
 
@@ -110,7 +131,11 @@ def test_dbs(db: DbTestConfig) -> None:
 def test_run_oks() -> None:
     assert run_on_dbs == [sqlite_db, mysql_db, mariadb_db]
 
-@applier(dbs)
+def assert_db_ok(db: DbTestConfig) -> None:
+    if db not in run_on_dbs:
+        raise Exception("Driver failed to load")
+
+@applier(dbs, assert_db_ok)
 def test_fetchone(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
@@ -118,19 +143,19 @@ def test_fetchone(db: DbTestConfig) -> None:
         one: tuple[Any, ...] | None = c.fetchone()
         assert one == (2, "strawberry")
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_fetchall(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_fetchmany(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         p1: Sequence[tuple[Any, ...]] = c.fetchmany(2)
         assert p1 == [(1, "orange"), (2, "strawberry")]
         p2: Sequence[tuple[Any, ...]] = c.fetchmany(2)
@@ -138,9 +163,8 @@ def test_fetchmany(db: DbTestConfig) -> None:
         p3: Sequence[tuple[Any, ...]] = c.fetchmany(2)
         assert p3 == []
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_fetchall_class(db: DbTestConfig) -> None:
-
     @dataclass_validate
     @dataclass(frozen = True)
     class Fruit:
@@ -149,21 +173,22 @@ def test_fetchall_class(db: DbTestConfig) -> None:
 
     conn: TransactedConnection = db.conn
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         all: Sequence[Fruit] = c.fetchall_class(Fruit)
         assert all == [Fruit(1, "orange"), Fruit(2, "strawberry"), Fruit(3, "lemon")]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_execute_insert(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
+    q: str = "?" if db is sqlite_db else "%s"
 
     with conn as c:
-        c.execute("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", ["bozo", "M", "bos taurus", 65])
+        c.execute(f"INSERT INTO animal (name, gender, species, age) VALUES ({q}, {q}, {q}, {q})", ["bozo", "M", "bos taurus", 65])
         assert c.rowcount == 1
         c.commit()
 
     with conn as c:
-        c.execute("SELECT pk_animal, name, gender, species, age FROM animal")
+        c.execute("SELECT pk_animal, name, gender, species, age FROM animal ORDER BY pk_animal")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
             (1, "mimosa", "F", "bos taurus", 4), \
@@ -172,9 +197,10 @@ def test_execute_insert(db: DbTestConfig) -> None:
             (4, "bozo", "M", "bos taurus", 65) \
         ]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_executemany(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
+    q: str = "?" if db is sqlite_db else "%s"
 
     with conn as c:
         data: list[list[Any]] = [ \
@@ -182,12 +208,12 @@ def test_executemany(db: DbTestConfig) -> None:
             ["1000xeks", "F", "bos taurus", 42], \
             ["sheik edu", "M", "musa acuminata", 36], \
         ]
-        c.executemany("INSERT INTO animal (name, gender, species, age) VALUES (?, ?, ?, ?)", data)
+        c.executemany(f"INSERT INTO animal (name, gender, species, age) VALUES ({q}, {q}, {q}, {q})", data)
         assert c.rowcount == 3
         c.commit()
 
     with conn as c:
-        c.execute("SELECT pk_animal, name, gender, species, age FROM animal")
+        c.execute("SELECT pk_animal, name, gender, species, age FROM animal ORDER BY pk_animal")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
             (1, "mimosa", "F", "bos taurus", 4), \
@@ -212,7 +238,7 @@ longscript_mysql_a: str = """
 CREATE TABLE IF NOT EXISTS tree (
     pk_tree INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name    TEXT    NOT NULL UNIQUE,
-    CONSTRAINT CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
+    CONSTRAINT name_size CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
 ) ENGINE = INNODB;
 """
 
@@ -222,7 +248,8 @@ INSERT INTO tree (name) VALUES ('ginkgo');
 """
 
 @sqlite_db.decorator
-def test_executescipt_sqlite() -> None:
+def test_executescript_sqlite() -> None:
+    assert_db_ok(sqlite_db)
     conn: TransactedConnection = sqlite_db.conn
 
     with conn as c:
@@ -230,7 +257,7 @@ def test_executescipt_sqlite() -> None:
         c.commit()
 
     with conn as c:
-        c.execute("SELECT pk_tree, name FROM tree")
+        c.execute("SELECT pk_tree, name FROM tree ORDER BY pk_tree")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
             (1, "acacia"), \
@@ -238,7 +265,8 @@ def test_executescipt_sqlite() -> None:
         ]
 
 @mysql_db.decorator
-def test_executescipt_mysql() -> None:
+def test_executescript_mysql() -> None:
+    assert_db_ok(mysql_db)
     conn: TransactedConnection = mysql_db.conn
 
     with conn as c:
@@ -250,7 +278,7 @@ def test_executescipt_mysql() -> None:
         c.commit()
 
     with conn as c:
-        c.execute("SELECT pk_tree, name FROM tree")
+        c.execute("SELECT pk_tree, name FROM tree ORDER BY pk_tree")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
             (1, "acacia"), \
@@ -258,14 +286,15 @@ def test_executescipt_mysql() -> None:
         ]
 
 @mariadb_db.decorator
-def test_executescipt_mariadb() -> None:
+def test_executescript_mariadb() -> None:
+    assert_db_ok(mariadb_db)
     conn: TransactedConnection = mariadb_db.conn
 
     with raises(NotImplementedError):
         with conn as c:
             c.executescript(longscript_mysql_a)
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_commit(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -274,11 +303,11 @@ def test_commit(db: DbTestConfig) -> None:
         c.commit()
 
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_rollback(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -287,11 +316,11 @@ def test_rollback(db: DbTestConfig) -> None:
         c.rollback()
 
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_transact_1(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -301,11 +330,11 @@ def test_transact_1(db: DbTestConfig) -> None:
     conn.transact(x)()
 
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_transact_2(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -316,18 +345,18 @@ def test_transact_2(db: DbTestConfig) -> None:
     x()
 
     with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit")
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_no_transaction(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
     with raises(TransactionNotActiveException):
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_check_constraint_1(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -335,7 +364,7 @@ def test_check_constraint_1(db: DbTestConfig) -> None:
         with conn as c:
             c.execute("INSERT INTO fruit (name) VALUES ('abc')")
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_check_constraint_2(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -343,7 +372,7 @@ def test_check_constraint_2(db: DbTestConfig) -> None:
         with conn as c:
             c.execute("INSERT INTO fruit (name) VALUES ('123456789012345678901234567890123456789012345678901')")
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_foreign_key_constraint_on_orphan_insert(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -351,7 +380,7 @@ def test_foreign_key_constraint_on_orphan_insert(db: DbTestConfig) -> None:
         with conn as c:
             c.execute("INSERT INTO juice_1 (pk_fruit) VALUES (666)")
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_foreign_key_constraint_on_update_cascade(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -364,11 +393,11 @@ def test_foreign_key_constraint_on_update_cascade(db: DbTestConfig) -> None:
         c.commit()
 
     with conn as c:
-        c.execute("SELECT pk_fruit FROM juice_1")
-        t: tuple[Any, ...] | None = c.fetchone()
-        assert t == (777, )
+        c.execute("SELECT pk_fruit FROM juice_1 ORDER BY pk_fruit")
+        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert t == [(777, )]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_foreign_key_constraint_on_delete_cascade(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -382,10 +411,10 @@ def test_foreign_key_constraint_on_delete_cascade(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit FROM juice_1 WHERE pk_fruit = 1")
-        t: Sequence[tuple[Any, ...]] | None  = c.fetchone()
-        assert t is None
+        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert t == []
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_foreign_key_constraint_on_update_restrict(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -399,10 +428,10 @@ def test_foreign_key_constraint_on_update_restrict(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit FROM juice_2")
-        t: tuple[Any, ...] | None = c.fetchone()
-        assert t == (1, )
+        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert t == [(1, )]
 
-@applier(dbs)
+@applier(dbs, assert_db_ok)
 def test_foreign_key_constraint_on_delete_restrict(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -416,5 +445,5 @@ def test_foreign_key_constraint_on_delete_restrict(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT a.pk_fruit FROM juice_2 a INNER JOIN fruit b ON a.pk_fruit = b.pk_fruit WHERE a.pk_fruit = 1")
-        t: tuple[Any, ...] | None = c.fetchone()
-        assert t == (1, )
+        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        assert t == [(1, )]

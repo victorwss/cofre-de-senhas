@@ -14,7 +14,7 @@ radon mi -nb -s             .\src
 
 :COVERAGE
 @echo ON
-coverage run --branch --source=src -m pytest
+coverage run --branch --source=src -m pytest --timeout=5
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
