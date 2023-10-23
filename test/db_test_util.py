@@ -11,6 +11,13 @@ class DbTestConfig(ABC):
         self.__maker: Callable[[], TransactedConnection] = maker
         self.__conn: TransactedConnection | None = None
 
+    def _poor_execute_script(self, script: str) -> None:
+        with self._maker() as conn:
+            for part in script.split(";"):
+                if part.strip() != "":
+                    conn.execute(part)
+            conn.commit()
+
     @property
     @abstractmethod
     def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
@@ -91,13 +98,6 @@ class MariaDbTestConfig(DbTestConfig):
         self.__create_script: str = create_script
         self.__clear_script: str = clear_script
 
-    def _poor_execute_script(self, script: str) -> None:
-        with self._maker() as conn:
-            for part in script.split(";"):
-                if part.strip() != "":
-                    conn.execute(part)
-            conn.commit()
-
     @property
     def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
         def middle(call_this: Callable[[], None]) -> Callable[[], None]:
@@ -124,11 +124,6 @@ class MysqlTestConfig(DbTestConfig):
         super().__init__(inner)
         self.__create_script: str = create_script
         self.__clear_script: str = clear_script
-
-    def _poor_execute_script(self, script: str) -> None:
-        with self._maker() as conn:
-            conn.executescript(script)
-            conn.commit()
 
     @property
     def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:

@@ -1,6 +1,6 @@
 import sqlite3
 from typing import Any, Callable, Sequence
-from connection.conn import IntegrityViolationException, TransactionNotActiveException
+from connection.conn import IntegrityViolationException, TransactionNotActiveException, NotImplementedError
 from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
@@ -235,7 +235,7 @@ INSERT INTO tree (name) VALUES ('ginkgo');
 """
 
 longscript_mysql_a: str = """
-CREATE TABLE IF NOT EXISTS tree (
+CREATE TABLE tree (
     pk_tree INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name    TEXT    NOT NULL UNIQUE,
     CONSTRAINT name_size CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
