@@ -217,5 +217,5 @@ class Usuario:
             return Usuario(pk.pk_usuario, dados.login, dados.nivel_acesso, hash_com_sal).__up
 
         def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeUsuarios:
-            Usuario.verificar_acesso_admin(quem_faz)
+            Usuario.verificar_acesso(quem_faz)
             return ResultadoListaDeUsuarios([x.__up for x in Usuario.__listar()])

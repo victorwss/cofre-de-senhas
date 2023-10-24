@@ -1,6 +1,6 @@
 import sqlite3
-from typing import Any, Callable, Sequence
-from connection.conn import IntegrityViolationException, TransactionNotActiveException, NotImplementedError
+from typing import Any, Callable, Sequence, TYPE_CHECKING
+from connection.conn import IntegrityViolationException, TransactionNotActiveException, UnsupportedOperationError
 from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
@@ -117,9 +117,9 @@ mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_populate, mysql_clear, "
 mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_populate, mysql_clear, "root", "root", "127.0.0.1", 3306, "test_fruits", 3)
 
 dbs: dict[str, DbTestConfig] = { \
-    "sqlite": sqlite_db, \
-    "mysql": mysql_db, \
-    "mariadb": mariadb_db \
+    "sqlite" : sqlite_db , \
+    "mysql"  : mysql_db  , \
+    "mariadb": mariadb_db  \
 }
 
 run_on_dbs: list[DbTestConfig] = []
@@ -132,8 +132,7 @@ def test_run_oks() -> None:
     assert run_on_dbs == [sqlite_db, mysql_db, mariadb_db]
 
 def assert_db_ok(db: DbTestConfig) -> None:
-    if db not in run_on_dbs:
-        raise Exception("Driver failed to load")
+    assert db in run_on_dbs, "Database connector failed to load."
 
 @applier(dbs, assert_db_ok)
 def test_fetchone(db: DbTestConfig) -> None:
@@ -191,10 +190,10 @@ def test_execute_insert(db: DbTestConfig) -> None:
         c.execute("SELECT pk_animal, name, gender, species, age FROM animal ORDER BY pk_animal")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
-            (1, "mimosa", "F", "bos taurus", 4), \
-            (2, "rex", "M", "canis familiaris", 6), \
-            (3, "sylvester", "M", "felis catus", 8), \
-            (4, "bozo", "M", "bos taurus", 65) \
+            (1, "mimosa"   , "F", "bos taurus"      ,  4), \
+            (2, "rex"      , "M", "canis familiaris",  6), \
+            (3, "sylvester", "M", "felis catus"     ,  8), \
+            (4, "bozo"     , "M", "bos taurus"      , 65)  \
         ]
 
 @applier(dbs, assert_db_ok)
@@ -204,9 +203,9 @@ def test_executemany(db: DbTestConfig) -> None:
 
     with conn as c:
         data: list[list[Any]] = [ \
-            ["bozo", "M", "bos taurus", 65], \
-            ["1000xeks", "F", "bos taurus", 42], \
-            ["sheik edu", "M", "musa acuminata", 36], \
+            ["bozo"     , "M", "bos taurus"    , 65], \
+            ["1000xeks" , "F", "bos taurus"    , 42], \
+            ["sheik edu", "M", "musa acuminata", 36]  \
         ]
         c.executemany(f"INSERT INTO animal (name, gender, species, age) VALUES ({q}, {q}, {q}, {q})", data)
         assert c.rowcount == 3
@@ -216,16 +215,16 @@ def test_executemany(db: DbTestConfig) -> None:
         c.execute("SELECT pk_animal, name, gender, species, age FROM animal ORDER BY pk_animal")
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
-            (1, "mimosa", "F", "bos taurus", 4), \
-            (2, "rex", "M", "canis familiaris", 6), \
-            (3, "sylvester", "M", "felis catus", 8), \
-            (4, "bozo", "M", "bos taurus", 65), \
-            (5, "1000xeks", "F", "bos taurus", 42), \
-            (6, "sheik edu", "M", "musa acuminata", 36) \
+            (1, "mimosa"   , "F", "bos taurus"      ,  4), \
+            (2, "rex"      , "M", "canis familiaris",  6), \
+            (3, "sylvester", "M", "felis catus"     ,  8), \
+            (4, "bozo"     , "M", "bos taurus"      , 65), \
+            (5, "1000xeks" , "F", "bos taurus"      , 42), \
+            (6, "sheik edu", "M", "musa acuminata"  , 36)  \
         ]
 
 longscript_sqlite: str = """
-CREATE TABLE IF NOT EXISTS tree (
+CREATE TABLE tree (
     pk_tree INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name    TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
 ) STRICT;
@@ -234,26 +233,37 @@ INSERT INTO tree (name) VALUES ('acacia');
 INSERT INTO tree (name) VALUES ('ginkgo');
 """
 
-longscript_mysql_a: str = """
+longscript_mysql: str = """
 CREATE TABLE tree (
-    pk_tree INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name    TEXT    NOT NULL UNIQUE,
-    CONSTRAINT name_size CHECK (LENGTH(name) >= 4 AND LENGTH(name) <= 50)
+    pk_tree INTEGER     NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name    VARCHAR(50) NOT NULL UNIQUE,
+    CONSTRAINT name_size  CHECK (LENGTH(name) >= 4)
 ) ENGINE = INNODB;
-"""
 
-longscript_mysql_b: str = """
 INSERT INTO tree (name) VALUES ('acacia');
 INSERT INTO tree (name) VALUES ('ginkgo');
 """
 
-@sqlite_db.decorator
-def test_executescript_sqlite() -> None:
-    assert_db_ok(sqlite_db)
-    conn: TransactedConnection = sqlite_db.conn
+@applier(dbs, assert_db_ok)
+def test_executescript(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+
+    if db == mariadb_db:
+        with raises(UnsupportedOperationError):
+            with conn as c:
+                c.executescript(longscript_mysql)
+        return
+
+    script: str
+    if db == sqlite_db:
+        script = longscript_sqlite
+    elif db == mysql_db:
+        script = longscript_mysql
+    else:
+        assert False
 
     with conn as c:
-        c.executescript(longscript_sqlite)
+        c.executescript(script)
         c.commit()
 
     with conn as c:
@@ -261,38 +271,8 @@ def test_executescript_sqlite() -> None:
         all: Sequence[tuple[Any, ...]] = c.fetchall()
         assert all == [ \
             (1, "acacia"), \
-            (2, "ginkgo") \
+            (2, "ginkgo")  \
         ]
-
-@mysql_db.decorator
-def test_executescript_mysql() -> None:
-    assert_db_ok(mysql_db)
-    conn: TransactedConnection = mysql_db.conn
-
-    with conn as c:
-        c.executescript(longscript_mysql_a)
-        c.commit()
-
-    with conn as c:
-        c.executescript(longscript_mysql_b)
-        c.commit()
-
-    with conn as c:
-        c.execute("SELECT pk_tree, name FROM tree ORDER BY pk_tree")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
-        assert all == [ \
-            (1, "acacia"), \
-            (2, "ginkgo") \
-        ]
-
-@mariadb_db.decorator
-def test_executescript_mariadb() -> None:
-    assert_db_ok(mariadb_db)
-    conn: TransactedConnection = mariadb_db.conn
-
-    with raises(NotImplementedError):
-        with conn as c:
-            c.executescript(longscript_mysql_a)
 
 @applier(dbs, assert_db_ok)
 def test_commit(db: DbTestConfig) -> None:

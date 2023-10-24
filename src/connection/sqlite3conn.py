@@ -1,7 +1,7 @@
 from typing import Any, Callable, cast, override, Self, Sequence, TypeVar
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
 from .trans import TransactedConnection
 from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
 from dataclasses import dataclass

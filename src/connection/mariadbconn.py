@@ -1,7 +1,7 @@
 from typing import Any, Callable, cast, override, Self, Sequence, TypeVar
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import ColumnDescriptor, Descriptor, FieldFlags, IntegrityViolationException, NotImplementedError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from .conn import ColumnDescriptor, Descriptor, FieldFlags, IntegrityViolationException, UnsupportedOperationError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
 from .trans import TransactedConnection
 from mariadb import connect as db_connect
 from mariadb import IntegrityError, DataError
@@ -236,9 +236,12 @@ class _MariaDBConnectionWrapper(SimpleConnection):
         return self
 
     @override
-    def executescript(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
-        raise NotImplementedError("Sorry. The executescript method was not implemented yet.")
-        #self.__curr.execute(sql, parameters, multi = True)
+    def executescript(self, sql: str) -> Self:
+        raise UnsupportedOperationError("Sorry. The executescript method was not implemented yet.")
+        #x: Generator[MySQLCursor, None, None] | None = self.__curr.execute(sql, multi = True)
+        #if x is not None:
+        #    for i in x:
+        #        pass
         #return self
 
     @property

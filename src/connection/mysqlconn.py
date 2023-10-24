@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, override, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, Generator, override, Self, Sequence, TypeVar
 from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, SimpleConnection, NullStatus, RAW_DATA, TypeCode
@@ -171,8 +171,11 @@ class _MySQLConnectionWrapper(SimpleConnection):
         return self
 
     @override
-    def executescript(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
-        self.__curr.execute(sql, parameters, multi = True)
+    def executescript(self, sql: str) -> Self:
+        x: Generator[MySQLCursor, None, None] | None = self.__curr.execute(sql, multi = True)
+        if x is not None:
+            for i in x:
+                pass
         return self
 
     @property

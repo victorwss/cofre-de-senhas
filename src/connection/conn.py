@@ -10,7 +10,7 @@ _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
 RAW_DATA = str | int | float
 
-class NotImplementedError(Exception):
+class UnsupportedOperationError(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
