@@ -88,9 +88,6 @@ class ConnectionData:
         return ConnectionData(user, password, host, port, database, connect_timeout)
 
     def connect(self) -> TransactedConnection:
-        def mangle(*, user: str, pasword: str, host: str, port: int, database: str) -> MariaDBConnection:
-            assert False
-
         def make_connection() -> _MariaDBConnectionWrapper:
             return _MariaDBConnectionWrapper(db_connect( \
                 user = self.user, \
@@ -139,7 +136,7 @@ def _flag_no_default   (x: int) -> bool: return (x & FIELD_FLAG.NO_DEFAULT    ) 
 def _flag_has_default  (x: int) -> bool: return (x & FIELD_FLAG.NO_DEFAULT    ) == 0
 def _flag_on_update_now(x: int) -> bool: return (x & FIELD_FLAG.ON_UPDATE_NOW ) != 0
 def _flag_numeric      (x: int) -> bool: return (x & FIELD_FLAG.NUMERIC       ) != 0
-def _flag_unique       (x: int) -> bool: return (x & FIELD_FLAG.UNIQUE        ) != 0
+#def _flag_unique       (x: int) -> bool: return (x & FIELD_FLAG.UNIQUE        ) != 0
 def _flag_part_of_key  (x: int) -> bool: return (x & FIELD_FLAG.PART_OF_KEY   ) != 0
 def _flag_signed       (x: int) -> bool: return (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0
 
@@ -252,7 +249,7 @@ class _MariaDBConnectionWrapper(SimpleConnection):
     @arraysize.setter
     @override
     def arraysize(self, size: int) -> None:
-        raise NotImplementedError("Sorry. The arraysize setter was not implemented yet.")
+        raise UnsupportedOperationError("Sorry. The arraysize setter was not implemented yet.")
 
     @property
     @override
