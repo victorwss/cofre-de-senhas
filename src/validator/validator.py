@@ -249,7 +249,8 @@ _validate_typing_mappings: dict[type, Callable[[GenericType, Any, GlobalNS_T], E
 
 
 def _validate_generic_type(expected_type: GenericType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
-    return _validate_typing_mappings.get(expected_type.__origin__, _validate_simple_type)(expected_type, value, globalns)
+    c: Callable[[GenericType, Any, GlobalNS_T], ErrorSet] = _validate_typing_mappings.get(expected_type.__origin__, _validate_simple_type)
+    return c(expected_type, value, globalns)
 
 
 class _TypeMapper:
