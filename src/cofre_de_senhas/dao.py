@@ -127,6 +127,10 @@ class DAO(ABC):
     def _connection(self) -> TransactedConnection:
         return self.__con
 
+    @property
+    def _placeholder(self) -> str:
+        return self.__con.placeholder
+
 class CofreDeSenhasDAO(DAO):
 
     def __init__(self, con: TransactedConnection) -> None:

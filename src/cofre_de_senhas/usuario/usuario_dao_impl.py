@@ -12,13 +12,13 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     @override
     def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
-        sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = ?"
+        sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = {self._placeholder}"
         self._connection.execute(sql, [pk.pk_usuario])
         return self._connection.fetchone_class(DadosUsuario)
 
     @override
     def listar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
-        wildcards: str = ", ".join(["?" for pk in pks])
+        wildcards: str = ", ".join([self._placeholder for pk in pks])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario IN ({wildcards}) ORDER BY pk_usuario"
         self._connection.execute(sql, [pk.pk_usuario for pk in pks])
         return self._connection.fetchall_class(DadosUsuario)
@@ -31,26 +31,32 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     @override
     def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
-        wildcards: str = ", ".join(["?" for login in logins])
+        wildcards: str = ", ".join([self._placeholder for login in logins])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login IN ({wildcards}) ORDER BY pk_usuario"
         self._connection.execute(sql, [login.valor for login in logins])
         return self._connection.fetchall_class(DadosUsuario)
 
     @override
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
-        sql: str = "INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, ?, ?)"
+        sql: str = f"INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ({self._placeholder}, {self._placeholder}, {self._placeholder})"
         self._connection.execute(sql, [dados.login, dados.fk_nivel_acesso, dados.hash_com_sal])
         return UsuarioPK(self._connection.asserted_lastrowid)
 
     @override
     def salvar_com_pk(self, dados: DadosUsuario) -> bool:
-        sql: str = "UPDATE usuario SET pk_usuario = ?, login = ?, fk_nivel_acesso = ?, hash_com_sal = ? WHERE pk_usuario = ?"
+        sql: str = "" \
+            + "UPDATE usuario SET " \
+            + f"pk_usuario = {self._placeholder}, " \
+            + f"login = {self._placeholder}, " \
+            + f"fk_nivel_acesso = {self._placeholder}, " \
+            + f"hash_com_sal = {self._placeholder} " \
+            + f"WHERE pk_usuario = {self._placeholder}"
         self._connection.execute(sql, [dados.pk_usuario, dados.login, dados.fk_nivel_acesso, dados.hash_com_sal, dados.pk_usuario])
         return self._connection.rowcount > 0
 
     @override
     def deletar_por_pk(self, pk: UsuarioPK) -> bool:
-        sql: str = "DELETE FROM usuario WHERE pk_usuario = ?"
+        sql: str = f"DELETE FROM usuario WHERE pk_usuario = {self._placeholder}"
         self._connection.execute(sql, [pk.pk_usuario])
         return self._connection.rowcount > 0
 
@@ -58,7 +64,7 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     @override
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
-        sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = ?"
+        sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = {self._placeholder}"
         self._connection.execute(sql, [login.valor])
         return self._connection.fetchone_class(DadosUsuario)
 
@@ -75,7 +81,7 @@ class UsuarioDAOImpl(UsuarioDAO):
             + "SELECT u.pk_usuario, u.login, u.fk_nivel_acesso, u.hash_com_sal, p.fk_tipo_permissao " \
             + "FROM usuario u " \
             + "INNER JOIN permissao p ON u.pk_usuario = p.pfk_usuario " \
-            + "WHERE p.pfk_segredo = ?" \
+            + f"WHERE p.pfk_segredo = {self._placeholder}" \
             + "ORDER BY u.pk_usuario"
         self._connection.execute(sql, [pk.pk_segredo])
         return self._connection.fetchall_class(DadosUsuarioComPermissao)

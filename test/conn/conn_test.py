@@ -179,9 +179,9 @@ def test_fetchall_class(db: DbTestConfig) -> None:
 @applier(dbs, assert_db_ok)
 def test_execute_insert(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
-    q: str = "?" if db is sqlite_db else "%s"
 
     with conn as c:
+        q: str = c.placeholder
         c.execute(f"INSERT INTO animal (name, gender, species, age) VALUES ({q}, {q}, {q}, {q})", ["bozo", "M", "bos taurus", 65])
         assert c.rowcount == 1
         c.commit()
@@ -199,7 +199,6 @@ def test_execute_insert(db: DbTestConfig) -> None:
 @applier(dbs, assert_db_ok)
 def test_executemany(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
-    q: str = "?" if db is sqlite_db else "%s"
 
     with conn as c:
         data: list[list[Any]] = [ \
@@ -207,6 +206,7 @@ def test_executemany(db: DbTestConfig) -> None:
             ["1000xeks" , "F", "bos taurus"    , 42], \
             ["sheik edu", "M", "musa acuminata", 36]  \
         ]
+        q: str = c.placeholder
         c.executemany(f"INSERT INTO animal (name, gender, species, age) VALUES ({q}, {q}, {q}, {q})", data)
         assert c.rowcount == 3
         c.commit()
@@ -459,3 +459,10 @@ def test_raw(db: DbTestConfig) -> None:
         rcu: str = c.raw_cursor.__class__.__name__
         assert "Connection" in rco
         assert "Cursor" in rcu
+
+@applier(dbs, assert_db_ok)
+def test_placeholder(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+
+    with conn as c:
+        assert c.placeholder in ["%s", "?"]

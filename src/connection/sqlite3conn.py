@@ -120,3 +120,7 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
     @override
     def raw_cursor(self) -> Cursor:
         return self.__curr
+
+    @property
+    def placeholder(self) -> str:
+        return "?"

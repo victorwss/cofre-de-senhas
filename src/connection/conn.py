@@ -235,5 +235,10 @@ class SimpleConnection(ABC):
     def raw_cursor(self) -> object:
         ...
 
+    @property
+    @abstractmethod
+    def placeholder(self) -> str:
+        ...
+
 class TransactionNotActiveException(Exception):
     pass

@@ -187,3 +187,7 @@ class TransactedConnection(SimpleConnection):
     @override
     def raw_cursor(self) -> object:
         return self.__wrapped.raw_cursor
+
+    @property
+    def placeholder(self) -> str:
+        return self.__wrapped.placeholder

@@ -229,3 +229,7 @@ class _MySQLConnectionWrapper(SimpleConnection):
     @override
     def raw_cursor(self) -> CMySQLCursor:
         return self.__curr
+
+    @property
+    def placeholder(self) -> str:
+        return "%s"

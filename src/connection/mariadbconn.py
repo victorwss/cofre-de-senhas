@@ -282,3 +282,7 @@ class _MariaDBConnectionWrapper(SimpleConnection):
     @override
     def raw_cursor(self) -> MariaDBCursor:
         return self.__curr
+
+    @property
+    def placeholder(self) -> str:
+        return "%s"
