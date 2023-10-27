@@ -193,16 +193,6 @@ class SimpleConnection(ABC):
 
     @property
     @abstractmethod
-    def arraysize(self) -> int:
-        ...
-
-    @arraysize.setter
-    @abstractmethod
-    def arraysize(self, size: int) -> None:
-        ...
-
-    @property
-    @abstractmethod
     def rowcount(self) -> int:
         ...
 

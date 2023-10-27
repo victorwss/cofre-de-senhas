@@ -94,16 +94,6 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
 
     @property
     @override
-    def arraysize(self) -> int:
-        return self.__curr.arraysize
-
-    @arraysize.setter
-    @override
-    def arraysize(self, size: int) -> None:
-        self.__curr.arraysize = size
-
-    @property
-    @override
     def rowcount(self) -> int:
         return self.__curr.rowcount
 

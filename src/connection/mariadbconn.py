@@ -243,16 +243,6 @@ class _MariaDBConnectionWrapper(SimpleConnection):
 
     @property
     @override
-    def arraysize(self) -> int:
-        return self.__curr.arraysize
-
-    @arraysize.setter
-    @override
-    def arraysize(self, size: int) -> None:
-        raise UnsupportedOperationError("Sorry. The arraysize setter was not implemented yet.")
-
-    @property
-    @override
     def rowcount(self) -> int:
         return self.__curr.rowcount
 

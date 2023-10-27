@@ -33,11 +33,11 @@ CREATE TABLE juice_2 (
 ) STRICT;
 
 CREATE TABLE animal (
-    pk_animal       INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name            TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 2 AND LENGTH(name) <= 50),
-    gender          TEXT    NOT NULL             CHECK (gender = 'M' OR gender = 'F' OR gender = '-'),
-    species         TEXT    NOT NULL             CHECK (LENGTH(species) >= 4 AND LENGTH(species) <= 50),
-    age             INTEGER NOT NULL
+    pk_animal INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name      TEXT    NOT NULL UNIQUE      CHECK (LENGTH(name) >= 2 AND LENGTH(name) <= 50),
+    gender    TEXT    NOT NULL             CHECK (gender = 'M' OR gender = 'F' OR gender = '-'),
+    species   TEXT    NOT NULL             CHECK (LENGTH(species) >= 4 AND LENGTH(species) <= 50),
+    age       INTEGER NOT NULL
 ) STRICT;
 
 INSERT INTO animal (name, gender, species, age) VALUES ('mimosa'   , 'F', 'bos taurus'      , 4);
@@ -71,11 +71,11 @@ CREATE TABLE juice_2 (
 ) ENGINE = INNODB;
 
 CREATE TABLE animal (
-    pk_animal       INTEGER     NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name            VARCHAR(50) NOT NULL                UNIQUE,
-    gender          CHAR(1)     NOT NULL,
-    species         VARCHAR(50) NOT NULL,
-    age             INTEGER     NOT NULL,
+    pk_animal INTEGER     NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name      VARCHAR(50) NOT NULL                UNIQUE,
+    gender    CHAR(1)     NOT NULL,
+    species   VARCHAR(50) NOT NULL,
+    age       INTEGER     NOT NULL,
     CONSTRAINT name_min_size CHECK (LENGTH(name) >= 2),
     CONSTRAINT gener_domain  CHECK (gender = 'M' OR gender = 'F' OR gender = '-'),
     CONSTRAINT species_size  CHECK (LENGTH(species) >= 4)
@@ -92,11 +92,11 @@ DELETE FROM juice_2;
 DELETE FROM juice_1;
 DELETE FROM fruit;
 DROP TABLE IF EXISTS tree;
-ALTER TABLE fruit AUTO_INCREMENT = 1;
+ALTER TABLE fruit  AUTO_INCREMENT = 1;
 ALTER TABLE animal AUTO_INCREMENT = 1;
-INSERT INTO fruit (name) VALUES ('orange');
+INSERT INTO fruit (name) VALUES ('orange'    );
 INSERT INTO fruit (name) VALUES ('strawberry');
-INSERT INTO fruit (name) VALUES ('lemon');
+INSERT INTO fruit (name) VALUES ('lemon'     );
 INSERT INTO animal (name, gender, species, age) VALUES ('mimosa'   , 'F', 'bos taurus'      , 4);
 INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis familiaris', 6);
 INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
@@ -108,7 +108,7 @@ DELETE FROM juice_2;
 DELETE FROM juice_1;
 DELETE FROM fruit;
 DROP TABLE IF EXISTS tree;
-ALTER TABLE fruit AUTO_INCREMENT = 1;
+ALTER TABLE fruit  AUTO_INCREMENT = 1;
 ALTER TABLE animal AUTO_INCREMENT = 1;
 """
 
@@ -427,3 +427,35 @@ def test_foreign_key_constraint_on_delete_restrict(db: DbTestConfig) -> None:
         c.execute("SELECT a.pk_fruit FROM juice_2 a INNER JOIN fruit b ON a.pk_fruit = b.pk_fruit WHERE a.pk_fruit = 1")
         t: Sequence[tuple[Any, ...]] = c.fetchall()
         assert t == [(1, )]
+
+@applier(dbs, assert_db_ok)
+def test_lastrowid(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+
+    with conn as c:
+        assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
+        c.execute("INSERT INTO fruit (name) VALUES ('melon')")
+        assert c.lastrowid == 4
+        assert c.asserted_lastrowid == 4
+        c.commit()
+
+@applier(dbs, assert_db_ok)
+def test_lastrowid_none(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+
+    with conn as c:
+        assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
+        c.execute("SELECT pk_fruit FROM fruit WHERE pk_fruit = -1")
+        t: tuple[Any, ...] | None = c.fetchone()
+        assert t is None
+        assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
+
+@applier(dbs, assert_db_ok)
+def test_raw(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+
+    with conn as c:
+        rco: str = c.raw_connection.__class__.__name__
+        rcu: str = c.raw_cursor.__class__.__name__
+        assert "Connection" in rco
+        assert "Cursor" in rcu

@@ -5,8 +5,11 @@ from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, Sim
 from .trans import TransactedConnection
 from mysql.connector import connect as db_connect, IntegrityError
 from mysql.connector.connection import MySQLConnection
+from mysql.connector.connection_cext import CMySQLConnection
 from mysql.connector.cursor import MySQLCursor
+from mysql.connector.cursor_cext import CMySQLCursor
 from mysql.connector.errors import DataError
+from mysql.connector.types import CextEofPacketType, CextResultType
 from dataclasses import dataclass
 from validator import dataclass_validate
 
@@ -86,7 +89,7 @@ class ConnectionData:
 
     def connect(self) -> TransactedConnection:
         def make_connection() -> _MySQLConnectionWrapper:
-            return _MySQLConnectionWrapper(cast(MySQLConnection, db_connect( \
+            return _MySQLConnectionWrapper(cast(CMySQLConnection, db_connect( \
                 user = self.user, \
                 password = self.password, \
                 host = self.host, \
@@ -123,12 +126,26 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 
     return cast(_TRANS, inner)
 
+class _PatchMySQLCursor(CMySQLCursor):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+    @override
+    def _handle_result(self, result: CextEofPacketType | CextResultType) -> None:
+        self._last_insert_id = None # type: ignore
+        super()._handle_result(result)
+
+    @override
+    def reset(self, free: bool = True) -> None:
+        super().reset(free)
+        self._last_insert_id: int = None # type: ignore
+
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _MySQLConnectionWrapper(SimpleConnection):
 
-    def __init__(self, conn: MySQLConnection) -> None:
-        self.__conn: MySQLConnection = conn
-        self.__curr: MySQLCursor = conn.cursor()
+    def __init__(self, conn: CMySQLConnection) -> None:
+        self.__conn: CMySQLConnection = conn
+        self.__curr: CMySQLCursor = conn.cursor(cursor_class = _PatchMySQLCursor)
 
     @override
     def commit(self) -> None:
@@ -172,21 +189,11 @@ class _MySQLConnectionWrapper(SimpleConnection):
 
     @override
     def executescript(self, sql: str) -> Self:
-        x: Generator[MySQLCursor, None, None] | None = self.__curr.execute(sql, multi = True)
+        x: Generator[CMySQLCursor, None, None] | None = self.__curr.execute(sql, multi = True)
         if x is not None:
             for i in x:
                 pass
         return self
-
-    @property
-    @override
-    def arraysize(self) -> int:
-        return self.__curr.arraysize
-
-    @arraysize.setter
-    @override
-    def arraysize(self, size: int) -> None:
-        self.__curr.arraysize = size
 
     @property
     @override
@@ -215,10 +222,10 @@ class _MySQLConnectionWrapper(SimpleConnection):
 
     @property
     @override
-    def raw_connection(self) -> MySQLConnection:
+    def raw_connection(self) -> CMySQLConnection:
         return self.__conn
 
     @property
     @override
-    def raw_cursor(self) -> MySQLCursor:
+    def raw_cursor(self) -> CMySQLCursor:
         return self.__curr

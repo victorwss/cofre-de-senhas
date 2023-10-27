@@ -155,16 +155,6 @@ class TransactedConnection(SimpleConnection):
 
     @property
     @override
-    def arraysize(self) -> int:
-        return self.__wrapped.arraysize
-
-    @arraysize.setter
-    @override
-    def arraysize(self, size: int) -> None:
-        self.__wrapped.arraysize = size
-
-    @property
-    @override
     def rowcount(self) -> int:
         return self.__wrapped.rowcount
 
