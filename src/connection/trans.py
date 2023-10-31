@@ -183,5 +183,9 @@ class TransactedConnection(SimpleConnection):
         return self.__wrapped.raw_cursor
 
     @property
+    def wrapped(self) -> SimpleConnection:
+        return self.__wrapped
+
+    @property
     def placeholder(self) -> str:
         return self.__wrapped.placeholder

@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Iterator, Literal, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, Iterator, Literal, override, Self, Sequence, TypeVar
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
@@ -123,7 +123,7 @@ class Descriptor:
     def column_names(self) -> ColumnNames:
         return self.__column_names
 
-class SimpleConnection(ABC):
+class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
 
     @abstractmethod
     def commit(self) -> None:
@@ -149,13 +149,13 @@ class SimpleConnection(ABC):
     def fetchmany(self, size: int = 0) -> Sequence[tuple[RAW_DATA, ...]]:
         pass
 
-    def fetchone_dict(self) -> dict[str, Any] | None:
+    def fetchone_dict(self) -> dict[str, RAW_DATA] | None:
         return row_to_dict_opt(self.column_names, self.fetchone())
 
-    def fetchall_dict(self) -> list[dict[str, Any]]:
+    def fetchall_dict(self) -> list[dict[str, RAW_DATA]]:
         return rows_to_dicts(self.column_names, self.fetchall())
 
-    def fetchmany_dict(self, size: int = 0) -> list[dict[str, Any]]:
+    def fetchmany_dict(self, size: int = 0) -> list[dict[str, RAW_DATA]]:
         return rows_to_dicts(self.column_names, self.fetchmany(size))
 
     def fetchone_class(self, klass: type[_T]) -> _T | None:
@@ -217,14 +217,18 @@ class SimpleConnection(ABC):
         assert last is not None
         return last
 
-    def next(self) -> tuple[RAW_DATA, ...] | None:
-        return self.fetchone()
+    def next(self) -> tuple[RAW_DATA, ...]:
+        x: tuple[RAW_DATA, ...] | None = self.fetchone()
+        if x is None: raise StopIteration
+        return x
 
-    def __next__(self) -> tuple[RAW_DATA, ...] | None:
-        return self.fetchone()
+    @override
+    def __next__(self) -> tuple[RAW_DATA, ...]:
+        return self.next()
 
-    def __iter__(self) -> Iterator[tuple[RAW_DATA, ...] | None]:
-        yield self.fetchone()
+    @override
+    def __iter__(self) -> Iterator[tuple[RAW_DATA, ...]]:
+        return self
 
     @property
     @abstractmethod
@@ -240,6 +244,10 @@ class SimpleConnection(ABC):
     @abstractmethod
     def placeholder(self) -> str:
         pass
+
+    @property
+    def autocommit(self) -> Literal[False]:
+        return False
 
 class TransactionNotActiveException(Exception):
     pass
