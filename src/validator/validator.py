@@ -108,7 +108,9 @@ def _validate_typing_tuple(expected_type: GenericType, value: Any, globalns: Glo
     assert len(types2) == len(types)
 
     if len(tvalue) != len(types2):
-        return make_errors(f"must be an instance of {expected_type} with {len(types2)} element{'s' if len(types2) > 1 else ''}, but there {'are' if len(types2) > 1 else 'is'} {len(types2)} element{'s' if len(types2) > 1 else ''}")
+        s: str = "s" if len(types2) > 1 else ""
+        r: str = "are" if len(types2) > 1 else "is"
+        return make_errors(f"must be an instance of {expected_type} with {len(types2)} element{s}, but there {r} {len(types2)} element{s}")
 
     errors: list[ErrorSet] = _validate_join(types2, tvalue, globalns)
     return make_errors(errors)

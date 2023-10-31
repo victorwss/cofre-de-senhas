@@ -2,8 +2,7 @@ from typing import Any, Callable, cast, Literal, override, Self, Sequence, TypeV
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
-from safethreadlocal import SafeThreadLocal
-from threading import get_ident
+from threadlocal import ThreadLocal
 
 _T = TypeVar("_T")
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
@@ -12,8 +11,8 @@ class TransactedConnection(SimpleConnection):
 
     def __init__(self, activate: Callable[[], SimpleConnection]) -> None:
         self.__activate: Callable[[], SimpleConnection] = activate
-        self.__conn: SafeThreadLocal[SimpleConnection | None] = SafeThreadLocal(None)
-        self.__count: SafeThreadLocal[int] = SafeThreadLocal(0)
+        self.__conn: ThreadLocal[SimpleConnection | None] = ThreadLocal(None)
+        self.__count: ThreadLocal[int] = ThreadLocal(0)
 
     @property
     def reenter_count(self) -> int:

@@ -3,7 +3,7 @@ from threading import local
 
 _T = TypeVar("_T")
 
-class SafeThreadLocal(Generic[_T]):
+class ThreadLocal(Generic[_T]):
 
     def __init__(self, starting_value: _T) -> None:
         self.__empty: _T = starting_value

@@ -127,33 +127,27 @@ class SimpleConnection(ABC):
 
     @abstractmethod
     def commit(self) -> None:
-        """
-        """
+        pass
 
     @abstractmethod
     def rollback(self) -> None:
-        """
-        """
+        pass
 
     @abstractmethod
     def close(self) -> None:
-        """
-        """
+        pass
 
     @abstractmethod
     def fetchone(self) -> tuple[RAW_DATA, ...] | None:
-        """
-        """
+        pass
 
     @abstractmethod
     def fetchall(self) -> Sequence[tuple[RAW_DATA, ...]]:
-        """
-        """
+        pass
 
     @abstractmethod
     def fetchmany(self, size: int = 0) -> Sequence[tuple[RAW_DATA, ...]]:
-        """
-        """
+        pass
 
     def fetchone_dict(self) -> dict[str, Any] | None:
         return row_to_dict_opt(self.column_names, self.fetchone())
@@ -184,35 +178,29 @@ class SimpleConnection(ABC):
 
     @abstractmethod
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:
-        """
-        """
+        pass
 
     @abstractmethod
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:
-        """
-        """
+        pass
 
     @abstractmethod
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ...) -> Self:
-        """
-        """
+        pass
 
     @abstractmethod
     def executescript(self, sql: str) -> Self:
-        """
-        """
+        pass
 
     @property
     @abstractmethod
     def rowcount(self) -> int:
-        """
-        """
+        pass
 
     @property
     @abstractmethod
     def description(self) -> Descriptor:
-        """
-        """
+        pass
 
     @property
     def column_names(self) -> ColumnNames:
@@ -221,8 +209,7 @@ class SimpleConnection(ABC):
     @property
     @abstractmethod
     def lastrowid(self) -> int | None:
-        """
-        """
+        pass
 
     @property
     def asserted_lastrowid(self) -> int:
@@ -242,20 +229,17 @@ class SimpleConnection(ABC):
     @property
     @abstractmethod
     def raw_connection(self) -> object:
-        """
-        """
+        pass
 
     @property
     @abstractmethod
     def raw_cursor(self) -> object:
-        """
-        """
+        pass
 
     @property
     @abstractmethod
     def placeholder(self) -> str:
-        """
-        """
+        pass
 
 class TransactionNotActiveException(Exception):
     pass
