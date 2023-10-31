@@ -54,6 +54,11 @@ class TransactedConnection(SimpleConnection):
             exc_val : BaseException       | None, \
             exc_tb  : TracebackType       | None  \
     ) -> Literal[False]:
+        if self.__count.value == 1:
+            if exc_type is None:
+                self.commit()
+            else:
+                self.rollback()
         self.close()
         return False
 
@@ -61,17 +66,7 @@ class TransactedConnection(SimpleConnection):
         @wraps(operation)
         def transacted_operation(*args: Any, **kwargs: Any) -> Any:
             with self as xxx:
-                ok: bool = True
-                try:
-                    return operation(*args, **kwargs)
-                except BaseException as x:
-                    ok = False
-                    raise x
-                finally:
-                    if ok:
-                        self.commit()
-                    else:
-                        self.rollback()
+                return operation(*args, **kwargs)
         return cast(_TRANS, transacted_operation)
 
     def force_close(self) -> None:

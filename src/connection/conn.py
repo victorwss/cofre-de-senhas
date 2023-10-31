@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from validator import dataclass_validate
 from enum import Enum
 from .inflater import *
+from datetime import date, time, datetime
 
 _T = TypeVar("_T")
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
 
-RAW_DATA = str | int | float
+RAW_DATA = str | int | float | bool | None | date | time | datetime
 
 class UnsupportedOperationError(Exception):
     def __init__(self, message: str) -> None:
@@ -126,27 +127,33 @@ class SimpleConnection(ABC):
 
     @abstractmethod
     def commit(self) -> None:
-        ...
+        """
+        """
 
     @abstractmethod
     def rollback(self) -> None:
-        ...
+        """
+        """
 
     @abstractmethod
     def close(self) -> None:
-        ...
+        """
+        """
 
     @abstractmethod
     def fetchone(self) -> tuple[RAW_DATA, ...] | None:
-        ...
+        """
+        """
 
     @abstractmethod
     def fetchall(self) -> Sequence[tuple[RAW_DATA, ...]]:
-        ...
+        """
+        """
 
     @abstractmethod
     def fetchmany(self, size: int = 0) -> Sequence[tuple[RAW_DATA, ...]]:
-        ...
+        """
+        """
 
     def fetchone_dict(self) -> dict[str, Any] | None:
         return row_to_dict_opt(self.column_names, self.fetchone())
@@ -177,29 +184,35 @@ class SimpleConnection(ABC):
 
     @abstractmethod
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:
-        ...
+        """
+        """
 
     @abstractmethod
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:
-        ...
+        """
+        """
 
     @abstractmethod
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ...) -> Self:
-        ...
+        """
+        """
 
     @abstractmethod
     def executescript(self, sql: str) -> Self:
-        ...
+        """
+        """
 
     @property
     @abstractmethod
     def rowcount(self) -> int:
-        ...
+        """
+        """
 
     @property
     @abstractmethod
     def description(self) -> Descriptor:
-        ...
+        """
+        """
 
     @property
     def column_names(self) -> ColumnNames:
@@ -208,7 +221,8 @@ class SimpleConnection(ABC):
     @property
     @abstractmethod
     def lastrowid(self) -> int | None:
-        ...
+        """
+        """
 
     @property
     def asserted_lastrowid(self) -> int:
@@ -228,17 +242,20 @@ class SimpleConnection(ABC):
     @property
     @abstractmethod
     def raw_connection(self) -> object:
-        ...
+        """
+        """
 
     @property
     @abstractmethod
     def raw_cursor(self) -> object:
-        ...
+        """
+        """
 
     @property
     @abstractmethod
     def placeholder(self) -> str:
-        ...
+        """
+        """
 
 class TransactionNotActiveException(Exception):
     pass

@@ -19,22 +19,31 @@ class TypeValidationError(TypeError):
 
     def __init__(self, *args: Any, target: _U, errors: ErrorSet) -> None:
         super(TypeValidationError, self).__init__(*args)
-        self.class_: type[Any] = target.__class__
-        self.errors: ErrorSet = errors
+
+        cls: type[Any] = target.__class__
+        cls_name: str = f"{cls.__module__}.{cls.__name__}" if cls.__module__ != "__main__" else cls.__name__
+        attrs: str = ", ".join([repr(v) for v in self.args])
+
+        self.__error_class: type[Any] = cls
+        self.__errors: ErrorSet = errors
+        self.__r = f"{cls_name}({attrs}, errors={repr(errors)})"
+        self.__s = f"{cls_name} (errors = {errors})"
+
+    @property
+    def errors(self) -> ErrorSet:
+        return self.__errors
+
+    @property
+    def error_class(self) -> type[Any]:
+        return self.__error_class
 
     @override
     def __repr__(self) -> str:
-        cls: type[Any] = self.class_
-        cls_name: str = f"{cls.__module__}.{cls.__name__}" if cls.__module__ != "__main__" else cls.__name__
-        attrs: str = ", ".join([repr(v) for v in self.args])
-        return f"{cls_name}({attrs}, errors={repr(self.errors)})"
+        return self.__r
 
     @override
     def __str__(self) -> str:
-        cls: type[Any] = self.class_
-        cls_name: str = f"{cls.__module__}.{cls.__name__}" if cls.__module__ != "__main__" else cls.__name__
-        s: str = cls_name
-        return f"{s} (errors = {self.errors})"
+        return self.__s
 
 
 def _validate_simple_type(expected_type: type[Any], value: Any, globalns: GlobalNS_T) -> ErrorSet:

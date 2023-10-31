@@ -33,7 +33,8 @@ class ErrorSet(ABC):
 
     @abstractmethod
     def _list_all(self, fields: _FieldChain) -> list[str]:
-        pass
+        """
+        """
 
     @property
     def empty(self) -> bool:
@@ -96,10 +97,7 @@ def _make_dict_errors(what: dict[_SI, ErrorSet]) -> ErrorSet:
     return _ErrorSetDict(d2)
 
 
-def make_errors(what: list[ErrorSet] | dict[str, ErrorSet] | str | None = None) -> ErrorSet:
-
-    if what is None:
-        return no_error
+def make_errors(what: list[ErrorSet] | dict[str, ErrorSet] | str) -> ErrorSet:
 
     if isinstance(what, str):
         return _ErrorSetLeaf(what)
