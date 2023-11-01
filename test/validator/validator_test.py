@@ -347,6 +347,18 @@ def test_hasdict3_7() -> None:
     with raises(TypeValidationError):
         t1: HasDict3 = HasDict3({"bla": "xx", "gua": 3.9, "ta": "6"}) # type: ignore
 
+class SomeBadTyped(TypedDict):
+    bla: "aaaa" # type: ignore
+
+@dataclass_validate
+@dataclass(frozen = True)
+class HasDict4:
+    x1: SomeBadTyped
+
+def test_hasdict4_1() -> None:
+    with raises(TypeValidationError):
+        HasDict4({"bla": "xx"})
+
 @dataclass_validate
 @dataclass(frozen = True)
 class BadDict1:
@@ -707,6 +719,33 @@ def test_hassequence_6() -> None:
     with raises(TypeValidationError):
         HasSequence("xxx") # type: ignore
 
+def test_bad_list_1() -> None:
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class BadList1:
+        # Invalid type! Should always fail!
+        x1: list["compile error", "bad type"] # type: ignore
+    with raises(TypeValidationError):
+        BadList1("xxx") # type: ignore
+
+def test_bad_list_2() -> None:
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class BadList2:
+        # Invalid type! Should always fail!
+        x1: list[str, int] # type: ignore
+    with raises(TypeValidationError):
+        BadList2("xxx") # type: ignore
+
+def test_bad_list_3() -> None:
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class BadList3:
+        # Invalid type! Should always fail!
+        x1: list[...] # type: ignore
+    with raises(TypeValidationError):
+        BadList3("xxx") # type: ignore
+
 @dataclass_validate
 @dataclass(frozen = True)
 class HasCall1:
@@ -905,6 +944,18 @@ def test_hascall_7b() -> None:
 
     with raises(TypeValidationError):
         HasCall7(u)
+
+def test_hascall_8a() -> None:
+    def u(x: "do_not_exist") -> int: # type: ignore
+        return 5
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class HasCall8:
+        x1: Callable[["do_not_exist"], int] # type: ignore
+
+    with raises(TypeValidationError):
+        HasCall8(u)
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -1112,3 +1163,80 @@ def test_bad_crap() -> None:
         BadCrap(5, 7) # type: ignore
     with raises(TypeValidationError):
         BadCrap(3)
+
+def test_post_init() -> None:
+    z: HasPostInit1 | None = None
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class HasPostInit1:
+        x1: int
+
+        def __post_init__(self) -> None:
+            assert self.x1 == 1
+            nonlocal z
+            z = self
+
+    x: HasPostInit1 = HasPostInit1(1)
+    assert x is z
+
+def test_post_init_invalid() -> None:
+    z: HasPostInit2 | None = None
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class HasPostInit2:
+        x1: str
+
+        def __post_init__(self) -> None:
+            assert self.x1 == 1 # type: ignore
+            nonlocal z
+            z = self
+
+    with raises(TypeValidationError):
+        HasPostInit2(1) # type: ignore
+    assert z.x1 == 1 # type: ignore
+
+def test_post_validate() -> None:
+    z: HasPostInit3 | None = None
+    y: HasPostInit3 | None = None
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class HasPostInit3:
+        x1: int
+
+        def __post_init__(self) -> None:
+            assert self.x1 == 1
+            nonlocal z
+            z = self
+
+        def __post_type_validate__(self) -> None:
+            nonlocal z, y
+            assert z is self
+            assert y is None
+            y = self
+
+    x: HasPostInit3 = HasPostInit3(1)
+    assert x is z
+    assert y is z
+
+def test_post_validate_invalid() -> None:
+    z: HasPostInit4 | None = None
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class HasPostInit4:
+        x1: str
+
+        def __post_init__(self) -> None:
+            assert self.x1 == 1 # type: ignore
+            nonlocal z
+            z = self
+
+        def __post_type_validate__(self) -> None:
+            assert False
+
+    with raises(TypeValidationError):
+        HasPostInit4(1) # type: ignore
+    assert z.x1 == 1 # type: ignore

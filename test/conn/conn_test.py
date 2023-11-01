@@ -1,6 +1,6 @@
 import sqlite3
-from typing import Any, Callable, Sequence, TYPE_CHECKING
-from connection.conn import IntegrityViolationException, TransactionNotActiveException, UnsupportedOperationError
+from typing import Any, Callable, cast, Sequence, TYPE_CHECKING
+from connection.conn import RAW_DATA, IntegrityViolationException, TransactionNotActiveException, UnsupportedOperationError
 from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
@@ -130,6 +130,15 @@ class Fruit:
     pk_fruit: int
     name: str
 
+def foo(d: dict[str, RAW_DATA]) -> Fruit:
+    return Fruit(cast(int, d["pk_fruit"]) *  10, "x_" + cast(str, d["name"]))
+
+def boo(d: dict[str, RAW_DATA]) -> Fruit:
+    return Fruit(cast(int, d["pk_fruit"]) * 100, "y_" + cast(str, d["name"]))
+
+def noo(d: dict[str, RAW_DATA]) -> Fruit:
+    assert False
+
 @applier(dbs)
 def test_dbs(db: DbTestConfig) -> None:
     run_on_dbs.append(db)
@@ -145,7 +154,7 @@ def test_fetchone(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: tuple[Any, ...] | None = c.fetchone()
+        one: tuple[RAW_DATA, ...] | None = c.fetchone()
         assert one == (2, "strawberry")
 
 @applier(dbs, assert_db_ok)
@@ -153,7 +162,7 @@ def test_fetchone_none(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
-        one: tuple[Any, ...] | None = c.fetchone()
+        one: tuple[RAW_DATA, ...] | None = c.fetchone()
         assert one is None
 
 @applier(dbs, assert_db_ok)
@@ -161,7 +170,15 @@ def test_fetchall(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
+        assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
+
+@applier(dbs, assert_db_ok)
+def test_iter(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+    with conn as c:
+        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+        all: list[tuple[RAW_DATA, ...]] = [x for x in c]
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 @applier(dbs, assert_db_ok)
@@ -169,11 +186,11 @@ def test_fetchmany(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        p1: Sequence[tuple[Any, ...]] = c.fetchmany(2)
+        p1: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
         assert p1 == [(1, "orange"), (2, "strawberry")]
-        p2: Sequence[tuple[Any, ...]] = c.fetchmany(2)
+        p2: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
         assert p2 == [(3, "lemon")]
-        p3: Sequence[tuple[Any, ...]] = c.fetchmany(2)
+        p3: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
         assert p3 == []
 
 @applier(dbs, assert_db_ok)
@@ -181,7 +198,7 @@ def test_fetchone_dict(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: dict[str, Any] | None = c.fetchone_dict()
+        one: dict[str, RAW_DATA] | None = c.fetchone_dict()
         assert one == {"pk_fruit": 2, "name": "strawberry"}
 
 @applier(dbs, assert_db_ok)
@@ -189,7 +206,7 @@ def test_fetchone_dict_none(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
-        one: dict[str, Any] | None = c.fetchone_dict()
+        one: dict[str, RAW_DATA] | None = c.fetchone_dict()
         assert one is None
 
 @applier(dbs, assert_db_ok)
@@ -197,7 +214,7 @@ def test_fetchall_dict(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[dict[str, Any]] = c.fetchall_dict()
+        all: Sequence[dict[str, RAW_DATA]] = c.fetchall_dict()
         assert all == [{"pk_fruit": 1, "name": "orange"}, {"pk_fruit": 2, "name": "strawberry"}, {"pk_fruit": 3, "name": "lemon"}]
 
 @applier(dbs, assert_db_ok)
@@ -205,11 +222,11 @@ def test_fetchmany_dict(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        p1: Sequence[dict[str, Any]] = c.fetchmany_dict(2)
+        p1: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
         assert p1 == [{"pk_fruit": 1, "name": "orange"}, {"pk_fruit": 2, "name": "strawberry"}]
-        p2: Sequence[dict[str, Any]] = c.fetchmany_dict(2)
+        p2: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
         assert p2 == [{"pk_fruit": 3, "name": "lemon"}]
-        p3: Sequence[dict[str, Any]] = c.fetchmany_dict(2)
+        p3: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
         assert p3 == []
 
 @applier(dbs, assert_db_ok)
@@ -250,9 +267,6 @@ def test_fetchmany_class(db: DbTestConfig) -> None:
 
 @applier(dbs, assert_db_ok)
 def test_fetchone_class_lambda(db: DbTestConfig) -> None:
-    def foo(d: dict[str, Any]) -> Fruit:
-        return Fruit(d["pk_fruit"] * 10, "x_" + d["name"])
-
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
@@ -261,9 +275,6 @@ def test_fetchone_class_lambda(db: DbTestConfig) -> None:
 
 @applier(dbs, assert_db_ok)
 def test_fetchone_class_lambda_none(db: DbTestConfig) -> None:
-    def noo(d: dict[str, Any]) -> Fruit:
-        assert False
-
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
@@ -272,9 +283,6 @@ def test_fetchone_class_lambda_none(db: DbTestConfig) -> None:
 
 @applier(dbs, assert_db_ok)
 def test_fetchall_class_lambda(db: DbTestConfig) -> None:
-    def foo(d: dict[str, Any]) -> Fruit:
-        return Fruit(d["pk_fruit"] * 10, "x_" + d["name"])
-
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
@@ -283,15 +291,6 @@ def test_fetchall_class_lambda(db: DbTestConfig) -> None:
 
 @applier(dbs, assert_db_ok)
 def test_fetchmany_class_lambda(db: DbTestConfig) -> None:
-    def foo(d: dict[str, Any]) -> Fruit:
-        return Fruit(d["pk_fruit"] * 10, "x_" + d["name"])
-
-    def boo(d: dict[str, Any]) -> Fruit:
-        return Fruit(d["pk_fruit"] * 100, "y_" + d["name"])
-
-    def noo(d: dict[str, Any]) -> Fruit:
-        assert False
-
     conn: TransactedConnection = db.conn
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
@@ -313,7 +312,7 @@ def test_execute_insert(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_animal, name, gender, species, age FROM animal ORDER BY pk_animal")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [ \
             (1, "mimosa"   , "F", "bos taurus"      ,  4), \
             (2, "rex"      , "M", "canis familiaris",  6), \
@@ -326,7 +325,7 @@ def test_executemany(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
     with conn as c:
-        data: list[list[Any]] = [ \
+        data: list[list[RAW_DATA]] = [ \
             ["bozo"     , "M", "bos taurus"    , 65], \
             ["1000xeks" , "F", "bos taurus"    , 42], \
             ["sheik edu", "M", "musa acuminata", 36]  \
@@ -337,7 +336,7 @@ def test_executemany(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_animal, name, gender, species, age FROM animal ORDER BY pk_animal")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [ \
             (1, "mimosa"   , "F", "bos taurus"      ,  4), \
             (2, "rex"      , "M", "canis familiaris",  6), \
@@ -391,7 +390,7 @@ def test_executescript(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_tree, name FROM tree ORDER BY pk_tree")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [ \
             (1, "acacia"), \
             (2, "ginkgo")  \
@@ -406,7 +405,7 @@ def test_implicit_commit(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 @applier(dbs, assert_db_ok)
@@ -419,7 +418,7 @@ def test_explicit_rollback(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 @applier(dbs, assert_db_ok)
@@ -436,7 +435,7 @@ def test_implicit_rollback(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 @applier(dbs, assert_db_ok)
@@ -450,7 +449,7 @@ def test_transact_1(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 @applier(dbs, assert_db_ok)
@@ -465,7 +464,7 @@ def test_transact_2(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 @applier(dbs, assert_db_ok)
@@ -482,7 +481,7 @@ def test_transact_rollback(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[Any, ...]] = c.fetchall()
+        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 @applier(dbs, assert_db_ok)
@@ -528,7 +527,7 @@ def test_foreign_key_constraint_on_update_cascade(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit FROM juice_1 ORDER BY pk_fruit")
-        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        t: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert t == [(777, )]
 
 @applier(dbs, assert_db_ok)
@@ -543,7 +542,7 @@ def test_foreign_key_constraint_on_delete_cascade(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit FROM juice_1 WHERE pk_fruit = 1")
-        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        t: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert t == []
 
 @applier(dbs, assert_db_ok)
@@ -559,7 +558,7 @@ def test_foreign_key_constraint_on_update_restrict(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT pk_fruit FROM juice_2")
-        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        t: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert t == [(1, )]
 
 @applier(dbs, assert_db_ok)
@@ -575,7 +574,7 @@ def test_foreign_key_constraint_on_delete_restrict(db: DbTestConfig) -> None:
 
     with conn as c:
         c.execute("SELECT a.pk_fruit FROM juice_2 a INNER JOIN fruit b ON a.pk_fruit = b.pk_fruit WHERE a.pk_fruit = 1")
-        t: Sequence[tuple[Any, ...]] = c.fetchall()
+        t: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert t == [(1, )]
 
 @applier(dbs, assert_db_ok)
@@ -595,7 +594,7 @@ def test_lastrowid_none(db: DbTestConfig) -> None:
     with conn as c:
         assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
         c.execute("SELECT pk_fruit FROM fruit WHERE pk_fruit = -1")
-        t: tuple[Any, ...] | None = c.fetchone()
+        t: tuple[RAW_DATA, ...] | None = c.fetchone()
         assert t is None
         assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
 
@@ -643,5 +642,14 @@ def test_transaction_nesting_inheritance(db: DbTestConfig) -> None:
         with conn as c2:
             c2.execute("INSERT INTO fruit (name) VALUES ('melon')")
         c1.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 4")
-        t: tuple[Any, ...] | None = c1.fetchone()
+        t: tuple[RAW_DATA, ...] | None = c1.fetchone()
         assert t == (4, "melon")
+
+@applier(dbs, assert_db_ok)
+def test_autocommit(db: DbTestConfig) -> None:
+    conn: TransactedConnection = db.conn
+    assert not conn.autocommit
+    with conn as c:
+        assert not conn.wrapped.autocommit
+        assert conn.raw_connection.autocommit in [False, -1]         # type: ignore
+        assert conn.wrapped.raw_connection.autocommit in [False, -1] # type: ignore

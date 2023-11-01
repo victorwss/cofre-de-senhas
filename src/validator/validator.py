@@ -120,7 +120,12 @@ def _validate_typing_typed_dict(expected_type: TypedDictType, value: Any, global
     if not isinstance(value, dict):
         return make_errors(f"must be an instance of TypedDict, but received {type(value)}")
 
-    fields: dict[str, type] = get_type_hints(expected_type)
+    fields: dict[str, type]
+    try:
+        fields = get_type_hints(expected_type)
+    except NameError as xxx:
+        return make_errors(f"{xxx.name} couldn't be understood in {expected_type}")
+
     errors: dict[str, ErrorSet] = {}
 
     common_fields    : set[str] = set(fields.keys()).intersection(set(value .keys()))
@@ -128,10 +133,10 @@ def _validate_typing_typed_dict(expected_type: TypedDictType, value: Any, global
     unexpected_fields: set[str] = set(value .keys()).difference  (set(fields.keys()))
 
     for f in missing_fields:
-        errors[f] = make_errors(f"field is missing in {expected_type}")
+        errors[f] = make_errors(f"field {f} is missing in {expected_type}")
 
     for f in unexpected_fields:
-        errors[f] = make_errors(f"field is unexpected in {expected_type}")
+        errors[f] = make_errors(f"field {f} is unexpected in {expected_type}")
 
     for f in common_fields:
         errors[f] = _validate_types(fields[f], value[f], globalns)
@@ -407,9 +412,10 @@ def _dataclass_full_validate(cls: type[_U]) -> type[_U]:
     def method_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         x = orig_method(self, *args, **kwargs)
         dataclass_type_validator(self)
-        if call_post_type_validate: self.__post_type_validate__()
+        if call_post_type_validate:
+            self.__post_type_validate__()
         return x
 
-    setattr(cls, "__init__", method_wrapper)
+    setattr(cls, wrapped_method_name, method_wrapper)
 
     return cls
