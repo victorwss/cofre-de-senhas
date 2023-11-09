@@ -1,4 +1,5 @@
-from typing import Any, Callable, cast, override, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, override, Self, Sequence
+from typing import TypeVar # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
@@ -27,8 +28,9 @@ class ConnectionData:
 def connect(file: str) -> TransactedConnection:
     return ConnectionData.create(file_name = file).connect()
 
-_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
 
+#def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
 def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 
     @wraps(operation)

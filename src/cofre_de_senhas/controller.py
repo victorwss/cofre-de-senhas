@@ -1,4 +1,4 @@
-from typing import Any, cast, override, TypeVar
+from typing import Any, cast, override
 from flask import Flask, jsonify, redirect, request, session, url_for
 from werkzeug import Response
 from cofre_de_senhas.httpwrap import *

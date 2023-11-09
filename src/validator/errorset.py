@@ -1,10 +1,11 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Generic, override, TypeVar
+from typing import override
+from typing import Generic, TypeVar # Delete when PEP 695 is ready.
 
 
-_SI = TypeVar("_SI", bound = int | str)
-_X = TypeVar("_X")
+_SI = TypeVar("_SI", bound = str | int) # Delete when PEP 695 is ready.
+_X = TypeVar("_X") # Delete when PEP 695 is ready.
 
 
 @dataclasses.dataclass
@@ -51,7 +52,9 @@ class _ErrorSetLeaf(ErrorSet):
 
 
 @dataclasses.dataclass
+#class _ErrorSetDict[SI: str | int](ErrorSet, Generic[SI]): # PEP 695
 class _ErrorSetDict(ErrorSet, Generic[_SI]):
+    #errors: dict[SI, ErrorSet]
     errors: dict[_SI, ErrorSet]
 
     @override
@@ -73,6 +76,7 @@ class _ErrorSetEmpty(ErrorSet):
         return True
 
 
+#def _flatten[X](data: list[list[X]]) -> list[X]: # PEP 695
 def _flatten(data: list[list[_X]]) -> list[_X]:
     d: list[_X] = []
     for p in data:
@@ -80,14 +84,17 @@ def _flatten(data: list[list[_X]]) -> list[_X]:
     return d
 
 
+#def _as_dict[X](what: list[X]) -> dict[int, X]: # PEP 695
 def _as_dict(what: list[_X]) -> dict[int, _X]:
     return {i: what[i] for i in range(0, len(what))}
 
 
+#def _thou_shalt_not_pass[X](pair: tuple[X, ErrorSet]) -> bool: # PEP 695
 def _thou_shalt_not_pass(pair: tuple[_X, ErrorSet]) -> bool:
     return not pair[1].empty
 
 
+#def _make_dict_errors[SI: str | int](what: dict[SI, ErrorSet]) -> ErrorSet: # PEP 695
 def _make_dict_errors(what: dict[_SI, ErrorSet]) -> ErrorSet:
     d2: dict[_SI, ErrorSet] = dict(filter(_thou_shalt_not_pass, what.items()))
 

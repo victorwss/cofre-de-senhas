@@ -1,11 +1,12 @@
-from typing import Any, Callable, cast, TypeVar
+from typing import Any, Callable, cast
+from typing import TypeVar # Delete when PEP 695 is ready.
 from functools import wraps
 from dataclasses import dataclass
 from validator import dataclass_validate
 
 __all__ = ["Call", "Logger"]
 
-_FuncT = TypeVar("_FuncT", bound = Callable[..., Any])
+_FuncT = TypeVar("_FuncT", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -21,6 +22,7 @@ class Logger:
     on_return: Callable[[Call, Any          ], None]
     on_raise : Callable[[Call, BaseException], None]
 
+    #def trace[F: Callable[..., Any]](self, func: _FuncT) -> _FuncT: # PEP 695
     def trace(self, func: _FuncT) -> _FuncT:
         @wraps(func)
         def wrapped(*args: Any, **kwargs: Any) -> Any:

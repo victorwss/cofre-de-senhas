@@ -1,6 +1,7 @@
 import requests
 import hashlib
-from typing import Any, override, TypeVar
+from typing import Any, override
+from typing import TypeVar # Delete when PEP 695 is ready.
 from dacite import Config, from_dict
 from enum import Enum
 from decorators.for_all import for_all_methods
@@ -11,7 +12,7 @@ from cofre_de_senhas.service import *
 from .sucesso import *
 from .erro import *
 
-_X = TypeVar("_X")
+_X = TypeVar("_X") # Delete when PEP 695 is ready.
 
 class _ErroDesconhecido(Exception):
     def __init__(self, dados: Any):
@@ -23,26 +24,36 @@ class _Requester:
         self.__base_url: str = "http://127.0.0.1:5000"
         self.__cookies: dict[str, str] = {}
 
+    #def get[X](self, path: str, t: type[X]) -> X: # PEP 695
     def get(self, path: str, t: type[_X]) -> _X:
         r: Response = requests.get(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
+    #def post[X](self, path: str, json: Any, t: type[X]) -> X: # PEP 695
     def post(self, path: str, json: Any, t: type[_X]) -> _X:
         r: Response = requests.post(self.__base_url + path, json = json, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
+    #def put[X](self, path: str, json: Any, t: type[X]) -> X: # PEP 695
     def put(self, path: str, json: Any, t: type[_X]) -> _X:
         r: Response = requests.put(self.__base_url + path, json = json, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
+    #def delete[X](self, path: str, t: type[X]) -> X: # PEP 695
     def delete(self, path: str, t: type[_X]) -> _X:
         r: Response = requests.delete(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
+    #def move[X](self, path: str, to: str, overwrite: bool, t: type[X]) -> X: # PEP 695
     def move(self, path: str, to: str, overwrite: bool, t: type[_X]) -> _X:
-        r: Response = requests.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = {"Destination": to, "Overwrite": "T" if overwrite else "F"})
+        h: dict[str, str] = {
+            "Destination": to,
+            "Overwrite": "T" if overwrite else "F"
+        }
+        r: Response = requests.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = h)
         return self.__unwrap(r, t)
 
+    #def __unwrap[X](self, r: Response, t: type[X]) -> X: # PEP 695
     def __unwrap(self, r: Response, t: type[_X]) -> _X:
         self.__cookies = dict(r.cookies)
         j: Any

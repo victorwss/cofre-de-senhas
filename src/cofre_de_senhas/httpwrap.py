@@ -1,4 +1,5 @@
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable
+from typing import TypeVar # Delete when PEP 695 is ready.
 from flask import jsonify, request
 from flask.wrappers import Response
 from functools import wraps
@@ -61,8 +62,9 @@ def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart:
 
     raise ConteudoNaoReconhecidoException()
 
-_T = TypeVar("_T")
+_T = TypeVar("_T") # Delete when PEP 695 is ready.
 
+#def read_body[T](target: type[T], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> T: # PEP 695
 def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> _T:
     """
     Lê o corpo da requisição. O corpo é interpretado primeiramente como um dicionário. Em seguida, a partir desse dicionário (graças à função from_dict), uma instância de uma dataclass é criada.

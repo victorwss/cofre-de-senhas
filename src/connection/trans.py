@@ -1,11 +1,12 @@
-from typing import Any, Callable, cast, Literal, override, Self, Sequence, TypeVar
+from typing import Any, Callable, cast, Literal, override, Self, Sequence
+from typing import TypeVar # Delete when PEP 695 is ready.
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
 from threadlocal import ThreadLocal
 
-_T = TypeVar("_T")
-_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])
+_T = TypeVar("_T") # Delete when PEP 695 is ready.
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
 
 class TransactedConnection(SimpleConnection):
 
@@ -61,6 +62,7 @@ class TransactedConnection(SimpleConnection):
         self.close()
         return False
 
+    #def transact[T: Callable[..., Any]](self, operation: T) -> T: # PEP 695
     def transact(self, operation: _TRANS) -> _TRANS:
         @wraps(operation)
         def transacted_operation(*args: Any, **kwargs: Any) -> Any:
@@ -124,26 +126,32 @@ class TransactedConnection(SimpleConnection):
         return self.__wrapped.fetchmany_dict(size)
 
     @override
+    #def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
     def fetchone_class(self, klass: type[_T]) -> _T | None:
         return self.__wrapped.fetchone_class(klass)
 
     @override
+    #def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
         return self.__wrapped.fetchall_class(klass)
 
     @override
+    #def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
     @override
+    #def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         return self.__wrapped.fetchone_class_lambda(ctor)
 
     @override
+    #def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         return self.__wrapped.fetchall_class_lambda(ctor)
 
     @override
+    #def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class_lambda(ctor, size)
 
