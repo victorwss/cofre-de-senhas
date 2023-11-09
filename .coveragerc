@@ -1,0 +1,6 @@
+[report]
+exclude_lines =
+    @abstractmethod
+    @abc.abstractmethod
+    def __repr__
+    pragma: no cover
