@@ -6,18 +6,19 @@ import dataclasses
 from abc import ABC, abstractmethod
 from .typezoo import *
 from .errorset import *
-from typing import Any, Callable, cast, ForwardRef, Generic, get_type_hints, Iterable, override, TypeVar
+from typing import Any, Callable, cast, ForwardRef, get_type_hints, Iterable, overload, override
+from typing import TypeVar # Delete when PEP 695 is ready.
 
 
-GlobalNS_T = dict[str, Any]
-_U = TypeVar("_U")
+NS_T = dict[str, Any]
+_U = TypeVar("_U") # Delete when PEP 695 is ready.
 
 
 class TypeValidationError(TypeError):
     """Exception raised on type validation errors.
     """
 
-    def __init__(self, *args: Any, target: _U, errors: ErrorSet) -> None:
+    def __init__(self, *args: Any, target: Any, errors: ErrorSet) -> None:
         super(TypeValidationError, self).__init__(*args)
 
         cls: type[Any] = target.__class__
@@ -46,13 +47,13 @@ class TypeValidationError(TypeError):
         return self.__s
 
 
-def _validate_simple_type(expected_type: type[Any], value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_simple_type(expected_type: type[Any], value: Any, globalns: NS_T) -> ErrorSet:
     if expected_type is Any or isinstance(value, expected_type):
         return no_error
     return make_errors(f"must be an instance of type {expected_type}, but received {type(value)}")
 
 
-def _validate_typing_iterable(expected_type: GenericType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_typing_iterable(expected_type: GenericType, value: Any, globalns: NS_T) -> ErrorSet:
     if len(expected_type.__args__) != 1:
         return make_errors(f"bad parameters for {expected_type}")
 
@@ -65,6 +66,7 @@ def _validate_typing_iterable(expected_type: GenericType, value: Any, globalns: 
     return make_errors([_validate_types(expected_item_type, v, globalns) for v in value])
 
 
+#def _item_multiply[U](element: U, times: int) -> list[U]: # PEP 695
 def _item_multiply(element: _U, times: int) -> list[_U]:
     return [element for x in range(0, times)]
 
@@ -85,11 +87,11 @@ def _split_valids(entering: list[type[Any] | ErrorSet]) -> list[type[Any]]:
     return [t for t in entering if not isinstance(t, ErrorSet) and not isinstance(t, EllipsisType)]
 
 
-def _validate_join(types2: list[type[Any]], tvalue: tuple[Any, ...], globalns: GlobalNS_T) -> list[ErrorSet]:
+def _validate_join(types2: list[type[Any]], tvalue: tuple[Any, ...], globalns: NS_T) -> list[ErrorSet]:
     return [_validate_types(types2[k], tvalue[k], globalns) for k in range(0, len(types2))]
 
 
-def _validate_typing_tuple(expected_type: GenericType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_typing_tuple(expected_type: GenericType, value: Any, globalns: NS_T) -> ErrorSet:
     if not isinstance(value, tuple):
         return make_errors(f"must be an instance of tuple, but received {type(value)}")
 
@@ -116,7 +118,7 @@ def _validate_typing_tuple(expected_type: GenericType, value: Any, globalns: Glo
     return make_errors(errors)
 
 
-def _validate_typing_typed_dict(expected_type: TypedDictType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_typing_typed_dict(expected_type: TypedDictType, value: Any, globalns: NS_T) -> ErrorSet:
     if not isinstance(value, dict):
         return make_errors(f"must be an instance of TypedDict, but received {type(value)}")
 
@@ -144,7 +146,7 @@ def _validate_typing_typed_dict(expected_type: TypedDictType, value: Any, global
     return make_errors(errors)
 
 
-def _validate_typing_dict(expected_type: GenericType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_typing_dict(expected_type: GenericType, value: Any, globalns: NS_T) -> ErrorSet:
     if len(expected_type.__args__) != 2:
         return make_errors(f"bad parameters for {expected_type}")
 
@@ -200,8 +202,8 @@ def _validate_parameters(names: list[str], reals: list[type[Any]], formals: list
     return make_errors(errors)
 
 
-def _validate_typing_callable(expected_type: CallableTypeFormal, value: Any, globalns: GlobalNS_T) -> ErrorSet:
-    if not isinstance(value, CallableTypeReal1) and not isinstance(value, CallableTypeReal2):
+def _validate_typing_callable(expected_type: CallableTypeFormal, value: Any, globalns: NS_T) -> ErrorSet:
+    if not isinstance(value, CallableTypeRealUserDefined) and not isinstance(value, CallableTypeRealBuiltIn):
         return make_errors(f"must be an instance of {expected_type.__str__()}, but received {type(value)}")
 
     names  : list[str]                   = list(value.__annotations__.keys())
@@ -234,13 +236,13 @@ def _validate_typing_callable(expected_type: CallableTypeFormal, value: Any, glo
     return _validate_parameters(names, reals2, formals2, is_ellipsis)
 
 
-def _validate_typing_literal(expected_type: LiteralType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_typing_literal(expected_type: LiteralType, value: Any, globalns: NS_T) -> ErrorSet:
     if value in expected_type.__args__:
         return no_error
     return make_errors(f"must be one of [{', '.join([x.__str__() for x in expected_type.__args__])}] but received {value}")
 
 
-def _validate_union_types(expected_type: UnionType | OptionalType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_union_types(expected_type: UnionType | OptionalType, value: Any, globalns: NS_T) -> ErrorSet:
     is_valid: bool = any(_validate_types(t, value, globalns).empty for t in expected_type.__args__)
     if not is_valid:
         return make_errors(f"must be an instance of {expected_type}, but received {value}")
@@ -251,7 +253,7 @@ _dict_values: type = type({}.values())
 _dict_keys  : type = type({}.keys())
 
 
-_validate_typing_mappings: dict[type, Callable[[GenericType, Any, GlobalNS_T], ErrorSet]] = {
+_validate_typing_mappings: dict[type, Callable[[GenericType, Any, NS_T], ErrorSet]] = {
     tuple                   : _validate_typing_tuple,
     dict                    : _validate_typing_dict,
     list                    : _validate_typing_iterable,
@@ -264,8 +266,8 @@ _validate_typing_mappings: dict[type, Callable[[GenericType, Any, GlobalNS_T], E
 }
 
 
-def _validate_generic_type(expected_type: GenericType, value: Any, globalns: GlobalNS_T) -> ErrorSet:
-    c: Callable[[GenericType, Any, GlobalNS_T], ErrorSet] = _validate_typing_mappings.get(expected_type.__origin__, _validate_simple_type)
+def _validate_generic_type(expected_type: GenericType, value: Any, globalns: NS_T) -> ErrorSet:
+    c: Callable[[GenericType, Any, NS_T], ErrorSet] = _validate_typing_mappings.get(expected_type.__origin__, _validate_simple_type)
     return c(expected_type, value, globalns)
 
 
@@ -273,10 +275,12 @@ class _TypeMapper:
     def __init__(self) -> None:
         self.__mappeds: dict[Any, Callable[..., ErrorSet]] = {}
 
-    def put(self, key: type[_U], value: Callable[[_U, Any, GlobalNS_T], ErrorSet]) -> None:
+    #def put[U](self, key: type[U], value: Callable[[U, Any, NS_T], ErrorSet]) -> None: # PEP 695
+    def put(self, key: type[_U], value: Callable[[_U, Any, NS_T], ErrorSet]) -> None:
         self.__mappeds[key] = value
 
-    def call(self, key: type[_U], value: Any, globalns: GlobalNS_T) -> ErrorSet:
+    #def call[U](self, key: type[U], value: Any, globalns: NS_T) -> ErrorSet: # PEP 695
+    def call(self, key: type[_U], value: Any, globalns: NS_T) -> ErrorSet:
         return self.__mappeds.get(type(key), _validate_simple_type)(key, value, globalns)
 
 
@@ -289,7 +293,7 @@ _TM.put(CallableTypeFormal, _validate_typing_callable  )
 _TM.put(GenericType       , _validate_generic_type     )
 
 
-def _type_resolve(expected_type: TT1 | TT2, globalns: GlobalNS_T) -> TT2 | ErrorSet:
+def _type_resolve(expected_type: TT1 | TT2, globalns: NS_T) -> TT2 | ErrorSet:
     reworked_type: Any = expected_type
 
     if type(expected_type) is str or isinstance(reworked_type, ForwardRef):
@@ -313,15 +317,15 @@ def _type_resolve(expected_type: TT1 | TT2, globalns: GlobalNS_T) -> TT2 | Error
     return cast(TT2, reworked_type)
 
 
-def _type_resolve_all(types: Iterable[TT1 | TT2], globalns: GlobalNS_T) -> list[TT2 | ErrorSet]:
+def _type_resolve_all(types: Iterable[TT1 | TT2], globalns: NS_T) -> list[TT2 | ErrorSet]:
     return [_type_resolve(x, globalns) for x in types]
 
 
-def _reduce_alias(alias: GenericAlias, globalns: GlobalNS_T) -> type[Any] | ErrorSet:
+def _reduce_alias(alias: GenericAlias, globalns: NS_T) -> type[Any] | ErrorSet:
     origin: type = alias.__origin__
     module: str = origin.__module__
     short_name: str = origin.__name__
-    new_globalns: GlobalNS_T = globalns
+    new_globalns: NS_T = globalns
 
     full_name: str
     if module == "builtins":
@@ -349,7 +353,7 @@ def _reduce_alias(alias: GenericAlias, globalns: GlobalNS_T) -> type[Any] | Erro
     return _evaluate_forward_reference(ForwardRef(new_name), new_globalns)
 
 
-def _validate_types(expected_type: TT1 | TT2, value: Any, globalns: GlobalNS_T) -> ErrorSet:
+def _validate_types(expected_type: TT1 | TT2, value: Any, globalns: NS_T) -> ErrorSet:
     reworked_type: TT2 | ErrorSet = _type_resolve(expected_type, globalns)
     if reworked_type is EllipsisType:
         return bad_ellipsis
@@ -358,8 +362,7 @@ def _validate_types(expected_type: TT1 | TT2, value: Any, globalns: GlobalNS_T) 
     return _TM.call(reworked_type, value, globalns)
 
 
-def _evaluate_forward_reference(ref_type: ForwardRef | str, globalns: GlobalNS_T) -> type[Any] | ErrorSet:
-    """ Support evaluating ForwardRef types on both Python 3.8 and 3.9. """
+def _evaluate_forward_reference(ref_type: ForwardRef | str, globalns: NS_T) -> type[Any] | ErrorSet:
     try:
         if isinstance(ref_type, str):
             ref_type = ForwardRef(ref_type)
@@ -368,9 +371,11 @@ def _evaluate_forward_reference(ref_type: ForwardRef | str, globalns: GlobalNS_T
         return make_errors(f'Could not evaluate "{ref_type}" as a valid type')
 
 
-def dataclass_type_validator(target: Any) -> None:
+def dataclass_type_validator(target: Any, localns: NS_T | None) -> None:
     fields: tuple[dataclasses.Field[Any], ...] = dataclasses.fields(target)
-    globalns: GlobalNS_T = sys.modules[target.__module__].__dict__.copy()
+    globalns: NS_T = sys.modules[target.__module__].__dict__.copy()
+    if localns is not None:
+        globalns.update(localns)
 
     errors: dict[str, ErrorSet] = {}
     for field in fields:
@@ -384,17 +389,30 @@ def dataclass_type_validator(target: Any) -> None:
         raise TypeValidationError("Dataclass Type Validation Error", target = target, errors = es)
 
 
-def dataclass_validate(cls: type[_U] | None = None) -> type[_U] | Callable[[type[_U]], type[_U]]:
+#def dataclass_validate[U](localns: NS_T | None = None, cls: type[U] | None = None) -> type[U] | Callable[[type[U]], type[U]]: # PEP 695
+def dataclass_validate_local(localns: NS_T) -> Callable[[type[_U]], type[_U]]:
     """Dataclass decorator to automatically add validation to a dataclass.
     So you don't have to add a __post_init__ method, or if you have one, you don't have
     to remember to add the dataclass_type_validator(self) call to it; just decorate your
     dataclass with this instead.
     """
-    if cls is None: return _dataclass_full_validate
-    return _dataclass_full_validate(cls)
+    def x(cls: type[_U]) -> type[_U]:
+        return _dataclass_full_validate(cls, localns)
+    return x
 
 
-def _dataclass_full_validate(cls: type[_U]) -> type[_U]:
+#def dataclass_validate[U](cls: type[U]) -> type[U]: # PEP 695
+def dataclass_validate(cls: type[_U]) -> type[_U]:
+    """Dataclass decorator to automatically add validation to a dataclass.
+    So you don't have to add a __post_init__ method, or if you have one, you don't have
+    to remember to add the dataclass_type_validator(self) call to it; just decorate your
+    dataclass with this instead.
+    """
+    return _dataclass_full_validate(cls, {})
+
+
+#def _dataclass_full_validate[U](cls: type[U]) -> type[U]: # PEP 695
+def _dataclass_full_validate(cls: type[_U], localns: NS_T) -> type[_U]:
 
     if not hasattr(cls, "__post_init__"):
         # No post-init method, so no processing.  Wrap the constructor instead.
@@ -411,7 +429,7 @@ def _dataclass_full_validate(cls: type[_U]) -> type[_U]:
     @functools.wraps(orig_method)
     def method_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         x = orig_method(self, *args, **kwargs)
-        dataclass_type_validator(self)
+        dataclass_type_validator(self, localns)
         if call_post_type_validate:
             self.__post_type_validate__()
         return x

@@ -1,4 +1,4 @@
-from validator import TypeValidationError, dataclass_validate
+from validator import TypeValidationError, dataclass_validate, dataclass_validate_local
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Sequence, Set, Tuple, TypedDict
 from pytest import raises
@@ -1240,3 +1240,126 @@ def test_post_validate_invalid() -> None:
     with raises(TypeValidationError):
         HasPostInit4(1) # type: ignore
     assert z.x1 == 1 # type: ignore
+
+def test_non_local_1() -> None:
+
+    import uuid
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal1:
+        x1: uuid.UUID
+
+    x: uuid.UUID = uuid.UUID("12345678123456781234567812345678")
+    y: NonLocal1 = NonLocal1(x)
+    assert y.x1 is x
+
+def test_non_local_2a() -> None:
+
+    import uuid
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal2:
+        x1: "uuid.UUID"
+
+    x: uuid.UUID = uuid.UUID("12345678123456781234567812345678")
+    with raises(TypeValidationError):
+        y: NonLocal2 = NonLocal2(x)
+
+def test_non_local_2b() -> None:
+
+    import uuid
+
+    @dataclass_validate_local(locals())
+    @dataclass(frozen = True)
+    class NonLocal2:
+        x1: "uuid.UUID"
+
+    x: uuid.UUID = uuid.UUID("12345678123456781234567812345678")
+    y: NonLocal2 = NonLocal2(x)
+    assert y.x1 is x
+
+def test_non_local_3() -> None:
+
+    from uuid import UUID as Sbrubbles
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal3:
+        x1: Sbrubbles
+
+    x: Sbrubbles = Sbrubbles("12345678123456781234567812345678")
+    y: NonLocal3 = NonLocal3(x)
+    assert y.x1 is x
+
+def test_non_local_4a() -> None:
+
+    from uuid import UUID as Sbrubbles
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal4:
+        x1: "Sbrubbles"
+
+    x: Sbrubbles = Sbrubbles("12345678123456781234567812345678")
+    with raises(TypeValidationError):
+        y: NonLocal4 = NonLocal4(x)
+
+def test_non_local_4b() -> None:
+
+    from uuid import UUID as Sbrubbles
+
+    @dataclass_validate_local(locals())
+    @dataclass(frozen = True)
+    class NonLocal4:
+        x1: "Sbrubbles"
+
+    x: Sbrubbles = Sbrubbles("12345678123456781234567812345678")
+    y: NonLocal4 = NonLocal4(x)
+    assert y.x1 is x
+
+def test_non_local_5() -> None:
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal5:
+        x1: "Crazy1"
+
+    x: Crazy1 = Crazy1(4)
+    y: NonLocal5 = NonLocal5(x)
+    assert y.x1 is x
+
+def test_non_local_6a() -> None:
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal6A:
+        x1: "Crazy1"
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal6B:
+        x1: "NonLocal6A"
+
+    x: Crazy1 = Crazy1(4)
+    y: NonLocal6A = NonLocal6A(x)
+    with raises(TypeValidationError):
+        z: NonLocal6B = NonLocal6B(y)
+
+def test_non_local_6b() -> None:
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class NonLocal6A:
+        x1: "Crazy1"
+
+    @dataclass_validate_local(locals())
+    @dataclass(frozen = True)
+    class NonLocal6B:
+        x1: "NonLocal6A"
+
+    x: Crazy1 = Crazy1(4)
+    y: NonLocal6A = NonLocal6A(x)
+    z: NonLocal6B = NonLocal6B(y)
+    assert z.x1 is y
