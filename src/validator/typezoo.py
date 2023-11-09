@@ -1,10 +1,10 @@
-from typing import Any, Callable, ForwardRef, List, Literal, Optional, TypedDict, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, ForwardRef, List, Literal, Optional, TypeAlias, TypedDict, TYPE_CHECKING
 
 def _just_some_func_dont_call() -> None: # pragma: no cover
     assert False
 
-CallableTypeReal1 = type(_just_some_func_dont_call)
-CallableTypeReal2 = type(print)
+CallableTypeRealUserDefined = type(_just_some_func_dont_call)
+CallableTypeRealBuiltIn = type(print)
 
 if TYPE_CHECKING: # pragma: no cover
 
@@ -60,8 +60,8 @@ else:
     GenericAlias       = type(List[str])
     EllipsisType       = type(...)
     CallableTypeFormal = type(Callable[[], Any])
-    TypedDictType      = type(TypedDict('X', {'x': int}))
+    TypedDictType      = type(TypedDict("X", {"x": int}))
 
-TT1 = GenericAlias | ForwardRef | str | None
-TT2 = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType
-TT3 = [type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType]
+TT1: TypeAlias = GenericAlias | ForwardRef | str | None
+TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType
+TT3: list[type[Any]] = [type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType]
