@@ -34,16 +34,24 @@ class ErrorSet(ABC):
 
     @abstractmethod
     def _list_all(self, fields: _FieldChain) -> list[str]:
-        """
-        """
+        ...
 
     @property
+    @abstractmethod
+    def empty(self) -> bool:
+        ...
+
+
+class SignalingErrorSet(ErrorSet):
+
+    @property
+    @override
     def empty(self) -> bool:
         return False
 
 
 @dataclasses.dataclass
-class _ErrorSetLeaf(ErrorSet):
+class _ErrorSetLeaf(SignalingErrorSet):
     error: str
 
     @override
@@ -52,8 +60,8 @@ class _ErrorSetLeaf(ErrorSet):
 
 
 @dataclasses.dataclass
-#class _ErrorSetDict[SI: str | int](ErrorSet, Generic[SI]): # PEP 695
-class _ErrorSetDict(ErrorSet, Generic[_SI]):
+#class _ErrorSetDict[SI: str | int](SignalingErrorSet, Generic[SI]): # PEP 695
+class _ErrorSetDict(SignalingErrorSet, Generic[_SI]):
     #errors: dict[SI, ErrorSet]
     errors: dict[_SI, ErrorSet]
 
@@ -104,16 +112,15 @@ def _make_dict_errors(what: dict[_SI, ErrorSet]) -> ErrorSet:
     return _ErrorSetDict(d2)
 
 
-def make_errors(what: list[ErrorSet] | dict[str, ErrorSet] | str) -> ErrorSet:
+def make_error(what: str) -> SignalingErrorSet:
+    return _ErrorSetLeaf(what)
 
-    if isinstance(what, str):
-        return _ErrorSetLeaf(what)
 
+def make_errors(what: list[ErrorSet] | dict[str, ErrorSet]) -> ErrorSet:
     if isinstance(what, dict):
         return _make_dict_errors(what)
-
     return _make_dict_errors(_as_dict(what))
 
 
 no_error: ErrorSet = _ErrorSetEmpty()
-bad_ellipsis: ErrorSet = make_errors("Unexpected ... here")
+bad_ellipsis: SignalingErrorSet = make_error("Unexpected ... here")
