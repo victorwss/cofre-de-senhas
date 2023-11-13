@@ -35,7 +35,7 @@ def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, i
     def decorator(*args: Any, **kwargs: Any) -> tuple[Response, int]:
         try:
             decorate(*args, **kwargs)
-            return jsonify(Sucesso.criar(Ok())), 200
+            return jsonify(Sucesso.ok()), 200
         except BaseException as e:
             erro: Erro = Erro.criar(e)
             return jsonify(erro), erro.status
