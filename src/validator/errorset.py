@@ -1,7 +1,8 @@
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import override
+from typing import Any, override, TypeGuard
 from typing import Generic, TypeVar # Delete when PEP 695 is ready.
+from .typezoo import EllipsisType
 
 
 _SI = TypeVar("_SI", bound = str | int) # Delete when PEP 695 is ready.
@@ -25,6 +26,14 @@ class _FieldChain:
 
 class ErrorSet(ABC):
 
+    @property
+    @abstractmethod
+    def empty(self) -> bool:
+        ...
+
+
+class SignalingErrorSet(ErrorSet):
+
     def __as_list(self) -> list[str]:
         return self._list_all(_FieldChain([]))
 
@@ -35,14 +44,6 @@ class ErrorSet(ABC):
     @abstractmethod
     def _list_all(self, fields: _FieldChain) -> list[str]:
         ...
-
-    @property
-    @abstractmethod
-    def empty(self) -> bool:
-        ...
-
-
-class SignalingErrorSet(ErrorSet):
 
     @property
     @override
@@ -62,8 +63,8 @@ class _ErrorSetLeaf(SignalingErrorSet):
 @dataclasses.dataclass
 #class _ErrorSetDict[SI: str | int](SignalingErrorSet, Generic[SI]): # PEP 695
 class _ErrorSetDict(SignalingErrorSet, Generic[_SI]):
-    #errors: dict[SI, ErrorSet]
-    errors: dict[_SI, ErrorSet]
+    #errors: dict[SI, SignalingErrorSet]
+    errors: dict[_SI, SignalingErrorSet]
 
     @override
     def _list_all(self, fields: _FieldChain) -> list[str]:
@@ -75,8 +76,8 @@ class _ErrorSetEmpty(ErrorSet):
     pass
 
     @override
-    def _list_all(self, fields: _FieldChain) -> list[str]:
-        return []
+    def __str__(self) -> str:
+        return ""
 
     @property
     @override
@@ -97,14 +98,14 @@ def _as_dict(what: list[_X]) -> dict[int, _X]:
     return {i: what[i] for i in range(0, len(what))}
 
 
-#def _thou_shalt_not_pass[X](pair: tuple[X, ErrorSet]) -> bool: # PEP 695
-def _thou_shalt_not_pass(pair: tuple[_X, ErrorSet]) -> bool:
+#def _thou_shalt_not_pass[X](pair: tuple[X, ErrorSet]) -> TypeGuard[tuple[_X, SignalingErrorSet]]: # PEP 695
+def _thou_shalt_not_pass(pair: tuple[_X, ErrorSet]) -> TypeGuard[tuple[_X, SignalingErrorSet]]:
     return not pair[1].empty
 
 
 #def _make_dict_errors[SI: str | int](what: dict[SI, ErrorSet]) -> ErrorSet: # PEP 695
 def _make_dict_errors(what: dict[_SI, ErrorSet]) -> ErrorSet:
-    d2: dict[_SI, ErrorSet] = dict(filter(_thou_shalt_not_pass, what.items()))
+    d2: dict[_SI, SignalingErrorSet] = dict(filter(_thou_shalt_not_pass, what.items()))
 
     if len(d2) == 0:
         return no_error
@@ -124,3 +125,18 @@ def make_errors(what: list[ErrorSet] | dict[str, ErrorSet]) -> ErrorSet:
 
 no_error: ErrorSet = _ErrorSetEmpty()
 bad_ellipsis: SignalingErrorSet = make_error("Unexpected ... here")
+
+def to_error(what: SignalingErrorSet | type[Any]) -> ErrorSet:
+    if what is EllipsisType:
+        return bad_ellipsis
+    if isinstance(what, SignalingErrorSet):
+        return what
+    return no_error
+
+
+def split_errors(entering: list[SignalingErrorSet | type[Any]]) -> ErrorSet:
+    return make_errors([to_error(t) for t in entering])
+
+
+def split_valids(entering: list[SignalingErrorSet | type[Any]]) -> list[type[Any]]:
+    return [t for t in entering if not isinstance(t, SignalingErrorSet) and not isinstance(t, EllipsisType)]

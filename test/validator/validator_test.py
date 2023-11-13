@@ -48,6 +48,28 @@ def test_united_3() -> None:
     with raises(TypeValidationError):
         United(123.567) # type: ignore
 
+def test_united_5() -> None:
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class UnitedAlias:
+        x1: "str | int"
+
+    t1: UnitedAlias = UnitedAlias("a")
+    assert t1.x1 == "a"
+
+    t2: UnitedAlias = UnitedAlias(123)
+    assert t2.x1 == 123
+
+    with raises(TypeValidationError):
+        UnitedAlias(123.567) # type: ignore
+
+def test_united_6() -> None:
+    with raises(TypeValidationError):
+        @dataclass_validate
+        @dataclass(frozen = True)
+        class UnitedAliasBad:
+            x1: "xxx | yyy" # type: ignore
+
 def test_tupled1_1() -> None:
     @dataclass_validate
     @dataclass(frozen = True)
