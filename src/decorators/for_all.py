@@ -6,14 +6,11 @@ __all__ = ["for_all_methods"]
 
 # Delete when PEP 695 is ready.
 _T = TypeVar("_T")
-_X = TypeVar("_X")
-_F = TypeVar("_F", bound = Callable[..., _X])
-_D = TypeVar("_D", bound = Callable[[_F], _F])
 
 # From https://stackoverflow.com/a/6307868/540552 and https://stackoverflow.com/a/9087626/540552
 # Unknown author (used to be named delnan, but now is simply presented as user395760)
-#def for_all_methods[X, F: Callable[..., X], T](decorator: Callable[[F], F], *, even_dunders: bool = False, even_privates: bool = True) -> Callable[[type[T]], type[T]]:
-def for_all_methods(decorator: _D, *, even_dunders: bool = False, even_privates: bool = True) -> Callable[[type[_T]], type[_T]]:
+#def for_all_methods[T](decorator: Callable[[Callable[..., Any]], Callable[..., Any]], *, even_dunders: bool = False, even_privates: bool = True) -> Callable[[type[T]], type[T]]:
+def for_all_methods(decorator: Callable[[Callable[..., Any]], Callable[..., Any]], *, even_dunders: bool = False, even_privates: bool = True) -> Callable[[type[_T]], type[_T]]:
 
     def inner_decorate(cls: type[_T]) -> type[_T]:
         for name, fn in inspect.getmembers(cls, inspect.isroutine):

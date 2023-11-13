@@ -1,9 +1,12 @@
 import sqlite3
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Callable
+from typing import Any, Callable, ParamSpec, TypeVar
 from connection.trans import TransactedConnection
 import pytest
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
 class DbTestConfig(ABC):
 
@@ -20,19 +23,19 @@ class DbTestConfig(ABC):
 
     @property
     @abstractmethod
-    def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
         pass
 
     @property
-    def transacted(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
-        def middle(call_this: Callable[[], None]) -> Callable[[], None]:
+    def transacted(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
             @self.decorator
-            def inner() -> None:
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
                 @self.conn.transact
-                def innermost() -> None:
-                    call_this()
-                innermost()
+                def innermost() -> _R:
+                    return call_this(*args, **kwargs)
+                return innermost()
             return inner
         return middle
 
@@ -64,10 +67,10 @@ class SqliteTestConfig(DbTestConfig):
         self.__sandbox: str = sandbox
 
     @property
-    def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
-        def middle(call_this: Callable[[], None]) -> Callable[[], None]:
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
-            def inner() -> None:
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
                 import os
                 import shutil
 
@@ -80,7 +83,7 @@ class SqliteTestConfig(DbTestConfig):
 
                 self._set_conn(self._maker())
                 try:
-                    call_this()
+                    return call_this(*args, **kwargs)
                 finally:
                     self._del_conn()
                     os.remove(self.__sandbox)
@@ -99,15 +102,15 @@ class MariaDbTestConfig(DbTestConfig):
         self.__clear_script: str = clear_script
 
     @property
-    def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
-        def middle(call_this: Callable[[], None]) -> Callable[[], None]:
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
-            def inner() -> None:
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
                 self._poor_execute_script(self.__create_script)
 
                 self._set_conn(self._maker())
                 try:
-                    call_this()
+                    return call_this(*args, **kwargs)
                 finally:
                     self._del_conn()
                     self._poor_execute_script(self.__clear_script)
@@ -126,15 +129,15 @@ class MysqlTestConfig(DbTestConfig):
         self.__clear_script: str = clear_script
 
     @property
-    def decorator(self) -> Callable[[Callable[[], None]], Callable[[], None]]:
-        def middle(call_this: Callable[[], None]) -> Callable[[], None]:
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
-            def inner() -> None:
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
                 self._poor_execute_script(self.__create_script)
 
                 self._set_conn(self._maker())
                 try:
-                    call_this()
+                    return call_this(*args, **kwargs)
                 finally:
                     self._del_conn()
                     self._poor_execute_script(self.__clear_script)

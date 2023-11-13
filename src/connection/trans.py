@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Literal, override, Self, Sequence
+from typing import Any, Callable, cast, Literal, override, ParamSpec, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
@@ -7,6 +7,8 @@ from threadlocal import ThreadLocal
 
 _T = TypeVar("_T") # Delete when PEP 695 is ready.
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
 class TransactedConnection(SimpleConnection):
 
@@ -63,12 +65,12 @@ class TransactedConnection(SimpleConnection):
         return False
 
     #def transact[T: Callable[..., Any]](self, operation: T) -> T: # PEP 695
-    def transact(self, operation: _TRANS) -> _TRANS:
+    def transact(self, operation: Callable[_P, _R]) -> Callable[_P, _R]:
         @wraps(operation)
-        def transacted_operation(*args: Any, **kwargs: Any) -> Any:
+        def transacted_operation(*args: _P.args, **kwargs: _P.kwargs) -> Any:
             with self as xxx:
                 return operation(*args, **kwargs)
-        return cast(_TRANS, transacted_operation)
+        return transacted_operation
 
     def force_close(self) -> None:
         self.__wrapped.close()
