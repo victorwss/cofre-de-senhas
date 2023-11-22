@@ -96,8 +96,8 @@ class ConnectionData:
                 host = self.host, \
                 port = self.port, \
                 database = self.database \
-            )))
-        return TransactedConnection(make_connection)
+            )), self.database)
+        return TransactedConnection(make_connection, "%s", "MySQL", self.database)
 
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
@@ -145,9 +145,10 @@ class _PatchMySQLCursor(CMySQLCursor):
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _MySQLConnectionWrapper(SimpleConnection):
 
-    def __init__(self, conn: CMySQLConnection) -> None:
+    def __init__(self, conn: CMySQLConnection, database_name: str) -> None:
         self.__conn: CMySQLConnection = conn
         self.__curr: CMySQLCursor = conn.cursor(cursor_class = _PatchMySQLCursor)
+        self.__database_name: str = database_name
 
     @override
     def commit(self) -> None:
@@ -241,3 +242,8 @@ class _MySQLConnectionWrapper(SimpleConnection):
     @override
     def database_type(self) -> str:
         return "MySQL"
+
+    @property
+    @override
+    def database_name(self) -> str:
+        return self.__database_name

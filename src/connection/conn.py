@@ -260,5 +260,10 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def database_type(self) -> str:
         pass
 
+    @property
+    @abstractmethod
+    def database_name(self) -> str:
+        pass
+
 class TransactionNotActiveException(Exception):
     pass

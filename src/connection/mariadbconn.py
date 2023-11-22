@@ -97,8 +97,8 @@ class ConnectionData:
                 port = self.port, \
                 database = self.database, \
                 connect_timeout = self.connect_timeout
-            ))
-        return TransactedConnection(make_connection)
+            ), self.database)
+        return TransactedConnection(make_connection, "%s", "MariaDB", self.database)
 
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
@@ -190,9 +190,10 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _MariaDBConnectionWrapper(SimpleConnection):
 
-    def __init__(self, conn: MariaDBConnection) -> None:
+    def __init__(self, conn: MariaDBConnection, database_name: str) -> None:
         self.__conn: MariaDBConnection = conn
         self.__curr: MariaDBCursor = conn.cursor()
+        self.__database_name: str = database_name
 
     @override
     def commit(self) -> None:
@@ -294,3 +295,8 @@ class _MariaDBConnectionWrapper(SimpleConnection):
     @override
     def database_type(self) -> str:
         return "MariaDB"
+
+    @property
+    @override
+    def database_name(self) -> str:
+        return self.__database_name

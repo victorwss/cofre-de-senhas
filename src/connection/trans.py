@@ -12,10 +12,13 @@ _R = TypeVar("_R")
 
 class TransactedConnection(SimpleConnection):
 
-    def __init__(self, activate: Callable[[], SimpleConnection]) -> None:
+    def __init__(self, activate: Callable[[], SimpleConnection], placeholder: str, database_type: str, database_name: str) -> None:
         self.__activate: Callable[[], SimpleConnection] = activate
         self.__conn: ThreadLocal[SimpleConnection | None] = ThreadLocal(None)
         self.__count: ThreadLocal[int] = ThreadLocal(0)
+        self.__placeholder: str = placeholder
+        self.__database_type: str = database_type
+        self.__database_name: str = database_name
 
     @property
     def reenter_count(self) -> int:
@@ -199,9 +202,20 @@ class TransactedConnection(SimpleConnection):
     @property
     @override
     def placeholder(self) -> str:
-        return self.__wrapped.placeholder
+        c: SimpleConnection | None = self.__wrapped_or_none
+        if c is None: return self.__placeholder
+        return c.placeholder
 
     @property
     @override
     def database_type(self) -> str:
-        return self.__wrapped.database_type
+        c: SimpleConnection | None = self.__wrapped_or_none
+        if c is None: return self.__database_type
+        return c.database_type
+
+    @property
+    @override
+    def database_name(self) -> str:
+        c: SimpleConnection | None = self.__wrapped_or_none
+        if c is None: return self.__database_name
+        return c.database_name

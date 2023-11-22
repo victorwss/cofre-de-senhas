@@ -1,10 +1,28 @@
-from ..db_test_util import SqliteTestConfig
+from ..db_test_util import *
 from cofre_de_senhas.dao import \
     UsuarioPK, DadosUsuario, DadosUsuarioSemPK, LoginUsuario, \
     CategoriaPK, DadosCategoria, DadosCategoriaSemPK, NomeCategoria, \
     SegredoPK, DadosSegredo, DadosSegredoSemPK
 
-db: SqliteTestConfig = SqliteTestConfig("test/cofre-teste.db", "test/cofre-teste-run.db")
+def read_all(fn: str) -> str:
+    import os
+    with open(os.getcwd() + "/" + fn, "r", encoding = "utf-8") as f:
+        return f.read()
+
+mysql_clear: str = read_all("src/mariadb-create.sql").replace("$$$$", "test_cofre") + "\n" + read_all("test/test-mass.sql")
+
+sqlite_db : SqliteTestConfig  = SqliteTestConfig ("test/cofre-teste.db", "test/cofre-teste-run.db")
+mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_clear, "root", "root", "127.0.0.1", 3306, "test_cofre")
+mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_clear, "root", "root", "127.0.0.1", 3306, "test_cofre", 3)
+
+dbs: dict[str, DbTestConfig] = { \
+    "sqlite" : sqlite_db , \
+    "mysql"  : mysql_db  , \
+    "mariadb": mariadb_db  \
+}
+
+def assert_db_ok(db: DbTestConfig) -> None:
+    assert db in dbs.values(), f"Database connector failed to load. {len(dbs)}"
 
 alohomora       : str = "SbhhiMEETzPiquOxabc178eb35f26c8f59981b01a11cbec48b16f6a8e2c204f4a9a1b633c9199e0b3b2a64b13e49226306bb451c57c851f3c6e872885115404cb74279db7f5372ea"
 avada_kedavra   : str = "ZisNWkdEImMneIcX8ac8780d30e67df14c1afbaf256e1ee45afd1d3cf2654d154b2e9c63541a40d4132a9beed69c4a47b3f2e5612c2751cdfa3abfaed9797fe54777e2f3dfe6aaa0"
@@ -72,32 +90,3 @@ visiv_segredos: list[DadosSegredo] = [segredo_m1, lotr, star_wars]
 lixo1: int = 444
 lixo2: int = 555
 lixo3: int = 666
-
-sql_create_fixtures: str = \
-"""
-INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Harry Potter', 1, 'azOtltNwtdffb9debae4824dae79896e7b0a8d401fbd4e44fa99fac184b107f564'); -- alohomora
-INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Voldemort'   , 0, 'FqOZTDhozi01501c59c673335d6d851868ae23e35823cc96b9057c81dfbca306e8'); -- avada kedavra
-INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Dumbledore'  , 2, 'nHknWfqwmLa6d2afe45e8420f15941c1a27265acfdf88a9d45c11a9ca48ba5b12f'); -- expecto patronum
-INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Hermione'    , 1, 'omvLRPnylB93e43c3ee36d19ac037811848cad5fd626d599c76e0117f5f213945a'); -- expelliarmus
-
-INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Dragon Ball Z', 'Segredos acerca de Dragon Ball Z.', 3);
-INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Senhor dos Anéis', 'Segredos acerca do Senhor dos Anéis.', 2);
-INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Star Wars', 'Guerra nas estrelas.', 1);
-
-UPDATE campo_segredo SET valor = '0123456789ABCDEFFEDCBA9876543210' WHERE pfk_segredo = -1 AND pk_nome = 'Chave da sessão';
-INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (1, 'Nome do Goku', 'Kakaroto');
-INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (1, 'Número de esferas do dragão', '7');
-INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (2, 'Nome da montanha dos anões', 'Monte Erebus');
-INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (3, 'Nome do imperador', 'Palpatine');
-INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (3, 'Nome do cara vestido de preto', 'Darth Vader');
-INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (3, 'Robô chato e falastrão', 'C3PO');
-
-INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (1, 8);
-INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (2, 2);
-INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (2, 9);
-INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (3, 5);
-
-INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (1, 1, 1);
-INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (1, 2, 2);
-INSERT INTO permissao (pfk_usuario, pfk_segredo, fk_tipo_permissao) VALUES (1, 3, 3);
-"""

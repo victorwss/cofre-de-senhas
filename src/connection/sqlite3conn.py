@@ -22,8 +22,8 @@ class ConnectionData:
 
     def connect(self) -> TransactedConnection:
         def make_connection() -> _Sqlite3ConnectionWrapper:
-            return _Sqlite3ConnectionWrapper(db_connect(self.file_name))
-        return TransactedConnection(make_connection)
+            return _Sqlite3ConnectionWrapper(db_connect(self.file_name), self.file_name)
+        return TransactedConnection(make_connection, "?", "Sqlite", self.file_name)
 
 def connect(file: str) -> TransactedConnection:
     return ConnectionData.create(file_name = file).connect()
@@ -45,9 +45,10 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _Sqlite3ConnectionWrapper(SimpleConnection):
 
-    def __init__(self, conn: Connection) -> None:
+    def __init__(self, conn: Connection, file_name: str) -> None:
         self.__conn: Connection = conn
         self.__curr: Cursor = conn.cursor()
+        self.__file_name: str = file_name
         self.execute("PRAGMA foreign_keys = ON;")
 
     @override
@@ -132,3 +133,8 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
     @override
     def database_type(self) -> str:
         return "Sqlite"
+
+    @property
+    @override
+    def database_name(self) -> str:
+        return self.__file_name

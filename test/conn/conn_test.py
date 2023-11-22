@@ -5,7 +5,7 @@ from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
 from validator import dataclass_validate
-from ..db_test_util import applier, DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
+from ..db_test_util import applier, applier_trans, applier_trans2, DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
 
 sqlite_create: str = """
 DROP TABLE IF EXISTS animal;
@@ -45,7 +45,7 @@ INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis
 INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
 """
 
-mysql_create: str = """
+mysql_reset: str = """
 DROP DATABASE IF EXISTS test_fruits;
 CREATE DATABASE test_fruits /*!40100 COLLATE 'utf8mb4_general_ci' */;
 USE test_fruits;
@@ -86,35 +86,9 @@ INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis
 INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
 """
 
-mysql_populate = """
-DELETE FROM animal;
-DELETE FROM juice_2;
-DELETE FROM juice_1;
-DELETE FROM fruit;
-DROP TABLE IF EXISTS tree;
-ALTER TABLE fruit  AUTO_INCREMENT = 1;
-ALTER TABLE animal AUTO_INCREMENT = 1;
-INSERT INTO fruit (name) VALUES ('orange'    );
-INSERT INTO fruit (name) VALUES ('strawberry');
-INSERT INTO fruit (name) VALUES ('lemon'     );
-INSERT INTO animal (name, gender, species, age) VALUES ('mimosa'   , 'F', 'bos taurus'      , 4);
-INSERT INTO animal (name, gender, species, age) VALUES ('rex'      , 'M', 'canis familiaris', 6);
-INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis catus'     , 8);
-"""
-
-mysql_clear = """
-DELETE FROM animal;
-DELETE FROM juice_2;
-DELETE FROM juice_1;
-DELETE FROM fruit;
-DROP TABLE IF EXISTS tree;
-ALTER TABLE fruit  AUTO_INCREMENT = 1;
-ALTER TABLE animal AUTO_INCREMENT = 1;
-"""
-
 sqlite_db : SqliteTestConfig  = SqliteTestConfig ("test/fruits-ok.db", "test/fruits.db")
-mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_populate, mysql_clear, "root", "root", "127.0.0.1", 3306, "test_fruits")
-mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_populate, mysql_clear, "root", "root", "127.0.0.1", 3306, "test_fruits", 3)
+mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_reset, "root", "root", "127.0.0.1", 3306, "test_fruits")
+mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_reset, "root", "root", "127.0.0.1", 3306, "test_fruits", 3)
 
 dbs: dict[str, DbTestConfig] = { \
     "sqlite" : sqlite_db , \
@@ -149,157 +123,123 @@ def test_run_oks() -> None:
 def assert_db_ok(db: DbTestConfig) -> None:
     assert db in run_on_dbs, "Database connector failed to load."
 
-@applier(dbs, assert_db_ok)
-def test_fetchone(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: tuple[RAW_DATA, ...] | None = c.fetchone()
-        assert one == (2, "strawberry")
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
+    one: tuple[RAW_DATA, ...] | None = c.fetchone()
+    assert one == (2, "strawberry")
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_none(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
-        one: tuple[RAW_DATA, ...] | None = c.fetchone()
-        assert one is None
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_none(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
+    one: tuple[RAW_DATA, ...] | None = c.fetchone()
+    assert one is None
 
-@applier(dbs, assert_db_ok)
-def test_fetchall(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
-        assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
+@applier_trans(dbs, assert_db_ok)
+def test_fetchall(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    all: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
+    assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
-@applier(dbs, assert_db_ok)
-def test_iter(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: list[tuple[RAW_DATA, ...]] = [x for x in c]
-        assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
+@applier_trans(dbs, assert_db_ok)
+def test_iter(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    all: list[tuple[RAW_DATA, ...]] = [x for x in c]
+    assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
-@applier(dbs, assert_db_ok)
-def test_fetchmany(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        p1: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
-        assert p1 == [(1, "orange"), (2, "strawberry")]
-        p2: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
-        assert p2 == [(3, "lemon")]
-        p3: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
-        assert p3 == []
+@applier_trans(dbs, assert_db_ok)
+def test_fetchmany(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    p1: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
+    assert p1 == [(1, "orange"), (2, "strawberry")]
+    p2: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
+    assert p2 == [(3, "lemon")]
+    p3: Sequence[tuple[RAW_DATA, ...]] = c.fetchmany(2)
+    assert p3 == []
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_dict(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: dict[str, RAW_DATA] | None = c.fetchone_dict()
-        assert one == {"pk_fruit": 2, "name": "strawberry"}
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_dict(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
+    one: dict[str, RAW_DATA] | None = c.fetchone_dict()
+    assert one == {"pk_fruit": 2, "name": "strawberry"}
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_dict_none(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
-        one: dict[str, RAW_DATA] | None = c.fetchone_dict()
-        assert one is None
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_dict_none(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
+    one: dict[str, RAW_DATA] | None = c.fetchone_dict()
+    assert one is None
 
-@applier(dbs, assert_db_ok)
-def test_fetchall_dict(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[dict[str, RAW_DATA]] = c.fetchall_dict()
-        assert all == [{"pk_fruit": 1, "name": "orange"}, {"pk_fruit": 2, "name": "strawberry"}, {"pk_fruit": 3, "name": "lemon"}]
+@applier_trans(dbs, assert_db_ok)
+def test_fetchall_dict(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    all: Sequence[dict[str, RAW_DATA]] = c.fetchall_dict()
+    assert all == [{"pk_fruit": 1, "name": "orange"}, {"pk_fruit": 2, "name": "strawberry"}, {"pk_fruit": 3, "name": "lemon"}]
 
-@applier(dbs, assert_db_ok)
-def test_fetchmany_dict(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        p1: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
-        assert p1 == [{"pk_fruit": 1, "name": "orange"}, {"pk_fruit": 2, "name": "strawberry"}]
-        p2: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
-        assert p2 == [{"pk_fruit": 3, "name": "lemon"}]
-        p3: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
-        assert p3 == []
+@applier_trans(dbs, assert_db_ok)
+def test_fetchmany_dict(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    p1: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
+    assert p1 == [{"pk_fruit": 1, "name": "orange"}, {"pk_fruit": 2, "name": "strawberry"}]
+    p2: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
+    assert p2 == [{"pk_fruit": 3, "name": "lemon"}]
+    p3: Sequence[dict[str, RAW_DATA]] = c.fetchmany_dict(2)
+    assert p3 == []
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_class(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: Fruit | None = c.fetchone_class(Fruit)
-        assert one == Fruit(2, "strawberry")
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_class(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
+    one: Fruit | None = c.fetchone_class(Fruit)
+    assert one == Fruit(2, "strawberry")
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_class_none(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
-        one: Fruit | None = c.fetchone_class(Fruit)
-        assert one is None
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_class_none(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
+    one: Fruit | None = c.fetchone_class(Fruit)
+    assert one is None
 
-@applier(dbs, assert_db_ok)
-def test_fetchall_class(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[Fruit] = c.fetchall_class(Fruit)
-        assert all == [Fruit(1, "orange"), Fruit(2, "strawberry"), Fruit(3, "lemon")]
+@applier_trans(dbs, assert_db_ok)
+def test_fetchall_class(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    all: Sequence[Fruit] = c.fetchall_class(Fruit)
+    assert all == [Fruit(1, "orange"), Fruit(2, "strawberry"), Fruit(3, "lemon")]
 
-@applier(dbs, assert_db_ok)
-def test_fetchmany_class(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        p1: Sequence[Fruit] = c.fetchmany_class(Fruit, 2)
-        assert p1 == [Fruit(1, "orange"), Fruit(2, "strawberry")]
-        p2: Sequence[Fruit] = c.fetchmany_class(Fruit, 2)
-        assert p2 == [Fruit(3, "lemon")]
-        p3: Sequence[Fruit] = c.fetchmany_class(Fruit, 2)
-        assert p3 == []
+@applier_trans(dbs, assert_db_ok)
+def test_fetchmany_class(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    p1: Sequence[Fruit] = c.fetchmany_class(Fruit, 2)
+    assert p1 == [Fruit(1, "orange"), Fruit(2, "strawberry")]
+    p2: Sequence[Fruit] = c.fetchmany_class(Fruit, 2)
+    assert p2 == [Fruit(3, "lemon")]
+    p3: Sequence[Fruit] = c.fetchmany_class(Fruit, 2)
+    assert p3 == []
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_class_lambda(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
-        one: Fruit | None = c.fetchone_class_lambda(foo)
-        assert one == Fruit(20, "x_strawberry")
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_class_lambda(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
+    one: Fruit | None = c.fetchone_class_lambda(foo)
+    assert one == Fruit(20, "x_strawberry")
 
-@applier(dbs, assert_db_ok)
-def test_fetchone_class_lambda_none(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
-        one: Fruit | None = c.fetchone_class_lambda(noo)
-        assert one is None
+@applier_trans(dbs, assert_db_ok)
+def test_fetchone_class_lambda_none(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = -2")
+    one: Fruit | None = c.fetchone_class_lambda(noo)
+    assert one is None
 
-@applier(dbs, assert_db_ok)
-def test_fetchall_class_lambda(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        all: Sequence[Fruit] = c.fetchall_class_lambda(foo)
-        assert all == [Fruit(10, "x_orange"), Fruit(20, "x_strawberry"), Fruit(30, "x_lemon")]
+@applier_trans(dbs, assert_db_ok)
+def test_fetchall_class_lambda(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    all: Sequence[Fruit] = c.fetchall_class_lambda(foo)
+    assert all == [Fruit(10, "x_orange"), Fruit(20, "x_strawberry"), Fruit(30, "x_lemon")]
 
-@applier(dbs, assert_db_ok)
-def test_fetchmany_class_lambda(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-    with conn as c:
-        c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
-        p1: Sequence[Fruit] = c.fetchmany_class_lambda(foo, 2)
-        assert p1 == [Fruit(10, "x_orange"), Fruit(20, "x_strawberry")]
-        p2: Sequence[Fruit] = c.fetchmany_class_lambda(boo, 2)
-        assert p2 == [Fruit(300, "y_lemon")]
-        p3: Sequence[Fruit] = c.fetchmany_class_lambda(noo, 2)
-        assert p3 == []
+@applier_trans(dbs, assert_db_ok)
+def test_fetchmany_class_lambda(c: TransactedConnection) -> None:
+    c.execute("SELECT pk_fruit, name FROM fruit ORDER BY pk_fruit")
+    p1: Sequence[Fruit] = c.fetchmany_class_lambda(foo, 2)
+    assert p1 == [Fruit(10, "x_orange"), Fruit(20, "x_strawberry")]
+    p2: Sequence[Fruit] = c.fetchmany_class_lambda(boo, 2)
+    assert p2 == [Fruit(300, "y_lemon")]
+    p3: Sequence[Fruit] = c.fetchmany_class_lambda(noo, 2)
+    assert p3 == []
 
 @applier(dbs, assert_db_ok)
 def test_execute_insert(db: DbTestConfig) -> None:
@@ -577,43 +517,27 @@ def test_foreign_key_constraint_on_delete_restrict(db: DbTestConfig) -> None:
         t: Sequence[tuple[RAW_DATA, ...]] = c.fetchall()
         assert t == [(1, )]
 
-@applier(dbs, assert_db_ok)
-def test_lastrowid(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
+@applier_trans2(dbs, assert_db_ok)
+def test_lastrowid(c: TransactedConnection, db: DbTestConfig) -> None:
+    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
+    c.execute("INSERT INTO fruit (name) VALUES ('melon')")
+    assert c.lastrowid == 4
+    assert c.asserted_lastrowid == 4
 
-    with conn as c:
-        assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
-        c.execute("INSERT INTO fruit (name) VALUES ('melon')")
-        assert c.lastrowid == 4
-        assert c.asserted_lastrowid == 4
+@applier_trans2(dbs, assert_db_ok)
+def test_lastrowid_none(c: TransactedConnection, db: DbTestConfig) -> None:
+    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
+    c.execute("SELECT pk_fruit FROM fruit WHERE pk_fruit = -1")
+    t: tuple[RAW_DATA, ...] | None = c.fetchone()
+    assert t is None
+    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
 
-@applier(dbs, assert_db_ok)
-def test_lastrowid_none(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-
-    with conn as c:
-        assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
-        c.execute("SELECT pk_fruit FROM fruit WHERE pk_fruit = -1")
-        t: tuple[RAW_DATA, ...] | None = c.fetchone()
-        assert t is None
-        assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
-
-@applier(dbs, assert_db_ok)
-def test_raw(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-
-    with conn as c:
-        rco: str = c.raw_connection.__class__.__name__
-        rcu: str = c.raw_cursor.__class__.__name__
-        assert "Connection" in rco
-        assert "Cursor" in rcu
-
-@applier(dbs, assert_db_ok)
-def test_placeholder(db: DbTestConfig) -> None:
-    conn: TransactedConnection = db.conn
-
-    with conn as c:
-        assert c.placeholder in ["%s", "?"]
+@applier_trans(dbs, assert_db_ok)
+def test_raw(c: TransactedConnection) -> None:
+    rco: str = c.raw_connection.__class__.__name__
+    rcu: str = c.raw_cursor.__class__.__name__
+    assert "Connection" in rco
+    assert "Cursor" in rcu
 
 @applier(dbs, assert_db_ok)
 def test_transaction_nesting_counting(db: DbTestConfig) -> None:
@@ -653,3 +577,42 @@ def test_autocommit(db: DbTestConfig) -> None:
         assert not conn.wrapped.autocommit
         assert conn.raw_connection.autocommit in [False, -1]         # type: ignore
         assert conn.wrapped.raw_connection.autocommit in [False, -1] # type: ignore
+
+@applier(dbs, assert_db_ok)
+def test_placeholder(db: DbTestConfig) -> None:
+    x: str = db.conn.placeholder
+    y: str
+    z: str
+    with db.conn as c:
+        y = db.conn.placeholder
+        z = db.conn.wrapped.placeholder
+    k: str = "?" if db == sqlite_db else "%s" if db == mariadb_db else "%s" if db == mysql_db else "xxxx_FAIL_xxxx"
+    assert x == k
+    assert x == y
+    assert x == z
+
+@applier(dbs, assert_db_ok)
+def test_database_type(db: DbTestConfig) -> None:
+    x: str = db.conn.database_type
+    y: str
+    z: str
+    with db.conn as c:
+        y = db.conn.database_type
+        z = db.conn.wrapped.database_type
+    k: str = "Sqlite" if db == sqlite_db else "MariaDB" if db == mariadb_db else "MySQL" if db == mysql_db else "xxxx_FAIL_xxxx"
+    assert x == k
+    assert x == y
+    assert x == z
+
+@applier(dbs, assert_db_ok)
+def test_database_name(db: DbTestConfig) -> None:
+    x: str = db.conn.database_name
+    y: str
+    z: str
+    with db.conn as c:
+        y = db.conn.database_name
+        z = db.conn.wrapped.database_name
+    k: str = "test/fruits.db" if db == sqlite_db else "test_fruits" if db == mariadb_db else "test_fruits" if db == mysql_db else "xxxx_FAIL_xxxx"
+    assert x == k
+    assert x == y
+    assert x == z
