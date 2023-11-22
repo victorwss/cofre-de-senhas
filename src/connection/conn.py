@@ -255,5 +255,10 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def autocommit(self) -> Literal[False]:
         return False
 
+    @property
+    @abstractmethod
+    def database_type(self) -> str:
+        pass
+
 class TransactionNotActiveException(Exception):
     pass

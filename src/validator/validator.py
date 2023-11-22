@@ -545,7 +545,6 @@ def dataclass_type_validator_with_values(target: _D, localns: NS_T) -> None:
         field_name: str = field.name
         expected_type: Any = field.type
         value = getattr(target, field_name)
-        print(f"{target} - {field_name}")
         errors[field_name] = _validate_types_with_values(expected_type, value, globalns)
 
     es: ErrorSet = make_errors(errors)

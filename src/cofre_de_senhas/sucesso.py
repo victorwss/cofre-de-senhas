@@ -4,7 +4,6 @@ from typing_extensions import Protocol, runtime_checkable
 from dataclasses import dataclass
 from validator import dataclass_validate
 
-
 @runtime_checkable
 class Status(Protocol):
     @property

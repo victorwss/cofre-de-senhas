@@ -6,11 +6,11 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
     def __init__(self, conn: TransactedConnection) -> None:
         super().__init__(conn)
-        CofreDeSenhasDAO.register(self)
 
     def sql_criar_bd(self) -> str:
-        with open("src/create.sql", "r", encoding = "utf-8") as f:
-            return f.read()
+        n: str = self._connection.database_type.lower()
+        with open(f"src/{n}-create.sql", "r", encoding = "utf-8") as f:
+            return f.read().replace("$$$$", "cofre")
 
     @override
     def criar_bd(self) -> None:

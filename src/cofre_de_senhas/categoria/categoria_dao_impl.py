@@ -6,7 +6,6 @@ class CategoriaDAOImpl(CategoriaDAO):
 
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
-        CategoriaDAO.register(self)
 
     # CRUD básico
 

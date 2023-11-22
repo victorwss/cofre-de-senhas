@@ -171,10 +171,10 @@ class _MySQLConnectionWrapper(SimpleConnection):
         return self.__curr.fetchall()
 
     @override
-    @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
         return self.__curr.fetchmany(size)
 
+    @override
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
         self.__curr.callproc(sql, parameters)
         return self
@@ -233,5 +233,11 @@ class _MySQLConnectionWrapper(SimpleConnection):
         return self.__curr
 
     @property
+    @override
     def placeholder(self) -> str:
         return "%s"
+
+    @property
+    @override
+    def database_type(self) -> str:
+        return "MySQL"

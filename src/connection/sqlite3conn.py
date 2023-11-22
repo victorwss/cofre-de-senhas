@@ -124,5 +124,11 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
         return self.__curr
 
     @property
+    @override
     def placeholder(self) -> str:
         return "?"
+
+    @property
+    @override
+    def database_type(self) -> str:
+        return "Sqlite"

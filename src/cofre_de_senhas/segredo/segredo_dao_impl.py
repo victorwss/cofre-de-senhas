@@ -8,7 +8,6 @@ class SegredoDAOImpl(SegredoDAO):
 
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
-        SegredoDAO.register(self)
 
     # CRUD básico
 

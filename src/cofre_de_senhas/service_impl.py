@@ -1,5 +1,5 @@
 import hashlib
-from typing import override
+from typing import Any, Callable, override, ParamSpec, TypeVar
 from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace
 from connection.trans import TransactedConnection
@@ -12,6 +12,9 @@ from decorators.tracer import Logger
 
 _log: Logger = Logger.for_print_fn()
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
 class Servicos:
 
     def __init__(self, gl: GerenciadorLogin, trans: TransactedConnection) -> None:
@@ -22,6 +25,7 @@ class Servicos:
     def bd(self) -> ServicoBD:
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
+        @for_all_methods(self.__inject)
         class Interna(_ServicoBDImpl):
             pass
         return Interna()
@@ -31,6 +35,7 @@ class Servicos:
         gl: GerenciadorLogin = self.__gl
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
+        @for_all_methods(self.__inject)
         class Interna(_ServicoUsuarioImpl):
             def __init__(self2) -> None:
                 super().__init__(gl)
@@ -41,6 +46,7 @@ class Servicos:
         gl: GerenciadorLogin = self.__gl
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
+        @for_all_methods(self.__inject)
         class Interna(_ServicoCategoriaImpl):
             def __init__(self2) -> None:
                 super().__init__(gl)
@@ -51,10 +57,24 @@ class Servicos:
         gl: GerenciadorLogin = self.__gl
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
+        @for_all_methods(self.__inject)
         class Interna(_ServicoSegredoImpl):
             def __init__(self2) -> None:
                 super().__init__(gl)
         return Interna()
+
+    def __inject(self, what: Callable[_P, _R]) -> Callable[_P, _R]:
+        def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+            from .categoria.categoria_dao_impl import CategoriaDAOImpl
+            from .usuario.usuario_dao_impl import UsuarioDAOImpl
+            from .segredo.segredo_dao_impl import SegredoDAOImpl
+            from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
+            CofreDeSenhasDAOImpl(self.__trans)
+            UsuarioDAOImpl(self.__trans)
+            SegredoDAOImpl(self.__trans)
+            CategoriaDAOImpl(self.__trans)
+            return what(*args, **kwargs)
+        return inner
 
 class _ServicoBDImpl(ServicoBD):
 

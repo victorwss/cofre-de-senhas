@@ -6,7 +6,6 @@ class UsuarioDAOImpl(UsuarioDAO):
 
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
-        UsuarioDAO.register(self)
 
     # CRUD básico
 

@@ -2,8 +2,8 @@ from typing import cast, Generic
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, is_dataclass
 from validator import dataclass_validate
-from decorators.single import Single
 from connection.trans import TransactedConnection
+from threadlocal import ThreadLocal
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -133,25 +133,29 @@ class DAO(ABC):
 
 class CofreDeSenhasDAO(DAO):
 
+    __instance: ThreadLocal["CofreDeSenhasDAO | None"] = ThreadLocal(None)
+
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
+        CofreDeSenhasDAO.__instance.value = self
 
     @abstractmethod
     def criar_bd(self) -> None:
         pass
 
     @staticmethod
-    def register(instance: "CofreDeSenhasDAO") -> None:
-        Single.register("CofreDeSenhasDAO", lambda: instance)
-
-    @staticmethod
     def instance() -> "CofreDeSenhasDAO":
-        return cast(CofreDeSenhasDAO, Single.instance("CofreDeSenhasDAO"))
+        u: CofreDeSenhasDAO | None = CofreDeSenhasDAO.__instance.value
+        if u is None: raise BaseException()
+        return u
 
 class SegredoDAO(DAO):
 
+    __instance: ThreadLocal["SegredoDAO | None"] = ThreadLocal(None)
+
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
+        SegredoDAO.__instance.value = self
 
     # CRUD básico.
 
@@ -216,17 +220,18 @@ class SegredoDAO(DAO):
         pass
 
     @staticmethod
-    def register(instance: "SegredoDAO") -> None:
-        return Single.register("SegredoDAO", lambda: instance)
-
-    @staticmethod
     def instance() -> "SegredoDAO":
-        return cast(SegredoDAO, Single.instance("SegredoDAO"))
+        u: SegredoDAO | None = SegredoDAO.__instance.value
+        if u is None: raise BaseException()
+        return u
 
 class CategoriaDAO(DAO):
 
+    __instance: ThreadLocal["CategoriaDAO | None"] = ThreadLocal(None)
+
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
+        CategoriaDAO.__instance.value = self
 
     # CRUD básico
 
@@ -275,17 +280,18 @@ class CategoriaDAO(DAO):
         pass
 
     @staticmethod
-    def register(instance: "CategoriaDAO") -> None:
-        Single.register("CategoriaDAO", lambda: instance)
-
-    @staticmethod
     def instance() -> "CategoriaDAO":
-        return cast(CategoriaDAO, Single.instance("CategoriaDAO"))
+        u: CategoriaDAO | None = CategoriaDAO.__instance.value
+        if u is None: raise BaseException()
+        return u
 
 class UsuarioDAO(DAO):
 
+    __instance: ThreadLocal["UsuarioDAO | None"] = ThreadLocal(None)
+
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
+        UsuarioDAO.__instance.value = self
 
     # CRUD básico
 
@@ -334,9 +340,7 @@ class UsuarioDAO(DAO):
         pass
 
     @staticmethod
-    def register(instance: "UsuarioDAO") -> None:
-        Single.register("UsuarioDAO", lambda: instance)
-
-    @staticmethod
     def instance() -> "UsuarioDAO":
-        return cast(UsuarioDAO, Single.instance("UsuarioDAO"))
+        u: UsuarioDAO | None = UsuarioDAO.__instance.value
+        if u is None: raise BaseException()
+        return u

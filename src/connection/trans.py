@@ -197,5 +197,11 @@ class TransactedConnection(SimpleConnection):
         return self.__wrapped
 
     @property
+    @override
     def placeholder(self) -> str:
         return self.__wrapped.placeholder
+
+    @property
+    @override
+    def database_type(self) -> str:
+        return self.__wrapped.database_type
