@@ -1,10 +1,10 @@
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.erro import *
-from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria as NomeCategoriaDAO
-from cofre_de_senhas.service import *
-from cofre_de_senhas.usuario.usuario import Usuario, Permissao
+from ..erro import *
+from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria as NomeCategoriaDAO
+from ..service import *
+from ..usuario.usuario import Usuario, Permissao
 
 @dataclass_validate
 @dataclass(frozen = True)

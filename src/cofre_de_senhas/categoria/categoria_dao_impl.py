@@ -1,6 +1,6 @@
 from typing import override
 from connection.trans import TransactedConnection
-from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
+from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
 
 class CategoriaDAOImpl(CategoriaDAO):
 
@@ -12,30 +12,26 @@ class CategoriaDAOImpl(CategoriaDAO):
     @override
     def buscar_por_pk(self, pk: CategoriaPK) -> DadosCategoria | None:
         sql: str = f"SELECT pk_categoria, nome FROM categoria WHERE pk_categoria = {self._placeholder}"
-        self._connection.execute(sql, [pk.pk_categoria])
-        return self._connection.fetchone_class(DadosCategoria)
+        return self._connection.execute(sql, [pk.pk_categoria]).fetchone_class(DadosCategoria)
 
     @override
     def listar_por_pks(self, pks: list[CategoriaPK]) -> list[DadosCategoria]:
         wildcards: str = ", ".join([self._placeholder for pk in pks])
         ns: list[int] = [pk.pk_categoria for pk in pks]
         sql = f"SELECT pk_categoria, nome FROM categoria WHERE pk_categoria IN ({wildcards}) ORDER BY pk_categoria"
-        self._connection.execute(sql, ns)
-        return self._connection.fetchall_class(DadosCategoria)
+        return self._connection.execute(sql, ns).fetchall_class(DadosCategoria)
 
     @override
     def listar(self) -> list[DadosCategoria]:
         sql: str = "SELECT c.pk_categoria, c.nome FROM categoria c ORDER BY pk_categoria"
-        self._connection.execute(sql)
-        return self._connection.fetchall_class(DadosCategoria)
+        return self._connection.execute(sql).fetchall_class(DadosCategoria)
 
     @override
     def listar_por_nomes(self, nomes: list[NomeCategoria]) -> list[DadosCategoria]:
         wildcards: str = ", ".join([self._placeholder for nome in nomes])
         ns: list[str] = [nome.valor for nome in nomes]
         sql: str = f"SELECT pk_categoria, nome FROM categoria WHERE nome IN ({wildcards}) ORDER BY pk_categoria"
-        self._connection.execute(sql, ns)
-        return self._connection.fetchall_class(DadosCategoria)
+        return self._connection.execute(sql, ns).fetchall_class(DadosCategoria)
 
     @override
     def criar(self, dados: DadosCategoriaSemPK) -> CategoriaPK:
@@ -60,8 +56,7 @@ class CategoriaDAOImpl(CategoriaDAO):
     @override
     def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
         sql: str = f"SELECT pk_categoria, nome FROM categoria WHERE nome = {self._placeholder}"
-        self._connection.execute(sql, [nome.valor])
-        return self._connection.fetchone_class(DadosCategoria)
+        return self._connection.execute(sql, [nome.valor]).fetchone_class(DadosCategoria)
 
     #def deletar_por_nome(self, nome: NomeCategoria) -> bool:
     #    sql: str = f"DELETE categoria WHERE nome = {self._placeholder}"
@@ -78,5 +73,4 @@ class CategoriaDAOImpl(CategoriaDAO):
             + "INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria " \
             + f"WHERE cs.pfk_segredo = {self._placeholder} " \
             + "ORDER BY c.pk_categoria"
-        self._connection.execute(sql, [pk.pk_segredo])
-        return self._connection.fetchall_class(DadosCategoria)
+        return self._connection.execute(sql, [pk.pk_segredo]).fetchall_class(DadosCategoria)

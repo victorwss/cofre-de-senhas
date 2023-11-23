@@ -2,8 +2,10 @@ from typing import Any, Callable, cast, Generator, override, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, SimpleConnection, NullStatus, RAW_DATA, TypeCode
-from .trans import TransactedConnection
+from .conn import \
+    BadDatabaseConfigException, ColumnDescriptor, Descriptor, \
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError
+from .trans import ConnectionData, TransactedConnection
 from mysql.connector import connect as db_connect, IntegrityError
 from mysql.connector.connection import MySQLConnection
 from mysql.connector.connection_cext import CMySQLConnection
@@ -70,7 +72,7 @@ __codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
 
 @dataclass_validate
 @dataclass(frozen = True)
-class ConnectionData:
+class MysqlConnectionData(ConnectionData):
     user: str
     password: str
     host: str
@@ -85,18 +87,21 @@ class ConnectionData:
             host: str, \
             port: int = 3306, \
             database: str, \
-    ) -> "ConnectionData":
-        return ConnectionData(user, password, host, port, database)
+    ) -> "MysqlConnectionData":
+        return MysqlConnectionData(user, password, host, port, database)
 
     def connect(self) -> TransactedConnection:
         def make_connection() -> _MySQLConnectionWrapper:
-            return _MySQLConnectionWrapper(cast(CMySQLConnection, db_connect( \
-                user = self.user, \
-                password = self.password, \
-                host = self.host, \
-                port = self.port, \
-                database = self.database \
-            )), self.database)
+            try:
+                return _MySQLConnectionWrapper(cast(CMySQLConnection, db_connect( \
+                    user = self.user, \
+                    password = self.password, \
+                    host = self.host, \
+                    port = self.port, \
+                    database = self.database \
+                )), self.database)
+            except BaseException as x:
+                raise BadDatabaseConfigException(x)
         return TransactedConnection(make_connection, "%s", "MySQL", self.database)
 
 def _find_code(code: int) -> _InternalCode:
@@ -110,7 +115,7 @@ def connect( \
         port: int = 3306, \
         database: str, \
 ) -> TransactedConnection:
-    return ConnectionData.create(user = user, password = password, host = host, port = port, database = database).connect()
+    return MysqlConnectionData.create(user = user, password = password, host = host, port = port, database = database).connect()
 
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
 

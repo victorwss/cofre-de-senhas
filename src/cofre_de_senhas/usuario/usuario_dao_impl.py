@@ -1,6 +1,6 @@
 from typing import override
 from connection.trans import TransactedConnection
-from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, DadosUsuarioComPermissao, LoginUsuario
+from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, DadosUsuarioComPermissao, LoginUsuario
 
 class UsuarioDAOImpl(UsuarioDAO):
 
@@ -12,28 +12,24 @@ class UsuarioDAOImpl(UsuarioDAO):
     @override
     def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario = {self._placeholder}"
-        self._connection.execute(sql, [pk.pk_usuario])
-        return self._connection.fetchone_class(DadosUsuario)
+        return self._connection.execute(sql, [pk.pk_usuario]).fetchone_class(DadosUsuario)
 
     @override
     def listar_por_pks(self, pks: list[UsuarioPK]) -> list[DadosUsuario]:
         wildcards: str = ", ".join([self._placeholder for pk in pks])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE pk_usuario IN ({wildcards}) ORDER BY pk_usuario"
-        self._connection.execute(sql, [pk.pk_usuario for pk in pks])
-        return self._connection.fetchall_class(DadosUsuario)
+        return self._connection.execute(sql, [pk.pk_usuario for pk in pks]).fetchall_class(DadosUsuario)
 
     @override
     def listar(self) -> list[DadosUsuario]:
         sql: str = "SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario ORDER BY pk_usuario"
-        self._connection.execute(sql)
-        return self._connection.fetchall_class(DadosUsuario)
+        return self._connection.execute(sql).fetchall_class(DadosUsuario)
 
     @override
     def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
         wildcards: str = ", ".join([self._placeholder for login in logins])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login IN ({wildcards}) ORDER BY pk_usuario"
-        self._connection.execute(sql, [login.valor for login in logins])
-        return self._connection.fetchall_class(DadosUsuario)
+        return self._connection.execute(sql, [login.valor for login in logins]).fetchall_class(DadosUsuario)
 
     @override
     def criar(self, dados: DadosUsuarioSemPK) -> UsuarioPK:
@@ -64,8 +60,7 @@ class UsuarioDAOImpl(UsuarioDAO):
     @override
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = {self._placeholder}"
-        self._connection.execute(sql, [login.valor])
-        return self._connection.fetchone_class(DadosUsuario)
+        return self._connection.execute(sql, [login.valor]).fetchone_class(DadosUsuario)
 
     #def deletar_por_login(self, login: str) -> None:
     #    sql: str = "DELETE usuario WHERE login = ?"
@@ -82,5 +77,4 @@ class UsuarioDAOImpl(UsuarioDAO):
             + "INNER JOIN permissao p ON u.pk_usuario = p.pfk_usuario " \
             + f"WHERE p.pfk_segredo = {self._placeholder}" \
             + "ORDER BY u.pk_usuario"
-        self._connection.execute(sql, [pk.pk_segredo])
-        return self._connection.fetchall_class(DadosUsuarioComPermissao)
+        return self._connection.execute(sql, [pk.pk_segredo]).fetchall_class(DadosUsuarioComPermissao)

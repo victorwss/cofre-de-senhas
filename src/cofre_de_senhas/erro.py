@@ -1,5 +1,5 @@
 from typing import override
-from .sucesso import Status
+from sucesso import Status
 
 class SenhaErradaException(Exception, Status):
     @override

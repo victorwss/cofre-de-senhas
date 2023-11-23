@@ -1,6 +1,6 @@
 from typing import override
 from connection.trans import TransactedConnection
-from cofre_de_senhas.dao import CofreDeSenhasDAO
+from ..dao import CofreDeSenhasDAO
 
 class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 

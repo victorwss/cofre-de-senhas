@@ -1,10 +1,13 @@
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.dao import SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, LoginUsuario as LoginUsuarioDAO, CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
-from cofre_de_senhas.service import *
-from cofre_de_senhas.usuario.usuario import Usuario, Permissao
-from cofre_de_senhas.categoria.categoria import Categoria
+from ..dao import \
+    SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, \
+    LoginUsuario as LoginUsuarioDAO, BuscaPermissaoPorLogin, \
+    CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo
+from ..service import *
+from ..usuario.usuario import Usuario, Permissao
+from ..categoria.categoria import Categoria
 
 @dataclass_validate
 @dataclass(frozen = True)

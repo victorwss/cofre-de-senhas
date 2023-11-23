@@ -1,6 +1,6 @@
 from typing import override
 from connection.trans import TransactedConnection
-from cofre_de_senhas.dao import \
+from ..dao import \
     SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, \
     LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 
@@ -14,14 +14,12 @@ class SegredoDAOImpl(SegredoDAO):
     @override
     def buscar_por_pk(self, pk: SegredoPK) -> DadosSegredo | None:
         sql: str = f"SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo = {self._placeholder}"
-        self._connection.execute(sql, [pk.pk_segredo])
-        return self._connection.fetchone_class(DadosSegredo)
+        return self._connection.execute(sql, [pk.pk_segredo]).fetchone_class(DadosSegredo)
 
     @override
     def listar(self) -> list[DadosSegredo]:
         sql: str = "SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo ORDER BY pk_segredo"
-        self._connection.execute(sql)
-        return self._connection.fetchall_class(DadosSegredo)
+        return self._connection.execute(sql).fetchall_class(DadosSegredo)
 
     @override
     def criar(self, dados: DadosSegredoSemPK) -> SegredoPK:
@@ -57,8 +55,7 @@ class SegredoDAOImpl(SegredoDAO):
             + "FROM segredo p " \
             + "WHERE p.fk_tipo_segredo IN (1, 2) " \
             + "ORDER BY pk_segredo"
-        self._connection.execute(sql, [login.valor])
-        return self._connection.fetchall_class(DadosSegredo)
+        return self._connection.execute(sql, [login.valor]).fetchall_class(DadosSegredo)
 
     # TESTAR
     @override
@@ -66,16 +63,13 @@ class SegredoDAOImpl(SegredoDAO):
         sql1: str = f"DELETE FROM campo_segredo WHERE pfk_segredo = {self._placeholder}"
         sql2: str = f"DELETE FROM permissao WHERE pfk_segredo = {self._placeholder}"
         sql3: str = f"DELETE FROM categoria_segredo WHERE pfk_segredo = {self._placeholder}"
-        self._connection.execute(sql1, [pk.pk_segredo])
-        self._connection.execute(sql2, [pk.pk_segredo])
-        self._connection.execute(sql3, [pk.pk_segredo])
+        self._connection.execute(sql1, [pk.pk_segredo]).execute(sql2, [pk.pk_segredo]).execute(sql3, [pk.pk_segredo])
 
     @override
     def listar_por_pks(self, pks: list[SegredoPK]) -> list[DadosSegredo]:
         wildcards: str = ", ".join([self._placeholder for pk in pks])
         sql: str = f"SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN ({wildcards}) ORDER BY pk_segredo"
-        self._connection.execute(sql, [pk.pk_segredo for pk in pks])
-        return self._connection.fetchall_class(DadosSegredo)
+        return self._connection.execute(sql, [pk.pk_segredo for pk in pks]).fetchall_class(DadosSegredo)
 
     #def buscar_por_nomes(self, nomes: list[nome]) -> list[DadosSegredo]:
     #    wildcards: str = ", ".join([self._placeholder for pk in pks])
@@ -107,8 +101,7 @@ class SegredoDAOImpl(SegredoDAO):
     @override
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
         sql: str = f"SELECT pfk_segredo, pk_nome, valor FROM campo_segredo WHERE pfk_segredo = {self._placeholder} ORDER BY pk_nome"
-        self._connection.execute(sql, [pk.pk_segredo])
-        return self._connection.fetchall_class(CampoDeSegredo)
+        return self._connection.execute(sql, [pk.pk_segredo]).fetchall_class(CampoDeSegredo)
 
     # Permissões
 
@@ -125,5 +118,4 @@ class SegredoDAOImpl(SegredoDAO):
             + "FROM permissao p " \
             + "INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario " \
             + f"WHERE p.pfk_segredo = {self._placeholder} AND u.login = {self._placeholder}"
-        self._connection.execute(sql, [busca.pfk_segredo, busca.login])
-        return self._connection.fetchone_class(PermissaoDeSegredo)
+        return self._connection.execute(sql, [busca.pfk_segredo, busca.login]).fetchone_class(PermissaoDeSegredo)

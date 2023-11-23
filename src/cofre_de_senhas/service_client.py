@@ -8,8 +8,8 @@ from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace, asdict
 from requests.models import Response
 from requests.cookies import RequestsCookieJar
-from cofre_de_senhas.service import *
-from .sucesso import *
+from .service import *
+from sucesso import *
 from .erro import *
 
 _X = TypeVar("_X") # Delete when PEP 695 is ready.

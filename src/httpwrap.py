@@ -5,7 +5,7 @@ from flask.wrappers import Response
 from functools import wraps
 from dacite import Config, from_dict
 from enum import Enum
-from.sucesso import *
+from sucesso import *
 
 def handler(decorate: Callable[..., Response | tuple[Response, int]]) -> Callable[..., tuple[Response, int]]:
     @wraps(decorate)

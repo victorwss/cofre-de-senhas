@@ -2,31 +2,36 @@ from typing import Any, Callable, cast, override, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import ColumnDescriptor, Descriptor, IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
-from .trans import TransactedConnection
+from .conn import \
+    BadDatabaseConfigException, ColumnDescriptor, Descriptor, \
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+from .trans import ConnectionData, TransactedConnection
 from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
 from dataclasses import dataclass
 from validator import dataclass_validate
 
 @dataclass_validate
 @dataclass(frozen = True)
-class ConnectionData:
+class SqliteConnectionData(ConnectionData):
     file_name: str
 
     @staticmethod
     def create( \
             *, \
             file_name: str, \
-    ) -> "ConnectionData":
-        return ConnectionData(file_name)
+    ) -> "SqliteConnectionData":
+        return SqliteConnectionData(file_name)
 
     def connect(self) -> TransactedConnection:
         def make_connection() -> _Sqlite3ConnectionWrapper:
-            return _Sqlite3ConnectionWrapper(db_connect(self.file_name), self.file_name)
+            try:
+                return _Sqlite3ConnectionWrapper(db_connect(self.file_name), self.file_name)
+            except BaseException as x:
+                raise BadDatabaseConfigException(x)
         return TransactedConnection(make_connection, "?", "Sqlite", self.file_name)
 
 def connect(file: str) -> TransactedConnection:
-    return ConnectionData.create(file_name = file).connect()
+    return SqliteConnectionData.create(file_name = file).connect()
 
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
 

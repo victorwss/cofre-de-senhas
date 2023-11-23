@@ -2,9 +2,9 @@ import hasher
 from typing import Self
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from cofre_de_senhas.erro import *
-from cofre_de_senhas.dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuario as LoginUsuarioDAO
-from cofre_de_senhas.service import *
+from ..erro import *
+from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuario as LoginUsuarioDAO
+from ..service import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

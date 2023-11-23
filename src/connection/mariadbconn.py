@@ -2,8 +2,10 @@ from typing import Any, Callable, cast, override, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import ColumnDescriptor, Descriptor, FieldFlags, IntegrityViolationException, UnsupportedOperationError, NullStatus, RAW_DATA, SimpleConnection, TypeCode
-from .trans import TransactedConnection
+from .conn import \
+    BadDatabaseConfigException, ColumnDescriptor, Descriptor, FieldFlags, \
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode,UnsupportedOperationError
+from .trans import ConnectionData, TransactedConnection
 from mariadb import connect as db_connect
 from mariadb import IntegrityError, DataError
 from mariadb.connections import Connection as MariaDBConnection
@@ -68,7 +70,7 @@ __codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
 
 @dataclass_validate
 @dataclass(frozen = True)
-class ConnectionData:
+class MariadbConnectionData(ConnectionData):
     user: str
     password: str
     host: str
@@ -85,19 +87,22 @@ class ConnectionData:
             port: int = 3306, \
             database: str, \
             connect_timeout: int = 30 \
-    ) -> "ConnectionData":
-        return ConnectionData(user, password, host, port, database, connect_timeout)
+    ) -> "MariadbConnectionData":
+        return MariadbConnectionData(user, password, host, port, database, connect_timeout)
 
     def connect(self) -> TransactedConnection:
         def make_connection() -> _MariaDBConnectionWrapper:
-            return _MariaDBConnectionWrapper(db_connect( \
-                user = self.user, \
-                password = self.password, \
-                host = self.host, \
-                port = self.port, \
-                database = self.database, \
-                connect_timeout = self.connect_timeout
-            ), self.database)
+            try:
+                return _MariaDBConnectionWrapper(db_connect( \
+                    user = self.user, \
+                    password = self.password, \
+                    host = self.host, \
+                    port = self.port, \
+                    database = self.database, \
+                    connect_timeout = self.connect_timeout
+                ), self.database)
+            except BaseException as x:
+                raise BadDatabaseConfigException(x)
         return TransactedConnection(make_connection, "%s", "MariaDB", self.database)
 
 def _find_code(code: int) -> _InternalCode:
@@ -112,7 +117,7 @@ def connect( \
         database: str, \
         connect_timeout: int = 30 \
 ) -> TransactedConnection:
-    return ConnectionData.create(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout).connect()
+    return MariadbConnectionData.create(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout).connect()
 
 @dataclass_validate
 @dataclass(frozen = True)

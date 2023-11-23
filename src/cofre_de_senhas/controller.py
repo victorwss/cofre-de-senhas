@@ -1,18 +1,18 @@
 from typing import Any, cast, override
 from flask import Flask, jsonify, redirect, request, session, url_for
 from werkzeug import Response
-from cofre_de_senhas.httpwrap import *
-from cofre_de_senhas.service import *
-from cofre_de_senhas.service_impl import Servicos
+from httpwrap import *
+from .service import *
+from .service_impl import Servicos
 from validator import dataclass_validate
 from dataclasses import dataclass
 #from werkzeug.datastructures import MultiDict
-from connection.sqlite3conn import connect
-from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
-from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
-from cofre_de_senhas.usuario.usuario_dao_impl import UsuarioDAOImpl
-from cofre_de_senhas.segredo.segredo_dao_impl import SegredoDAOImpl
+from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
+from .categoria.categoria_dao_impl import CategoriaDAOImpl
+from .usuario.usuario_dao_impl import UsuarioDAOImpl
+from .segredo.segredo_dao_impl import SegredoDAOImpl
 from connection.trans import TransactedConnection
+from .conn_factory import connect
 
 class GerenciadorLoginImpl(GerenciadorLogin):
 
@@ -38,7 +38,7 @@ def servir() -> None:
     app.secret_key = ""
 
     gl: GerenciadorLogin = GerenciadorLoginImpl()
-    cofre: TransactedConnection = connect("cofre.db")
+    cofre: TransactedConnection = connect()
 
     CategoriaDAOImpl(cofre)
     CofreDeSenhasDAOImpl(cofre)

@@ -267,3 +267,7 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
 
 class TransactionNotActiveException(Exception):
     pass
+
+class BadDatabaseConfigException(Exception):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)

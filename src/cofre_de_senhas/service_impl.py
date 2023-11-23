@@ -3,11 +3,11 @@ from typing import Any, Callable, override, ParamSpec, TypeVar
 from decorators.for_all import for_all_methods
 from dataclasses import dataclass, replace
 from connection.trans import TransactedConnection
-from cofre_de_senhas.service import *
-from cofre_de_senhas.dao import CofreDeSenhasDAO
-from cofre_de_senhas.categoria.categoria import Categoria
-from cofre_de_senhas.usuario.usuario import Usuario, SenhaAlterada
-from cofre_de_senhas.segredo.segredo import Segredo
+from .service import *
+from .dao import CofreDeSenhasDAO
+from .categoria.categoria import Categoria
+from .usuario.usuario import Usuario, SenhaAlterada
+from .segredo.segredo import Segredo
 from decorators.tracer import Logger
 
 _log: Logger = Logger.for_print_fn()

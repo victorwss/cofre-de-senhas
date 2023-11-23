@@ -1,6 +1,6 @@
 from typing import override
 from cofre_de_senhas.erro import *
-from cofre_de_senhas.sucesso import *
+from sucesso import *
 
 def test_erro_500() -> None:
     class FooException(BaseException):

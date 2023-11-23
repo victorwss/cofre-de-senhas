@@ -1,5 +1,6 @@
 from typing import Any, Callable, cast, Literal, override, ParamSpec, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
+from abc import ABC, abstractmethod
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
@@ -219,3 +220,8 @@ class TransactedConnection(SimpleConnection):
         c: SimpleConnection | None = self.__wrapped_or_none
         if c is None: return self.__database_name
         return c.database_name
+
+class ConnectionData(ABC):
+    @abstractmethod
+    def connect(self) -> TransactedConnection:
+        pass

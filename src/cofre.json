@@ -1,0 +1,6 @@
+{
+    "database_name": "sqlite",
+    "properties": {
+        "file_name": "cofre.db"
+    }
+}
