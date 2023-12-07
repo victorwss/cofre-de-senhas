@@ -1,4 +1,4 @@
-from typing import Any, Callable, ForwardRef, List, Literal, Optional, TypeAlias, TypedDict, TYPE_CHECKING
+from typing import Any, Callable, ForwardRef, List, Literal, Optional, ParamSpecArgs, ParamSpecKwargs, TypeAlias, TypeVar, TypedDict, TYPE_CHECKING
 
 def _just_some_func_dont_call() -> None: # pragma: no cover
     assert False
@@ -63,5 +63,5 @@ else:
     TypedDictType      = type(TypedDict("X", {"x": int}))
 
 TT1: TypeAlias = GenericAlias | ForwardRef | str | None
-TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType
-TT3: list[type[Any]] = [type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType]
+TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType | ParamSpecArgs | ParamSpecKwargs | TypeVar
+TT3: list[type[Any]] = [type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType, ParamSpecArgs, ParamSpecKwargs, TypeVar]

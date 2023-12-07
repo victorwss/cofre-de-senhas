@@ -2,7 +2,7 @@ import dataclasses
 from abc import ABC, abstractmethod
 from typing import Any, override, TypeGuard
 from typing import Generic, TypeVar # Delete when PEP 695 is ready.
-from .typezoo import EllipsisType
+from .typezoo import EllipsisType, TT2
 
 
 _SI = TypeVar("_SI", bound = str | int) # Delete when PEP 695 is ready.
@@ -126,7 +126,7 @@ def make_errors(what: list[ErrorSet] | dict[str, ErrorSet]) -> ErrorSet:
 no_error: ErrorSet = _ErrorSetEmpty()
 bad_ellipsis: SignalingErrorSet = make_error("Unexpected ... here")
 
-def to_error(what: SignalingErrorSet | type[Any]) -> ErrorSet:
+def to_error(what: SignalingErrorSet | TT2) -> ErrorSet:
     if what is EllipsisType:
         return bad_ellipsis
     if isinstance(what, SignalingErrorSet):
@@ -134,9 +134,9 @@ def to_error(what: SignalingErrorSet | type[Any]) -> ErrorSet:
     return no_error
 
 
-def split_errors(entering: list[SignalingErrorSet | type[Any]]) -> ErrorSet:
+def split_errors(entering: list[SignalingErrorSet | TT2]) -> ErrorSet:
     return make_errors([to_error(t) for t in entering])
 
 
-def split_valids(entering: list[SignalingErrorSet | type[Any]]) -> list[type[Any]]:
+def split_valids(entering: list[SignalingErrorSet | TT2]) -> list[TT2]:
     return [t for t in entering if not isinstance(t, SignalingErrorSet) and not isinstance(t, EllipsisType)]

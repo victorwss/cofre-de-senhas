@@ -89,16 +89,16 @@ def _item_multiply(element: _U, times: int) -> list[_U]:
     return [element for x in range(0, times)]
 
 
-def _validate_join_without_values(types2: list[type[Any]], globalns: NS_T) -> list[ErrorSet]:
+def _validate_join_without_values(types2: list[TT2], globalns: NS_T) -> list[ErrorSet]:
     return [_validate_types_without_values(types2[k], globalns) for k in range(0, len(types2))]
 
 
-def _validate_join_with_values(types2: list[type[Any]], tvalue: tuple[Any, ...], globalns: NS_T) -> list[ErrorSet]:
+def _validate_join_with_values(types2: list[TT2], tvalue: tuple[Any, ...], globalns: NS_T) -> list[ErrorSet]:
     return [_validate_types_with_values(types2[k], tvalue[k], globalns) for k in range(0, len(types2))]
 
 
-def _validate_typing_tuple_without_values_in(expected_type: GenericType, globalns: NS_T) -> SignalingErrorSet | tuple[list[type[Any]], bool]:
-    types: list[SignalingErrorSet | type[Any]] = _type_resolve_all(expected_type.__args__, globalns)
+def _validate_typing_tuple_without_values_in(expected_type: GenericType, globalns: NS_T) -> SignalingErrorSet | tuple[list[TT2], bool]:
+    types: list[SignalingErrorSet | TT2] = _type_resolve_all(expected_type.__args__, globalns)
 
     is_ellipsis = len(types) == 2 and types[1] is EllipsisType
     if is_ellipsis:
@@ -108,7 +108,7 @@ def _validate_typing_tuple_without_values_in(expected_type: GenericType, globaln
     if isinstance(error_types, SignalingErrorSet):
         return error_types
 
-    types2: list[type[Any]] = split_valids(types)
+    types2: list[TT2] = split_valids(types)
     assert len(types2) == len(types)
 
     errors: list[ErrorSet] = _validate_join_without_values(types2, globalns)
@@ -120,13 +120,14 @@ def _validate_typing_tuple_without_values_in(expected_type: GenericType, globaln
 
 
 def _validate_typing_tuple_without_values(expected_type: GenericType, globalns: NS_T) -> ErrorSet:
-    x: SignalingErrorSet | tuple[list[type[Any]], bool] = _validate_typing_tuple_without_values_in(expected_type, globalns)
+    x: SignalingErrorSet | tuple[list[TT2], bool] = _validate_typing_tuple_without_values_in(expected_type, globalns)
     if isinstance(x, SignalingErrorSet):
         return x
     return no_error
 
+
 def _validate_typing_tuple_with_values(expected_type: GenericType, value: Any, globalns: NS_T) -> ErrorSet:
-    typecheck: SignalingErrorSet | tuple[list[type[Any]], bool] = _validate_typing_tuple_without_values_in(expected_type, globalns)
+    typecheck: SignalingErrorSet | tuple[list[TT2], bool] = _validate_typing_tuple_without_values_in(expected_type, globalns)
     if isinstance(typecheck, SignalingErrorSet):
         return typecheck
 
@@ -135,7 +136,7 @@ def _validate_typing_tuple_with_values(expected_type: GenericType, value: Any, g
 
     tvalue: tuple[Any, ...] = value
 
-    types: list[type[Any]] = typecheck[0]
+    types: list[TT2] = typecheck[0]
     if typecheck[1]:
         types = _item_multiply(types[0], len(tvalue))
 
@@ -199,12 +200,12 @@ def _validate_typing_typed_dict_with_values(expected_type: TypedDictType, value:
     return make_errors(errors)
 
 
-def _validate_typing_dict_without_values_in(expected_type: GenericType, globalns: NS_T) -> SignalingErrorSet | tuple[type[Any], type[Any]]:
+def _validate_typing_dict_without_values_in(expected_type: GenericType, globalns: NS_T) -> SignalingErrorSet | tuple[TT2, TT2]:
     if len(expected_type.__args__) != 2:
         return make_error(f"bad parameters for {expected_type}")
 
-    expected_key_type  : SignalingErrorSet | type[Any] = _type_resolve(expected_type.__args__[0], globalns)
-    expected_value_type: SignalingErrorSet | type[Any] = _type_resolve(expected_type.__args__[1], globalns)
+    expected_key_type  : SignalingErrorSet | TT2 = _type_resolve(expected_type.__args__[0], globalns)
+    expected_value_type: SignalingErrorSet | TT2 = _type_resolve(expected_type.__args__[1], globalns)
 
     bad: dict[str, ErrorSet] = {
         "key": to_error(expected_key_type),
@@ -223,19 +224,19 @@ def _validate_typing_dict_without_values_in(expected_type: GenericType, globalns
 
 
 def _validate_typing_dict_without_values(expected_type: GenericType, globalns: NS_T) -> ErrorSet:
-    x: SignalingErrorSet | tuple[type[Any], type[Any]] = _validate_typing_dict_without_values_in(expected_type, globalns)
+    x: SignalingErrorSet | tuple[TT2, TT2] = _validate_typing_dict_without_values_in(expected_type, globalns)
     if isinstance(x, SignalingErrorSet):
         return x
     return no_error
 
 
 def _validate_typing_dict_with_values(expected_type: GenericType, value: Any, globalns: NS_T) -> ErrorSet:
-    es: SignalingErrorSet | tuple[type[Any], type[Any]] = _validate_typing_dict_without_values_in(expected_type, globalns)
+    es: SignalingErrorSet | tuple[TT2, TT2] = _validate_typing_dict_without_values_in(expected_type, globalns)
 
     if isinstance(es, SignalingErrorSet):
         return es
-    expected_key_type  : type[Any] = es[0]
-    expected_value_type: type[Any] = es[1]
+    expected_key_type  : TT2 = es[0]
+    expected_value_type: TT2 = es[1]
 
     if not isinstance(value, dict):
         return make_error(f"must be an instance of dict, but received {type(value)}")
@@ -255,13 +256,13 @@ def _validate_typing_dict_with_values(expected_type: GenericType, value: Any, gl
     return make_errors(errors)
 
 
-def _validate_parameter(real: type[Any], formal: type[Any], check_any: bool) -> ErrorSet:
+def _validate_parameter(real: TT2, formal: TT2, check_any: bool) -> ErrorSet:
     if (not check_any or formal != Any) and formal != real:
         return make_error(f"expected {formal} but was {real}")
     return no_error
 
 
-def _validate_parameters(names: list[str], reals: list[type[Any]], formals: list[type[Any]], is_ellipsis: bool) -> ErrorSet:
+def _validate_parameters(names: list[str], reals: list[TT2], formals: list[TT2], is_ellipsis: bool) -> ErrorSet:
     errors: dict[str, ErrorSet] = {}
 
     if not is_ellipsis:
@@ -272,8 +273,8 @@ def _validate_parameters(names: list[str], reals: list[type[Any]], formals: list
     return make_errors(errors)
 
 
-def _validate_typing_callable_without_values_in(expected_type: CallableTypeFormal, globalns: NS_T) -> SignalingErrorSet | tuple[list[type[Any]], bool]:
-    formals: list[SignalingErrorSet | type[Any]] = _type_resolve_all(expected_type.__args__, globalns)
+def _validate_typing_callable_without_values_in(expected_type: CallableTypeFormal, globalns: NS_T) -> SignalingErrorSet | tuple[list[TT2], bool]:
+    formals: list[SignalingErrorSet | TT2] = _type_resolve_all(expected_type.__args__, globalns)
     is_ellipsis: bool = len(formals) == 2 and formals[0] is EllipsisType
 
     if is_ellipsis:
@@ -287,14 +288,14 @@ def _validate_typing_callable_without_values_in(expected_type: CallableTypeForma
 
 
 def _validate_typing_callable_without_values(expected_type: CallableTypeFormal, globalns: NS_T) -> ErrorSet:
-    x: SignalingErrorSet | tuple[list[type[Any]], bool] = _validate_typing_callable_without_values_in(expected_type, globalns)
+    x: SignalingErrorSet | tuple[list[TT2], bool] = _validate_typing_callable_without_values_in(expected_type, globalns)
     if isinstance(x, SignalingErrorSet):
         return x
     return no_error
 
 
 def _validate_typing_callable_with_values(expected_type: CallableTypeFormal, value: Any, globalns: NS_T) -> ErrorSet:
-    inner: SignalingErrorSet | tuple[list[type[Any]], bool] = _validate_typing_callable_without_values_in(expected_type, globalns)
+    inner: SignalingErrorSet | tuple[list[TT2], bool] = _validate_typing_callable_without_values_in(expected_type, globalns)
 
     if isinstance(inner, SignalingErrorSet):
         return inner
@@ -303,12 +304,12 @@ def _validate_typing_callable_with_values(expected_type: CallableTypeFormal, val
         return make_error(f"must be an instance of {expected_type.__str__()}, but received {type(value)}")
 
     names  : list[str] = list(value.__annotations__.keys())
-    reals  : list[SignalingErrorSet | type[Any]] = _type_resolve_all(value.__annotations__.values(), globalns)
-    formals: list[type[Any]] = inner[0]
+    reals  : list[SignalingErrorSet | TT2] = _type_resolve_all(value.__annotations__.values(), globalns)
+    formals: list[TT2] = inner[0]
     is_ellipsis: bool = inner[1]
     if is_ellipsis:
         t: type[Any] = cast(Any, type)
-        r: type[Any] = formals[1]
+        r: TT2 = formals[1]
         formals = _item_multiply(t, len(reals) - 1)
         formals.append(r)
 
@@ -316,7 +317,7 @@ def _validate_typing_callable_with_values(expected_type: CallableTypeFormal, val
     if isinstance(real_error, SignalingErrorSet):
         return real_error
 
-    reals2: list[type[Any]] = split_valids(reals)
+    reals2: list[TT2] = split_valids(reals)
 
     if not is_ellipsis and len(reals2) != len(formals):
         return make_error(f"bad parameters - should have {len(formals)} [{formals}] but there are {len(reals2)} [{reals2}]")
@@ -386,12 +387,10 @@ class _TypeMapper:
         self.__mappeds_with_values   [key] = with_values
         self.__mappeds_without_values[key] = without_values
 
-    #def validate_types_without_values[U](self, key: type[U], globalns: NS_T) -> ErrorSet: # PEP 695
-    def validate_types_without_values(self, key: type[_U], globalns: NS_T) -> ErrorSet:
+    def validate_types_without_values(self, key: TT2, globalns: NS_T) -> ErrorSet:
         return self.__mappeds_without_values.get(type(key), _blindly_accept)(key, globalns)
 
-    #def validate_types_with_values[U](self, key: type[U], value: Any, globalns: NS_T) -> ErrorSet: # PEP 695
-    def validate_types_with_values(self, key: type[_U], value: Any, globalns: NS_T) -> ErrorSet:
+    def validate_types_with_values(self, key: TT2, value: Any, globalns: NS_T) -> ErrorSet:
         return self.__mappeds_with_values.get(type(key), _validate_simple_type)(key, value, globalns)
 
 
@@ -429,6 +428,7 @@ def _type_resolve(expected_type: TT1 | TT2, globalns: NS_T) -> SignalingErrorSet
     assert not isinstance(reworked_type, ErrorSet)
 
     if not _is_type_ok(reworked_type):
+        print(type(reworked_type))
         return make_error(f"{reworked_type} is not a valid type")
 
     return cast(TT2, reworked_type)
@@ -470,7 +470,7 @@ def _reduce_alias(alias: GenericAlias, globalns: NS_T) -> SignalingErrorSet | ty
     full_name: str = t[0]
     new_globalns: NS_T = t[1]
 
-    found: list[SignalingErrorSet | type[Any]] = _type_resolve_all(alias.__args__, new_globalns)
+    found: list[SignalingErrorSet | TT2] = _type_resolve_all(alias.__args__, new_globalns)
     errors: ErrorSet = split_errors(found)
     if isinstance(errors, SignalingErrorSet):
         return errors

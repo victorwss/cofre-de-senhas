@@ -1,6 +1,6 @@
 from validator import TypeValidationError, dataclass_validate, dataclass_validate_local
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Literal, Sequence, Set, Tuple, TypeAlias, TypedDict
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Literal, ParamSpec, Sequence, Set, Tuple, TypeAlias, TypeVar, TypedDict
 from pytest import raises
 
 def test_simple_1() -> None:
@@ -1926,3 +1926,28 @@ def test_bad_alias() -> None:
         class BadAlias:
             # Invalid type! Should always fail!
             x1: "List[mumble]" # type: ignore
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+def test_with_paramspec() -> None:
+    def foo(what: Callable[_P, _R]) -> Callable[_P, _R]:
+        def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+            #reveal_type(_P.args)   # Any
+            #reveal_type(_P.kwargs) # Any
+            #reveal_type(_R)        # Any
+            assert False
+        #reveal_type(inner) # "def (*_P.args, **_P.kwargs) -> _R`-2"
+        return inner
+
+    def bar() -> None:
+        assert False
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class WithParamSpec:
+        jj: Callable[..., Any]
+
+    #reveal_type(foo(bar)) # "def ()"
+
+    WithParamSpec(foo(bar))

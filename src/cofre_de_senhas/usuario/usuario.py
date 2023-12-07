@@ -12,12 +12,6 @@ if TYPE_CHECKING:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class Permissao:
-    usuario: "Usuario"
-    tipo: TipoPermissao
-
-@dataclass_validate
-@dataclass(frozen = True)
 class Usuario:
     pk_usuario: int
     login: str
@@ -219,3 +213,9 @@ class Usuario:
         def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeUsuarios:
             Usuario.verificar_acesso(quem_faz)
             return ResultadoListaDeUsuarios([x.__up for x in Usuario.__listar()])
+
+@dataclass_validate
+@dataclass(frozen = True)
+class Permissao:
+    usuario: Usuario
+    tipo: TipoPermissao

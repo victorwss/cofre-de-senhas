@@ -2,6 +2,7 @@ from typing import Any, cast, override
 from flask import Flask, jsonify, redirect, request, session, url_for
 from werkzeug import Response
 from httpwrap import *
+from webrpc import *
 from .service import *
 from .service_impl import Servicos
 from validator import dataclass_validate
@@ -32,10 +33,15 @@ class GerenciadorLoginImpl(GerenciadorLogin):
         if "chave" not in session: raise UsuarioNaoLogadoException()
         return cast(ChaveUsuario, session["chave"])
 
+@dataclass
+class Foo:
+    ba: int
+
 def servir() -> None:
     PORTA: int = 5000
     app: Flask = Flask(__name__)
     app.secret_key = ""
+    ws: WebSuite = WebSuite(app)
 
     gl: GerenciadorLogin = GerenciadorLoginImpl()
     cofre: TransactedConnection = connect()
@@ -50,11 +56,15 @@ def servir() -> None:
 
     #### Usuários
 
-    @app.route("/login", methods = ["POST"])
+    @ws.flaskenify(WebMethod("POST", "/test", []))
+    @jsoner
+    def foobar() -> Foo:
+        return Foo(123)
+
+    @ws.flaskenify(WebMethod("POST", "/login", [WebParam("body", from_body_typed(LoginComSenha))]))
     @empty_json
-    def login() -> None:
-        read_body(LoginComSenha)
-        sx.usuario.login(read_body(LoginComSenha))
+    def login(body: LoginComSenha) -> None:
+        sx.usuario.login(body)
 
     @app.route("/logout", methods = ["POST"])
     @empty_json

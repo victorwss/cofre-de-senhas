@@ -7,12 +7,15 @@ from dacite import Config, from_dict
 from enum import Enum
 from sucesso import *
 
-def handler(decorate: Callable[..., Response | tuple[Response, int]]) -> Callable[..., tuple[Response, int]]:
+_RS = Response | str
+
+def handler(decorate: Callable[..., _RS | tuple[_RS, int]]) -> Callable[..., tuple[_RS, int]]:
     @wraps(decorate)
-    def decorator(*args: Any, **kwargs: Any) -> tuple[Response, int]:
+    def decorator(*args: Any, **kwargs: Any) -> tuple[_RS, int]:
         try:
-            f: Response | tuple[Response, int] = decorate(*args, **kwargs)
+            f: _RS | tuple[_RS, int] = decorate(*args, **kwargs)
             if isinstance(f, Response): return f, 200
+            if isinstance(f, str): return f, 200
             return f
         except BaseException as e:
             erro: Erro = Erro.criar(e)
