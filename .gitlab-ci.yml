@@ -24,6 +24,7 @@ test:
       --password=$MARIADB_ROOT_PASSWORD
       --host=$MARIADB_HOST
       -e "create database IF NOT EXISTS $MARIADB_DATABASE;
+          create database IF NOT EXISTS test_cofre;
           create database IF NOT EXISTS test_cofre_empty;"
     - python --version; pip --version
     - pip install --no-cache-dir -r requirements.txt

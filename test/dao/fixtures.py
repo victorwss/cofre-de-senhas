@@ -12,8 +12,8 @@ def read_all(fn: str) -> str:
 mysql_clear: str = read_all("src/mariadb-create.sql").replace("$$$$", "test_cofre") + "\n" + read_all("test/test-mass.sql")
 
 sqlite_db : SqliteTestConfig  = SqliteTestConfig ("test/cofre-teste.db", "test/cofre-teste-run.db")
-mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_clear, "root", "root", "127.0.0.1", 3306, "test_cofre")
-mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_clear, "root", "root", "127.0.0.1", 3306, "test_cofre", 3)
+mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_clear, "root", "root", "mariadb", 3306, "test_cofre")
+mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_clear, "root", "root", "mariadb", 3306, "test_cofre", 3)
 
 dbs: dict[str, DbTestConfig] = { \
     "sqlite" : sqlite_db , \
