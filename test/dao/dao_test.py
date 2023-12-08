@@ -12,8 +12,8 @@ def test_instanciar(db: DbTestConfig) -> None:
     assert f == CofreDeSenhasDAO.instance()
 
 sqlite_db_x : SqliteTestConfig  = SqliteTestConfig ("test/empty.db", "test/cofre-teste-create-run.db")
-mysql_db_x  : MysqlTestConfig   = MysqlTestConfig  ("", "root", "root", "127.0.0.1", 3306, "test_cofre_empty")
-mariadb_db_x: MariaDbTestConfig = MariaDbTestConfig("", "root", "root", "127.0.0.1", 3306, "test_cofre_empty", 3)
+mysql_db_x  : MysqlTestConfig   = MysqlTestConfig  ("", "root", "root", "mariadb", 3306, "test_cofre_empty")
+mariadb_db_x: MariaDbTestConfig = MariaDbTestConfig("", "root", "root", "mariadb", 3306, "test_cofre_empty", 3)
 
 dbs_x: dict[str, DbTestConfig] = { \
     "sqlite" : sqlite_db_x , \
