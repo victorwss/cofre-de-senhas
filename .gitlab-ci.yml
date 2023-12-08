@@ -7,7 +7,7 @@ test:
   stage: test
   variables:
     MARIADB_ROOT_PASSWORD: "root"
-    MARIADB_HOST: "127.0.0.1"
+    MARIADB_HOST: "db_hostname"
     MARIADB_DATABASE: "test_fruits"
   services:
     - mariadb:latest
