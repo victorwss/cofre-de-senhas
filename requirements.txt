@@ -1,0 +1,11 @@
+mypy
+pytest
+pytest-timeout
+dacite
+mariadb
+mysql-connector-python
+requests
+types-requests
+flask
+radon
+coverage
