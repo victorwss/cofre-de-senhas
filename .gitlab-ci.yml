@@ -3,11 +3,17 @@ stages:
 
 image: python:3.12.0-slim
 
-before_script:
-  - python --version; pip --version
-  - apt update && apt install gcc libmariadb-dev -y
-  - pip install --no-cache-dir -r requirements.txt
-
 test:
   stage: test
+  services:
+    - mariadb:latest
+  before_script:
+    - >
+      apt update &&
+      apt install -y --no-install-recommends
+      gcc
+      libmariadb-dev
+      mariadb-client
+    - python --version; pip --version
+    - pip install --no-cache-dir -r requirements.txt
   script: bash test.sh
