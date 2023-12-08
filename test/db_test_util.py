@@ -10,9 +10,12 @@ _R = TypeVar("_R")
 
 class DbTestConfig(ABC):
 
-    def __init__(self, maker: Callable[[], TransactedConnection]) -> None:
+    def __init__(self, placeholder: str, database_type: str, database_name: str, maker: Callable[[], TransactedConnection]) -> None:
         self.__maker: Callable[[], TransactedConnection] = maker
         self.__conn: TransactedConnection | None = None
+        self.__placeholder: str = placeholder
+        self.__database_name: str = database_name
+        self.__database_type: str = database_type
 
     def _poor_execute_script(self, script: str) -> None:
         with self._maker() as conn:
@@ -56,13 +59,25 @@ class DbTestConfig(ABC):
         assert self.__conn is not None
         return self.__conn
 
+    @property
+    def placeholder(self) -> str:
+        return self.__placeholder
+
+    @property
+    def database_type(self) -> str:
+        return self.__database_type
+
+    @property
+    def database_name(self) -> str:
+        return self.__database_name
+
 class SqliteTestConfig(DbTestConfig):
 
     def __init__(self, pristine: str, sandbox: str) -> None:
         def inner() -> TransactedConnection:
             from connection.sqlite3conn import connect
             return connect(sandbox)
-        super().__init__(inner)
+        super().__init__("?", "Sqlite", "test/fruits.db", inner)
         self.__pristine: str = pristine
         self.__sandbox: str = sandbox
 
@@ -97,7 +112,7 @@ class MariaDbTestConfig(DbTestConfig):
         def inner() -> TransactedConnection:
             from connection.mariadbconn import connect
             return connect(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout)
-        super().__init__(inner)
+        super().__init__("%s", "MariaDB", "test_fruits", inner)
         self.__reset_script: str = reset_script
 
     @property
@@ -123,7 +138,7 @@ class MysqlTestConfig(DbTestConfig):
         def inner() -> TransactedConnection:
             from connection.mysqlconn import connect
             return connect(user = user, password = password, host = host, port = port, database = database)
-        super().__init__(inner)
+        super().__init__("%s", "MySQL", "test_fruits", inner)
         self.__reset_script: str = reset_script
 
     @property

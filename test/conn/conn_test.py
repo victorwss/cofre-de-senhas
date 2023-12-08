@@ -586,7 +586,7 @@ def test_placeholder(db: DbTestConfig) -> None:
     with db.conn as c:
         y = db.conn.placeholder
         z = db.conn.wrapped.placeholder
-    k: str = "?" if db == sqlite_db else "%s" if db == mariadb_db else "%s" if db == mysql_db else "xxxx_FAIL_xxxx"
+    k: str = db.placeholder
     assert x == k
     assert x == y
     assert x == z
@@ -599,7 +599,7 @@ def test_database_type(db: DbTestConfig) -> None:
     with db.conn as c:
         y = db.conn.database_type
         z = db.conn.wrapped.database_type
-    k: str = "Sqlite" if db == sqlite_db else "MariaDB" if db == mariadb_db else "MySQL" if db == mysql_db else "xxxx_FAIL_xxxx"
+    k: str = db.database_type
     assert x == k
     assert x == y
     assert x == z
@@ -612,7 +612,7 @@ def test_database_name(db: DbTestConfig) -> None:
     with db.conn as c:
         y = db.conn.database_name
         z = db.conn.wrapped.database_name
-    k: str = "test/fruits.db" if db == sqlite_db else "test_fruits" if db == mariadb_db else "test_fruits" if db == mysql_db else "xxxx_FAIL_xxxx"
+    k: str = db.database_name
     assert x == k
     assert x == y
     assert x == z
