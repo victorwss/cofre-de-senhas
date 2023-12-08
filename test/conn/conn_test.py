@@ -87,8 +87,8 @@ INSERT INTO animal (name, gender, species, age) VALUES ('sylvester', 'M', 'felis
 """
 
 sqlite_db : SqliteTestConfig  = SqliteTestConfig ("test/fruits-ok.db", "test/fruits.db")
-mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_reset, "root", "root", "127.0.0.1", 3306, "test_fruits")
-mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_reset, "root", "root", "127.0.0.1", 3306, "test_fruits", 3)
+mysql_db  : MysqlTestConfig   = MysqlTestConfig  (mysql_reset, "root", "root", "mariadb", 3306, "test_fruits")
+mariadb_db: MariaDbTestConfig = MariaDbTestConfig(mysql_reset, "root", "root", "mariadb", 3306, "test_fruits", 3)
 
 dbs: dict[str, DbTestConfig] = { \
     "sqlite" : sqlite_db , \

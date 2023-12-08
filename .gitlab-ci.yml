@@ -3,11 +3,29 @@ stages:
 
 image: python:3.12.0-slim
 
-before_script:
-  - python --version; pip --version
-  - apt update && apt install gcc libmariadb-dev -y
-  - pip install --no-cache-dir -r requirements.txt
-
 test:
   stage: test
+  variables:
+    MARIADB_ROOT_PASSWORD: "root"
+    MARIADB_HOST: "mariadb"
+    MARIADB_DATABASE: "test_fruits"
+  services:
+    - mariadb:latest
+  before_script:
+    - >
+      apt update &&
+      apt install -y --no-install-recommends
+      gcc
+      libmariadb-dev
+      mariadb-client
+    - >
+      mariadb
+      --user=root
+      --password=$MARIADB_ROOT_PASSWORD
+      --host=$MARIADB_HOST
+      -e "create database IF NOT EXISTS $MARIADB_DATABASE;
+          create database IF NOT EXISTS test_cofre;
+          create database IF NOT EXISTS test_cofre_empty;"
+    - python --version; pip --version
+    - pip install --no-cache-dir -r requirements.txt
   script: bash test.sh
