@@ -5,6 +5,10 @@ image: python:3.12.0-slim
 
 test:
   stage: test
+  variables:
+    MARIADB_ROOT_PASSWORD: "root"
+    MARIADB_HOST: "127.0.0.1"
+    MARIADB_DATABASE: "test_fruits"
   services:
     - mariadb:latest
   before_script:
@@ -14,6 +18,13 @@ test:
       gcc
       libmariadb-dev
       mariadb-client
+    - >
+      mariadb
+      --user=root
+      --password=$MARIADB_ROOT_PASSWORD
+      --host=$MARIADB_HOST
+      -e "create database IF NOT EXISTS $MARIADB_DATABASE;
+          use $MARIADB_DATABASE;"
     - python --version; pip --version
     - pip install --no-cache-dir -r requirements.txt
   script: bash test.sh
