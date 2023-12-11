@@ -2,6 +2,7 @@ from typing import override
 from connection.trans import TransactedConnection
 from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
 
+
 class CategoriaDAOImpl(CategoriaDAO):
 
     def __init__(self, con: TransactedConnection) -> None:

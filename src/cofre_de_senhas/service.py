@@ -4,35 +4,42 @@ from validator import dataclass_validate
 from .erro import *
 from enum import Enum
 
+
 class NivelAcesso(Enum):
     DESATIVADO = 0
     NORMAL = 1
     CHAVEIRO_DEUS_SUPREMO = 2
+
 
 class TipoPermissao(Enum):
     SOMENTE_LEITURA = 1
     LEITURA_E_ESCRITA = 2
     PROPRIETARIO = 3
 
+
 class TipoSegredo(Enum):
     PUBLICO = 1
     ENCONTRAVEL = 2
     CONFIDENCIAL = 3
+
 
 @dataclass_validate
 @dataclass(frozen = True)
 class ChaveUsuario:
     valor: int
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class ResetLoginUsuario:
     login: str
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class ChaveSegredo:
     valor: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -46,6 +53,7 @@ class SegredoSemChave:
 
     def com_chave(self, chave: ChaveSegredo) -> "SegredoComChave":
         return SegredoComChave(chave, self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -62,16 +70,19 @@ class SegredoComChave:
     def sem_chave(self) -> "SegredoSemChave":
         return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class NomeCategoria:
     nome: str
+
 
 @dataclass_validate
 @dataclass(frozen = True)
 class RenomeCategoria:
     antigo: str
     novo: str
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -82,10 +93,12 @@ class LoginComSenha:
     def com_nivel(self, nivel_acesso: NivelAcesso) -> "UsuarioNovo":
         return UsuarioNovo(self.login, nivel_acesso, self.senha)
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class LoginUsuario:
     login: str
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -94,11 +107,13 @@ class UsuarioNovo:
     nivel_acesso: NivelAcesso
     senha: str
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class TrocaSenha:
     antiga: str
     nova: str
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -107,11 +122,13 @@ class SenhaAlterada:
     login: str
     nova_senha: str
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class UsuarioComNivel:
     login: str
     nivel_acesso: NivelAcesso
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -120,10 +137,12 @@ class UsuarioComChave:
     login: str
     nivel_acesso: NivelAcesso
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class ChaveCategoria:
     valor: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -136,10 +155,12 @@ class CabecalhoSegredoComChave:
     def com_corpo(self, campos: dict[str, str], categorias: set[str], usuarios: dict[str, TipoPermissao]) -> SegredoComChave:
         return SegredoComChave(self.chave, self.nome, self.descricao, self.tipo, campos, categorias, usuarios)
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class ResultadoPesquisaDeSegredos:
     segredos: list[CabecalhoSegredoComChave]
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -147,21 +168,25 @@ class CategoriaComChave:
     chave: ChaveCategoria
     nome: str
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class ResultadoListaDeCategorias:
     lista: list[CategoriaComChave]
+
 
 @dataclass_validate
 @dataclass(frozen = True)
 class ResultadoListaDeUsuarios:
     lista: list[UsuarioComChave]
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class PesquisaSegredos:
     nome: str
     categorias: list[str]
+
 
 class GerenciadorLogin(ABC):
 
@@ -180,11 +205,13 @@ class GerenciadorLogin(ABC):
     def usuario_logado(self) -> ChaveUsuario:
         pass
 
+
 class ServicoBD(ABC):
 
     @abstractmethod
     def criar_bd(self, dados: LoginComSenha) -> None:
         pass
+
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class ServicoUsuario(ABC):
@@ -232,6 +259,7 @@ class ServicoUsuario(ABC):
     def listar(self) -> ResultadoListaDeUsuarios:
         pass
 
+
 class ServicoSegredo(ABC):
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
@@ -267,6 +295,7 @@ class ServicoSegredo(ABC):
     @abstractmethod
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         pass
+
 
 class ServicoCategoria(ABC):
 

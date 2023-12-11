@@ -5,10 +5,12 @@ from dataclasses import dataclass, replace
 from ..erro import *
 from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuario as LoginUsuarioDAO
 from ..service import *
-
 from typing import TYPE_CHECKING
+
+
 if TYPE_CHECKING:
     from cofre_de_senhas.segredo.segredo import Segredo
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -157,6 +159,7 @@ class Usuario:
         lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao(dados.fk_tipo_permissao)) for dados in lista1]
         return {permissao.usuario.login: permissao for permissao in lista2}
 
+
     class Servico:
 
         __me: "Usuario.Servico | None" = None
@@ -213,6 +216,7 @@ class Usuario:
         def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeUsuarios:
             Usuario.verificar_acesso(quem_faz)
             return ResultadoListaDeUsuarios([x.__up for x in Usuario.__listar()])
+
 
 @dataclass_validate
 @dataclass(frozen = True)

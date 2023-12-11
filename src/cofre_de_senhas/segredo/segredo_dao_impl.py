@@ -1,8 +1,10 @@
 from typing import override
 from connection.trans import TransactedConnection
-from ..dao import \
+from ..dao import ( \
     SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, \
-    LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
+    LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin \
+)
+
 
 class SegredoDAOImpl(SegredoDAO):
 

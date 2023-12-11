@@ -9,6 +9,7 @@ from sucesso import *
 
 _RS = Response | str
 
+
 def handler(decorate: Callable[..., _RS | tuple[_RS, int]]) -> Callable[..., tuple[_RS, int]]:
     @wraps(decorate)
     def decorator(*args: Any, **kwargs: Any) -> tuple[_RS, int]:
@@ -22,6 +23,7 @@ def handler(decorate: Callable[..., _RS | tuple[_RS, int]]) -> Callable[..., tup
             return jsonify(erro), erro.status
     return decorator
 
+
 def jsoner(decorate: Callable[..., Any]) -> Callable[..., tuple[Response, int]]:
     @wraps(decorate)
     def decorator(*args: Any, **kwargs: Any) -> tuple[Response, int]:
@@ -32,6 +34,7 @@ def jsoner(decorate: Callable[..., Any]) -> Callable[..., tuple[Response, int]]:
             erro: Erro = Erro.criar(e)
             return jsonify(erro), erro.status
     return decorator
+
 
 def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, int]]:
     @wraps(decorate)
@@ -44,11 +47,16 @@ def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, i
             return jsonify(erro), erro.status
     return decorator
 
-def _is_form(content_type: str, urlencoded: bool, multipart: bool) -> bool:
-    return (content_type == "application/x-www-form-urlencoded" and urlencoded) or (content_type == "multipart/form-data" and multipart)
+
+def _is_form(content_type: str, accepts_urlencoded: bool, accepts_multipart: bool) -> bool:
+    is_urlencoded: bool = content_type == "application/x-www-form-urlencoded"
+    is_multipart: bool = content_type == "multipart/form-data"
+    return (is_urlencoded and accepts_urlencoded) or (is_multipart and accepts_multipart)
+
 
 def _is_json(content_type: str, json: bool) -> bool:
     return content_type == "application/json" and json
+
 
 def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart: bool) -> Any:
     if content_type is None:
@@ -66,6 +74,7 @@ def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart:
     raise ConteudoNaoReconhecidoException()
 
 _T = TypeVar("_T") # Delete when PEP 695 is ready.
+
 
 #def read_body[T](target: type[T], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> T: # PEP 695
 def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> _T:
@@ -92,6 +101,7 @@ def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, m
     except:
         raise ConteudoIncompreensivelException()
 
+
 def bodyless() -> None:
     """
     Procedimento que garante que uma requisição não tenha corpo.
@@ -99,6 +109,7 @@ def bodyless() -> None:
     """
     content_type: str | None = request.headers.get("Content-Type")
     if content_type is not None: raise RequisicaoMalFormadaException()
+
 
 def move() -> tuple[str, bool]:
     dest: str | None = request.headers.get("Destination")

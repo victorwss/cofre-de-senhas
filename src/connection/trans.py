@@ -11,6 +11,7 @@ _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
+
 class TransactedConnection(SimpleConnection):
 
     def __init__(self, activate: Callable[[], SimpleConnection], placeholder: str, database_type: str, database_name: str) -> None:
@@ -220,6 +221,7 @@ class TransactedConnection(SimpleConnection):
         c: SimpleConnection | None = self.__wrapped_or_none
         if c is None: return self.__database_name
         return c.database_name
+
 
 class ConnectionData(ABC):
     @abstractmethod

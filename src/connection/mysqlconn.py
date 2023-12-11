@@ -2,9 +2,10 @@ from typing import Any, Callable, cast, Generator, override, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import \
+from .conn import ( \
     BadDatabaseConfigException, ColumnDescriptor, Descriptor, \
-    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError \
+)
 from .trans import ConnectionData, TransactedConnection
 from mysql.connector import connect as db_connect, IntegrityError
 from mysql.connector.connection import MySQLConnection
@@ -16,12 +17,14 @@ from mysql.connector.types import CextEofPacketType, CextResultType
 from dataclasses import dataclass
 from validator import dataclass_validate
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class _InternalCode:
     name: str
     value: int
     type: TypeCode
+
 
 # See https://dev.mysql.com/doc/dev/connector-net/6.10/html/T_MySql_Data_MySqlClient_MySqlDbType.htm
 # See https://mariadb-corporation.github.io/mariadb-connector-python/constants.html#module-mariadb.constants.FIELD_TYPE
@@ -68,7 +71,9 @@ __codes: list[_InternalCode] = [
     _InternalCode("Guid"      , 854, TypeCode.STRING  )
 ]
 
+
 __codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -104,8 +109,10 @@ class MysqlConnectionData(ConnectionData):
                 raise BadDatabaseConfigException(x)
         return TransactedConnection(make_connection, "%s", "MySQL", self.database)
 
+
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
+
 
 def connect( \
         *, \
@@ -117,7 +124,9 @@ def connect( \
 ) -> TransactedConnection:
     return MysqlConnectionData.create(user = user, password = password, host = host, port = port, database = database).connect()
 
+
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+
 
 #def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
 def _wrap_exceptions(operation: _TRANS) -> _TRANS:
@@ -133,6 +142,7 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 
     return cast(_TRANS, inner)
 
+
 class _PatchMySQLCursor(CMySQLCursor):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -146,6 +156,7 @@ class _PatchMySQLCursor(CMySQLCursor):
     def reset(self, free: bool = True) -> None:
         super().reset(free)
         self._last_insert_id: int = None # type: ignore
+
 
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _MySQLConnectionWrapper(SimpleConnection):

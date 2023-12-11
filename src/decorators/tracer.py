@@ -8,12 +8,14 @@ __all__ = ["Call", "Logger"]
 
 _FuncT = TypeVar("_FuncT", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class Call:
     callee: Callable[..., Any]
     args: tuple[Any, ...]
     kwargs: dict[str, Any]
+
 
 @dataclass_validate
 @dataclass(frozen = True)

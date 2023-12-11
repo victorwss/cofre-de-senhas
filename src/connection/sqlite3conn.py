@@ -10,6 +10,7 @@ from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
 from dataclasses import dataclass
 from validator import dataclass_validate
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class SqliteConnectionData(ConnectionData):
@@ -30,10 +31,13 @@ class SqliteConnectionData(ConnectionData):
                 raise BadDatabaseConfigException(x)
         return TransactedConnection(make_connection, "?", "Sqlite", self.file_name)
 
+
 def connect(file: str) -> TransactedConnection:
     return SqliteConnectionData.create(file_name = file).connect()
 
+
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+
 
 #def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
 def _wrap_exceptions(operation: _TRANS) -> _TRANS:
@@ -46,6 +50,7 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
             raise IntegrityViolationException(str(x))
 
     return cast(_TRANS, inner)
+
 
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _Sqlite3ConnectionWrapper(SimpleConnection):

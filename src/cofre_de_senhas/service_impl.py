@@ -15,6 +15,7 @@ _log: Logger = Logger.for_print_fn()
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
+
 class Servicos:
 
     def __init__(self, gl: GerenciadorLogin, trans: TransactedConnection) -> None:
@@ -76,12 +77,14 @@ class Servicos:
             return what(*args, **kwargs)
         return inner
 
+
 class _ServicoBDImpl(ServicoBD):
 
     @override
     def criar_bd(self, dados: LoginComSenha) -> None:
         CofreDeSenhasDAO.instance().criar_bd()
         Usuario.servicos().criar_admin(dados)
+
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class _ServicoUsuarioImpl(ServicoUsuario):
@@ -134,6 +137,7 @@ class _ServicoUsuarioImpl(ServicoUsuario):
     def listar(self) -> ResultadoListaDeUsuarios:
         return Usuario.servicos().listar(self.__gl.usuario_logado)
 
+
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class _ServicoSegredoImpl(ServicoSegredo):
 
@@ -173,6 +177,7 @@ class _ServicoSegredoImpl(ServicoSegredo):
     @override
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         return Segredo.servicos().pesquisar(self.__gl.usuario_logado, dados)
+
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class _ServicoCategoriaImpl(ServicoCategoria):

@@ -1,13 +1,15 @@
 from typing import Self, TypeGuard
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from ..dao import \
+from ..dao import ( \
     SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, \
     LoginUsuario as LoginUsuarioDAO, BuscaPermissaoPorLogin, \
-    CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo
+    CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo \
+)
 from ..service import *
 from ..usuario.usuario import Usuario, Permissao
 from ..categoria.categoria import Categoria
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -16,6 +18,7 @@ class Segredo:
     usuarios: dict[str, Permissao]
     categorias: dict[str, Categoria]
     campos: dict[str, str]
+
 
     @dataclass_validate
     @dataclass(frozen = True)
@@ -179,6 +182,7 @@ class Segredo:
     def _listar(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:
         if quem_faz.is_admin: return Segredo.__listar_todos()
         return Segredo.__listar_visiveis(quem_faz)
+
 
     class Servico:
 

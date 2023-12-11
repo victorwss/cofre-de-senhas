@@ -126,6 +126,7 @@ def make_errors(what: list[ErrorSet] | dict[str, ErrorSet]) -> ErrorSet:
 no_error: ErrorSet = _ErrorSetEmpty()
 bad_ellipsis: SignalingErrorSet = make_error("Unexpected ... here")
 
+
 def to_error(what: SignalingErrorSet | TT2) -> ErrorSet:
     if what is EllipsisType:
         return bad_ellipsis

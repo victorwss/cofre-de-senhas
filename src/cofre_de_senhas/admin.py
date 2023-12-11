@@ -5,7 +5,7 @@ from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from connection.trans import TransactedConnection
 from .conn_factory import connect
 
-class _Nao(GerenciadorLogin): # pragma: no cover
+class _Nao(GerenciadorLogin): #  pragma: no cover
 
     @override
     def login(self, usuario: UsuarioComChave) -> None:
@@ -19,6 +19,7 @@ class _Nao(GerenciadorLogin): # pragma: no cover
     @override
     def usuario_logado(self) -> ChaveUsuario:
         assert False
+
 
 def _criar_bd(cofre: TransactedConnection) -> None:
 
@@ -37,6 +38,7 @@ def _criar_bd(cofre: TransactedConnection) -> None:
         return
 
     Servicos(_Nao(), cofre).bd.criar_bd(LoginComSenha(login1, senha1))
+
 
 def admin() -> None:
     cofre: TransactedConnection = connect()

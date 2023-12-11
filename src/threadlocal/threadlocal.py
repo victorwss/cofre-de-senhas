@@ -4,6 +4,7 @@ from threading import local
 
 _T = TypeVar("_T") # Delete when PEP 695 is ready.
 
+
 #class ThreadLocal[T]: # PEP 695
 class ThreadLocal(Generic[_T]):
 

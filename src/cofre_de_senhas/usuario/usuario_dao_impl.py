@@ -2,6 +2,7 @@ from typing import override
 from connection.trans import TransactedConnection
 from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, DadosUsuarioComPermissao, LoginUsuario
 
+
 class UsuarioDAOImpl(UsuarioDAO):
 
     def __init__(self, con: TransactedConnection) -> None:

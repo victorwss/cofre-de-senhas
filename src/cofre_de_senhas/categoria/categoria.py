@@ -6,6 +6,7 @@ from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK
 from ..service import *
 from ..usuario.usuario import Usuario, Permissao
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class Categoria:
@@ -111,6 +112,7 @@ class Categoria:
                 if nome not in r: raise CategoriaNaoExisteException(nome)
 
         return r
+
 
     class Servico:
 

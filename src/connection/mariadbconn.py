@@ -2,9 +2,10 @@ from typing import Any, Callable, cast, override, Self, Sequence
 from typing import TypeVar # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import \
+from .conn import ( \
     BadDatabaseConfigException, ColumnDescriptor, Descriptor, FieldFlags, \
-    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode,UnsupportedOperationError
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode,UnsupportedOperationError \
+)
 from .trans import ConnectionData, TransactedConnection
 from mariadb import connect as db_connect
 from mariadb import IntegrityError, DataError
@@ -14,12 +15,14 @@ from mariadb.constants import FIELD_FLAG, FIELD_TYPE
 from dataclasses import dataclass
 from validator import dataclass_validate
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class _InternalCode:
     name: str
     value: int
     type: TypeCode
+
 
 # See https://dev.mysql.com/doc/dev/connector-net/6.10/html/T_MySql_Data_MySqlClient_MySqlDbType.htm
 # See https://mariadb-corporation.github.io/mariadb-connector-python/constants.html#module-mariadb.constants.FIELD_TYPE
@@ -66,7 +69,9 @@ __codes: list[_InternalCode] = [
     _InternalCode("Guid"      , 854, TypeCode.STRING  )
 ]
 
+
 __codemap: dict[int, _InternalCode] = {code.value: code for code in __codes}
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -105,8 +110,10 @@ class MariadbConnectionData(ConnectionData):
                 raise BadDatabaseConfigException(x)
         return TransactedConnection(make_connection, "%s", "MariaDB", self.database)
 
+
 def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
+
 
 def connect( \
         *, \
@@ -119,11 +126,13 @@ def connect( \
 ) -> TransactedConnection:
     return MariadbConnectionData.create(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout).connect()
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class _Flag:
     name: str
     test: Callable[[int], bool]
+
 
 def _flag_notnull      (x: int) -> bool: return (x & FIELD_FLAG.NOT_NULL      ) != 0
 def _flag_nullable     (x: int) -> bool: return (x & FIELD_FLAG.NOT_NULL      ) == 0
@@ -145,6 +154,7 @@ def _flag_numeric      (x: int) -> bool: return (x & FIELD_FLAG.NUMERIC       ) 
 #def _flag_unique       (x: int) -> bool: return (x & FIELD_FLAG.UNIQUE        ) != 0
 def _flag_part_of_key  (x: int) -> bool: return (x & FIELD_FLAG.PART_OF_KEY   ) != 0
 def _flag_signed       (x: int) -> bool: return (x & FIELD_FLAG.UNSIGNED      ) == 0 and (x & FIELD_FLAG.NUMERIC       ) != 0
+
 
 __flags: list[_Flag] = [
     _Flag("Not Null"     , _flag_notnull      ),
@@ -169,6 +179,7 @@ __flags: list[_Flag] = [
     _Flag("Signed"       , _flag_signed       )
 ]
 
+
 def _find_flags(code: int) -> FieldFlags:
     result: list[str] = []
     for f in __flags:
@@ -176,7 +187,9 @@ def _find_flags(code: int) -> FieldFlags:
             result.append(f.name)
     return FieldFlags(code, frozenset(result))
 
+
 _TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+
 
 #def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
 def _wrap_exceptions(operation: _TRANS) -> _TRANS:
@@ -191,6 +204,7 @@ def _wrap_exceptions(operation: _TRANS) -> _TRANS:
             raise IntegrityViolationException(str(x))
 
     return cast(_TRANS, inner)
+
 
 @for_all_methods(_wrap_exceptions, even_privates = False)
 class _MariaDBConnectionWrapper(SimpleConnection):

@@ -13,15 +13,18 @@ from functools import wraps
 
 _X = TypeVar("_X")
 
+
 @dataclass(frozen = True)
 class Converter(Generic[_X]):
     key: type[_X]
     func: Callable[[], _X]
 
+
 def or_throw(data: _X | None) -> _X:
     if data is None:
         raise RequisicaoMalFormadaException()
     return data
+
 
 def parse_int(data: str) -> int:
     try:
@@ -29,11 +32,13 @@ def parse_int(data: str) -> int:
     except:
         raise RequisicaoMalFormadaException()
 
+
 def parse_float(data: str) -> float:
     try:
         return float(data)
     except:
         raise RequisicaoMalFormadaException()
+
 
 @dataclass(frozen = True)
 class WebParam(Generic[_X]):
@@ -47,103 +52,124 @@ class WebParam(Generic[_X]):
     def handle(self) -> _X:
         return self.converter.func()
 
+
 def from_path(param_name: str) -> Callable[[], str]:
     def inner() -> str:
         return or_throw(or_throw(request.view_args).get(param_name))
     return inner
+
 
 def from_query_string(param_name: str) -> Callable[[], str]:
     def inner() -> str:
         return or_throw(request.args.get(param_name))
     return inner
 
+
 def from_query_string_multi(param_name: str) -> Callable[[], list[str]]:
     def inner() -> list[str]:
         return request.args.getlist(param_name)
     return inner
+
 
 def from_file(param_name: str) -> Callable[[], FileStorage]:
     def inner() -> FileStorage:
         return or_throw(request.files.get(param_name))
     return inner
 
+
 def from_file_multi(param_name: str) -> Callable[[], list[FileStorage]]:
     def inner() -> list[FileStorage]:
         return request.files.getlist(param_name)
     return inner
+
 
 def from_header(param_name: str) -> Callable[[], str]:
     def inner() -> str:
         return or_throw(request.headers.get(param_name))
     return inner
 
+
 def from_header_multi(param_name: str) -> Callable[[], list[str]]:
     def inner() -> list[str]:
         return request.headers.getlist(param_name)
     return inner
+
 
 def from_form(param_name: str) -> Callable[[], str]:
     def inner() -> str:
         return or_throw(request.form.get(param_name))
     return inner
 
+
 def from_form_multi(param_name: str) -> Callable[[], list[str]]:
     def inner() -> list[str]:
         return request.form.getlist(param_name)
     return inner
+
 
 def from_cookie(param_name: str) -> Callable[[], str]:
     def inner() -> str:
         return or_throw(request.cookies.get(param_name))
     return inner
 
+
 def from_cookie_multi(param_name: str) -> Callable[[], list[str]]:
     def inner() -> list[str]:
         return request.cookies.getlist(param_name)
     return inner
+
 
 def from_body_bytes() -> Callable[[], bytes]:
     def inner() -> bytes:
         return request.get_data()
     return inner
 
+
 def from_body() -> Callable[[], str]:
     def inner() -> str:
         return request.get_data(as_text = True)
     return inner
+
 
 def from_body_json() -> Any:
     def inner() -> Any:
         return request.get_json()
     return inner
 
+
 def from_body_typed(target: type[_X], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> Converter[_X]:
     def inner() -> _X:
         return read_body(target, json = json, urlencoded = urlencoded, multipart = multipart)
     return Converter(target, inner)
+
 
 def to_int(wrap: Callable[[], str]) -> Callable[[], int]:
     def inner() -> int:
         return parse_int(wrap())
     return inner
 
+
 def to_ints(wrap: Callable[[], list[str]]) -> Callable[[], list[int]]:
     def inner() -> list[int]:
         return [parse_int(x) for x in wrap()]
     return inner
+
 
 def to_float(wrap: Callable[[], str]) -> Callable[[], float]:
     def inner() -> float:
         return parse_float(wrap())
     return inner
 
+
 def to_floats(wrap: Callable[[], list[str]]) -> Callable[[], list[float]]:
     def inner() -> list[float]:
         return [parse_float(x) for x in wrap()]
     return inner
 
+
 _RS = Response | str
 _T = TypeVar("_T", bound = Callable[..., _RS | tuple[_RS, int]])
+
 
 @dataclass(frozen = True)
 class WebMethod:
@@ -154,17 +180,40 @@ class WebMethod:
     def handle(self) -> list[Any]:
         return [p.handle() for p in self.params]
 
+
+def _make_js_stub(func_name: str, params: tuple[str, ...], url: str, method: str) -> str:
+    skeleton: str = """
+        async function FUNC_NAME(PARAMS) {
+            const url = URL;
+            const options = { method: METHOD };
+            OPTIONS;
+            const response = await fetch(url, options);
+            if (response.ok) {
+                return response.body;
+            }
+            throw new Error();
+        }
+    """
+    return skeleton \
+        .replace("FUNC_NAME", func_name) \
+        .replace("PARAMS", ", ".join(params)) \
+        .replace("URL", url) \
+        .replace("METHOD", method) \
+
+
 class WebSuite:
 
     def __init__(self, app: Flask) -> None:
         self.__methods: list[WebMethod] = []
         self.__flask: Flask = app
+        self.__js_stubs: list[str] = []
 
-    def __str__(self) -> str:
-        r: str = ""
-        for m in self.__methods:
-            r += f"{m}"
-        return r
+    @property
+    def js_stubs(self) -> str:
+        return "\n".join(self.__js_stubs)
+
+    def route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
+        return self.flaskenify(WebMethod(method, url_template, [*params]))
 
     def flaskenify(self, wb: WebMethod) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
         def middle(what: _T) -> Callable[[], tuple[_RS, int]]:
@@ -174,8 +223,8 @@ class WebSuite:
             if len(s.parameters) != len(wb.params):
                 raise TypeValidationError(target = self, errors = make_error("Function parameters and web parameters length mismatch."))
 
-            response_template: str = "if (response.ok) { return response.body; } throw new Error();"
-            template: str = "async function FUNC_NAME(PARAMS) { const url = URL; const options = { method: METHOD }; OPTIONS; const response = await fetch(url, options); RESPONSE }"
+            js_stub: str = _make_js_stub(what.__name__, args_names, wb.url_template, wb.http_method)
+            self.__js_stubs.append(js_stub)
 
             @self.__flask.route(wb.url_template, methods = [wb.http_method])
             @wraps(what)

@@ -11,13 +11,16 @@ _T = TypeVar("_T") # Delete when PEP 695 is ready.
 
 RAW_DATA = str | int | float | bool | None | date | time | datetime
 
+
 class UnsupportedOperationError(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
+
 class IntegrityViolationException(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
 
 class TypeCode(Enum):
     STRING = "STRING"
@@ -33,10 +36,12 @@ class TypeCode(Enum):
     OTHER = "OTHER"
     UNSPECIFIED = "UNSPECIFIED"
 
+
 class NullStatus(Enum):
     YES = "Yes"
     NO = "No"
     DONT_KNOW = "Don't know"
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -44,7 +49,9 @@ class FieldFlags:
     raw_value: int
     meanings : frozenset[str]
 
+
 EMPTY_FLAGS = FieldFlags(0, frozenset())
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -93,6 +100,7 @@ class ColumnDescriptor:
                 original_table_name \
         )
 
+
 class ColumnSet:
     def __init__(self, items: list[ColumnDescriptor]) -> None:
         self.__items: list[ColumnDescriptor] = items[:]
@@ -109,6 +117,7 @@ class ColumnSet:
     def __getitem__(self, key: int) -> ColumnDescriptor:
         return self.__items[key]
 
+
 class Descriptor:
 
     def __init__(self, columns: list[ColumnDescriptor]) -> None:
@@ -122,6 +131,7 @@ class Descriptor:
     @property
     def column_names(self) -> ColumnNames:
         return self.__column_names
+
 
 class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
 
@@ -265,8 +275,10 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def database_name(self) -> str:
         pass
 
+
 class TransactionNotActiveException(Exception):
     pass
+
 
 class BadDatabaseConfigException(Exception):
     def __init__(self, *args: Any, **kwargs: Any) -> None:

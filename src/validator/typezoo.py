@@ -1,45 +1,45 @@
 from typing import Any, Callable, ForwardRef, List, Literal, Optional, ParamSpecArgs, ParamSpecKwargs, TypeAlias, TypeVar, TypedDict, TYPE_CHECKING
 
-def _just_some_func_dont_call() -> None: # pragma: no cover
+def _just_some_func_dont_call() -> None:  # pragma: no cover
     assert False
 
 CallableTypeRealUserDefined = type(_just_some_func_dont_call)
 CallableTypeRealBuiltIn = type(print)
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
 
     class UnionType(type):
         @property
         def __args__(self) -> list[type[Any] | ForwardRef]:
-            pass
+            assert False
 
     class OptionalType(type):
         @property
         def __args__(self) -> list[type[Any] | ForwardRef]:
-            pass
+            assert False
 
     class LiteralType(type):
         @property
         def __args__(self) -> list[type[Any] | ForwardRef]:
-            pass
+            assert False
 
     class GenericType(type):
         @property
         def __args__(self) -> list[type[Any] | ForwardRef]:
-            pass
+            assert False
 
         @property
         def __origin__(self) -> type:
-            pass
+            assert False
 
     class GenericAlias(type):
         @property
         def __args__(self) -> list[type[Any] | ForwardRef]:
-            pass
+            assert False
 
         @property
         def __origin__(self) -> type:
-            pass
+            assert False
 
     class EllipsisType(type):
         pass
@@ -47,7 +47,7 @@ if TYPE_CHECKING: # pragma: no cover
     class CallableTypeFormal(type):
         @property
         def __args__(self) -> list[type[Any] | ForwardRef]:
-            pass
+            assert False
 
     class TypedDictType(type):
         pass
@@ -63,5 +63,11 @@ else:
     TypedDictType      = type(TypedDict("X", {"x": int}))
 
 TT1: TypeAlias = GenericAlias | ForwardRef | str | None
-TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType | ParamSpecArgs | ParamSpecKwargs | TypeVar
-TT3: list[type[Any]] = [type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType, ParamSpecArgs, ParamSpecKwargs, TypeVar]
+
+TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType \
+        | ParamSpecArgs | ParamSpecKwargs | TypeVar
+
+TT3: list[type[Any]] = [ \
+    type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType, ParamSpecArgs, \
+    ParamSpecKwargs, TypeVar \
+]

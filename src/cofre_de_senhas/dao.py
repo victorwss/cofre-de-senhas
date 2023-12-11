@@ -5,10 +5,12 @@ from validator import dataclass_validate
 from connection.trans import TransactedConnection
 from threadlocal import ThreadLocal
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class UsuarioPK:
     pk_usuario: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -18,12 +20,14 @@ class DadosUsuario:
     fk_nivel_acesso: int
     hash_com_sal: str
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class DadosUsuarioSemPK:
     login: str
     fk_nivel_acesso: int
     hash_com_sal: str
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -38,10 +42,12 @@ class DadosUsuarioComPermissao:
     def sem_permissoes(self) -> DadosUsuario:
         return DadosUsuario(self.pk_usuario, self.login, self.fk_nivel_acesso, self.hash_com_sal)
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class CategoriaPK:
     pk_categoria: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -54,10 +60,13 @@ class DadosCategoria:
     pk_categoria: int
     nome: str
 
+
+
 @dataclass_validate
 @dataclass(frozen = True)
 class SegredoPK:
     pk_segredo: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -65,6 +74,7 @@ class DadosSegredoSemPK:
     nome: str
     descricao: str
     fk_tipo_segredo: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -74,12 +84,14 @@ class DadosSegredo:
     descricao: str
     fk_tipo_segredo: int
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class CampoDeSegredo:
     pfk_segredo: int
     pk_nome: str
     valor: str
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -90,6 +102,7 @@ class LoginUsuario:
     def para_todos(logins: set[str]) -> list["LoginUsuario"]:
         return [LoginUsuario(v) for v in logins]
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class NomeCategoria:
@@ -99,11 +112,13 @@ class NomeCategoria:
     def para_todos(nomes: set[str]) -> list["NomeCategoria"]:
         return [NomeCategoria(v) for v in nomes]
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class CategoriaDeSegredo:
     pk_segredo: int
     pk_categoria: int
+
 
 @dataclass_validate
 @dataclass(frozen = True)
@@ -112,11 +127,13 @@ class PermissaoDeSegredo:
     pfk_segredo: int
     fk_tipo_permissao: int
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class BuscaPermissaoPorLogin:
     pfk_segredo: int
     login: str
+
 
 class DAO(ABC):
 
@@ -130,6 +147,7 @@ class DAO(ABC):
     @property
     def _placeholder(self) -> str:
         return self.__con.placeholder
+
 
 class CofreDeSenhasDAO(DAO):
 
@@ -148,6 +166,7 @@ class CofreDeSenhasDAO(DAO):
         u: CofreDeSenhasDAO | None = CofreDeSenhasDAO.__instance.value
         if u is None: raise BaseException()
         return u
+
 
 class SegredoDAO(DAO):
 
@@ -225,6 +244,7 @@ class SegredoDAO(DAO):
         if u is None: raise BaseException()
         return u
 
+
 class CategoriaDAO(DAO):
 
     __instance: ThreadLocal["CategoriaDAO | None"] = ThreadLocal(None)
@@ -284,6 +304,7 @@ class CategoriaDAO(DAO):
         u: CategoriaDAO | None = CategoriaDAO.__instance.value
         if u is None: raise BaseException()
         return u
+
 
 class UsuarioDAO(DAO):
 
