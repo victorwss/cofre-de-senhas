@@ -8,7 +8,7 @@ class UsuarioDAOImpl(UsuarioDAO):
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
 
-    # CRUD básico
+    #  CRUD básico
 
     @override
     def buscar_por_pk(self, pk: UsuarioPK) -> DadosUsuario | None:
@@ -56,7 +56,7 @@ class UsuarioDAOImpl(UsuarioDAO):
         self._connection.execute(sql, [pk.pk_usuario])
         return self._connection.rowcount > 0
 
-    # Métodos auxiliares
+    #  Métodos auxiliares
 
     @override
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
@@ -67,9 +67,9 @@ class UsuarioDAOImpl(UsuarioDAO):
     #    sql: str = "DELETE usuario WHERE login = ?"
     #    self._connection.execute(sql, [login])
 
-    # Métodos com joins em outras tabelas
+    #  Métodos com joins em outras tabelas
 
-    # TESTAR
+    #  TESTAR
     @override
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:
         sql: str = "" \

@@ -2,7 +2,7 @@ from typing import Any, cast, override
 from flask import Flask, jsonify, redirect, request, session, url_for
 from werkzeug import Response
 from httpwrap import *
-from webrpc import *
+from webrpc import Converter, WebMethod, WebParam, WebSuite, from_body_typed, from_path, from_path_int, from_path_float
 from .service import *
 from .service_impl import Servicos
 from validator import dataclass_validate
@@ -26,7 +26,7 @@ class GerenciadorLoginImpl(GerenciadorLogin):
     def logout(self) -> None:
         session.pop("chave", None)
 
-    # Pode lançar UsuarioNaoLogadoException.
+    #  Pode lançar UsuarioNaoLogadoException.
     @property
     @override
     def usuario_logado(self) -> ChaveUsuario:
@@ -46,7 +46,7 @@ def servir() -> None:
     PORTA: int = 5000
     app: Flask = Flask(__name__)
     app.secret_key = ""
-    ws: WebSuite = WebSuite(app)
+    ws: WebSuite = WebSuite(app, "/map")
 
     gl: GerenciadorLogin = GerenciadorLoginImpl()
     cofre: TransactedConnection = connect()
@@ -59,7 +59,7 @@ def servir() -> None:
 
     app.secret_key = sx.segredo.buscar_por_chave_sem_logar(ChaveSegredo(-1)).campos["Chave da sessão"]
 
-    #### Usuários
+    #  Usuários
 
     @ws.route("POST", "/login", WebParam("body", from_body_typed(LoginComSenha)))
     @empty_json
@@ -78,19 +78,19 @@ def servir() -> None:
         bodyless()
         return sx.usuario.listar()
 
-    @ws.route("GET", "/usuarios/<int:pk_usuario>")
+    @ws.route("GET", "/usuarios/<pk_usuario>", WebParam("pk_usuario", from_path_int("pk_usuario")))
     @jsoner
     def buscar_usuario_por_chave(pk_usuario: int) -> UsuarioComChave:
         bodyless()
         return sx.usuario.buscar_por_chave(ChaveUsuario(pk_usuario))
 
-    @ws.route("GET", "/usuarios/<nome>")
+    @ws.route("GET", "/usuarios/<nome>", WebParam("nome", from_path("nome")))
     @jsoner
     def buscar_usuario_por_login(nome: str) -> UsuarioComChave:
         bodyless()
         return sx.usuario.buscar_por_login(LoginUsuario(nome))
 
-    @ws.route("PUT", "/usuarios/<nome>")
+    @ws.route("PUT", "/usuarios/<nome>", WebParam("nome", from_path("nome")))
     @jsoner
     def criar_usuario(nome: str) -> UsuarioComChave:
         dados: DadosNovoUsuario = read_body(DadosNovoUsuario)
@@ -111,7 +111,7 @@ def servir() -> None:
     class DadosNovoNivel:
         nivel_acesso: str
 
-    @ws.route("POST", "/usuarios/<nome>/alterar-nivel")
+    @ws.route("POST", "/usuarios/<nome>/alterar-nivel", WebParam("nome", from_path("nome")))
     @empty_json
     def alterar_nivel(nome: str) -> None:
         dados: DadosNovoUsuario = read_body(DadosNovoUsuario)
@@ -121,33 +121,33 @@ def servir() -> None:
             raise ConteudoIncompreensivelException()
         sx.usuario.alterar_nivel_por_login(UsuarioComNivel(nome, p))
 
-    @ws.route("POST", "/usuarios/<nome>/resetar-senha")
+    @ws.route("POST", "/usuarios/<nome>/resetar-senha", WebParam("nome", from_path("nome")))
     @jsoner
     def resetar_senha(nome: str) -> SenhaAlterada:
         bodyless()
         return sx.usuario.resetar_senha_por_login(ResetLoginUsuario(nome))
 
-    #### Categorias
+    #  Categorias
 
-    @ws.route("GET", "/categorias/<int:pk_categoria>")
+    @ws.route("GET", "/categorias/<pk_categoria>", WebParam("pk_categoria", from_path_int("pk_categoria")))
     @jsoner
     def buscar_categoria_por_chave(pk_categoria: int) -> CategoriaComChave:
         bodyless()
         return sx.categoria.buscar_por_chave(ChaveCategoria(pk_categoria))
 
-    @ws.route("GET", "/categorias/<nome>")
+    @ws.route("GET", "/categorias/<nome>", WebParam("nome", from_path("nome")))
     @jsoner
     def buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
         bodyless()
         return sx.categoria.buscar_por_nome(NomeCategoria(nome))
 
-    @ws.route("PUT", "/categorias/<nome>")
+    @ws.route("PUT", "/categorias/<nome>", WebParam("nome", from_path("nome")))
     @jsoner
     def criar_categoria(nome: str) -> CategoriaComChave:
         bodyless()
         return sx.categoria.criar(NomeCategoria(nome))
 
-    @ws.route("MOVE", "/categorias/<nome>")
+    @ws.route("MOVE", "/categorias/<nome>", WebParam("nome", from_path("nome")))
     @empty_json
     def renomear_categoria(nome: str) -> None:
         bodyless()
@@ -164,13 +164,13 @@ def servir() -> None:
         bodyless()
         return sx.categoria.listar()
 
-    @ws.route("DELETE", "/categorias/<nome>")
+    @ws.route("DELETE", "/categorias/<nome>", WebParam("nome", from_path("nome")))
     @empty_json
     def excluir_categoria(nome: str) -> None:
         bodyless()
         sx.categoria.excluir_por_nome(NomeCategoria(nome))
 
-    #### Segredos
+    #  Segredos
 
     @ws.route("PUT", "/segredos")
     @jsoner
@@ -178,7 +178,7 @@ def servir() -> None:
         dados: SegredoSemChave = read_body(SegredoSemChave)
         return sx.segredo.criar(dados)
 
-    @ws.route("PUT", "/segredos/<int:pk_segredo>")
+    @ws.route("PUT", "/segredos/<pk_segredo>", WebParam("pk_segredo", from_path_int("pk_segredo")))
     @jsoner
     def alterar_segredo(pk_segredo: int) -> SegredoComChave:
         dados: SegredoSemChave = read_body(SegredoSemChave)
@@ -186,13 +186,13 @@ def servir() -> None:
         sx.segredo.alterar_por_chave(com_chave)
         return com_chave
 
-    @ws.route("DELETE", "/segredos/<int:pk_segredo>")
+    @ws.route("DELETE", "/segredos/<pk_segredo>", WebParam("pk_segredo", from_path_int("pk_segredo")))
     @empty_json
     def excluir_segredo(pk_segredo: int) -> None:
         bodyless()
         sx.segredo.excluir_por_chave(ChaveSegredo(pk_segredo))
 
-    @ws.route("GET", "/segredos/<int:pk_segredo>")
+    @ws.route("GET", "/segredos/<pk_segredo>", WebParam("pk_segredo", from_path_int("pk_segredo")))
     @jsoner
     def buscar_segredo_por_chave(pk_segredo: int) -> SegredoComChave:
         bodyless()
@@ -204,17 +204,13 @@ def servir() -> None:
         bodyless()
         return sx.segredo.listar()
 
-    #### Front-end
+    #  Front-end
 
     @app.route("/")
     def index() -> Response:
         bodyless()
         return redirect(url_for("static", filename = "index.html"))
 
-    @ws.route("GET", "/map")
-    def map() -> str:
-        return ws.js_stubs
-
-    #### E aqui, a mágica acontece...
+    #  E aqui, a mágica acontece...
 
     app.run(host = "0.0.0.0", port = PORTA, debug = True)

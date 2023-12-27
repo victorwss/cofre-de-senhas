@@ -1,10 +1,10 @@
 from typing import Any, Callable, cast, Generator, override, Self, Sequence
-from typing import TypeVar # Delete when PEP 695 is ready.
+from typing import TypeVar #  Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import ( \
-    BadDatabaseConfigException, ColumnDescriptor, Descriptor, \
-    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError \
+from .conn import (
+    BadDatabaseConfigException, ColumnDescriptor, Descriptor,
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError
 )
 from .trans import ConnectionData, TransactedConnection
 from mysql.connector import connect as db_connect, IntegrityError
@@ -26,37 +26,37 @@ class _InternalCode:
     type: TypeCode
 
 
-# See https://dev.mysql.com/doc/dev/connector-net/6.10/html/T_MySql_Data_MySqlClient_MySqlDbType.htm
-# See https://mariadb-corporation.github.io/mariadb-connector-python/constants.html#module-mariadb.constants.FIELD_TYPE
+#  See https://dev.mysql.com/doc/dev/connector-net/6.10/html/T_MySql_Data_MySqlClient_MySqlDbType.htm
+#  See https://mariadb-corporation.github.io/mariadb-connector-python/constants.html#module-mariadb.constants.FIELD_TYPE
 __codes: list[_InternalCode] = [
     _InternalCode("Decimal"   ,   0, TypeCode.INTEGER ),
-    _InternalCode("Byte"      ,   1, TypeCode.INTEGER ), #FIELD_TYPE.TINY
-    _InternalCode("Int16"     ,   2, TypeCode.INTEGER ), #FIELD_TYPE.SHORT
-    _InternalCode("Int32"     ,   3, TypeCode.INTEGER ), #FIELD_TYPE.LONG
-    _InternalCode("Float"     ,   4, TypeCode.FLOAT   ), #FIELD_TYPE.FLOAT
-    _InternalCode("Double"    ,   5, TypeCode.FLOAT   ), #FIELD_TYPE.DOUBLE
-    _InternalCode("Null"      ,   6, TypeCode.NULL    ), #FIELD_TYPE.NULL
-    _InternalCode("Timestamp" ,   7, TypeCode.DATETIME), #FIELD_TYPE.TIMESTAMP
-    _InternalCode("Int64"     ,   8, TypeCode.INTEGER ), #FIELD_TYPE.LONGLONG
-    _InternalCode("Int24"     ,   9, TypeCode.INTEGER ), #FIELD_TYPE.INT24
-    _InternalCode("Date"      ,  10, TypeCode.DATE    ), #FIELD_TYPE.DATE
-    _InternalCode("Time"      ,  11, TypeCode.TIME    ), #FIELD_TYPE.TIME
-    _InternalCode("Datetime"  ,  12, TypeCode.DATETIME), #FIELD_TYPE.DATETIME
-    _InternalCode("Year"      ,  13, TypeCode.INTEGER ), #FIELD_TYPE.YEAR
+    _InternalCode("Byte"      ,   1, TypeCode.INTEGER ), #  FIELD_TYPE.TINY
+    _InternalCode("Int16"     ,   2, TypeCode.INTEGER ), #  FIELD_TYPE.SHORT
+    _InternalCode("Int32"     ,   3, TypeCode.INTEGER ), #  FIELD_TYPE.LONG
+    _InternalCode("Float"     ,   4, TypeCode.FLOAT   ), #  FIELD_TYPE.FLOAT
+    _InternalCode("Double"    ,   5, TypeCode.FLOAT   ), #  FIELD_TYPE.DOUBLE
+    _InternalCode("Null"      ,   6, TypeCode.NULL    ), #  FIELD_TYPE.NULL
+    _InternalCode("Timestamp" ,   7, TypeCode.DATETIME), #  FIELD_TYPE.TIMESTAMP
+    _InternalCode("Int64"     ,   8, TypeCode.INTEGER ), #  FIELD_TYPE.LONGLONG
+    _InternalCode("Int24"     ,   9, TypeCode.INTEGER ), #  FIELD_TYPE.INT24
+    _InternalCode("Date"      ,  10, TypeCode.DATE    ), #  FIELD_TYPE.DATE
+    _InternalCode("Time"      ,  11, TypeCode.TIME    ), #  FIELD_TYPE.TIME
+    _InternalCode("Datetime"  ,  12, TypeCode.DATETIME), #  FIELD_TYPE.DATETIME
+    _InternalCode("Year"      ,  13, TypeCode.INTEGER ), #  FIELD_TYPE.YEAR
     _InternalCode("NewDate"   ,  14, TypeCode.DATETIME),
-    _InternalCode("VarString" ,  15, TypeCode.STRING  ), #FIELD_TYPE.VARCHAR
-    _InternalCode("Bit"       ,  16, TypeCode.INTEGER ), #FIELD_TYPE.BIT
-    _InternalCode("Json"      , 245, TypeCode.STRING  ), #FIELD_TYPE.JSON
-    _InternalCode("NewDecimal", 246, TypeCode.INTEGER ), #FIELD_TYPE.NEWDECIMAL
-    _InternalCode("Enum"      , 247, TypeCode.STRING  ), #FIELD_TYPE.ENUM
-    _InternalCode("Set"       , 248, TypeCode.STRING  ), #FIELD_TYPE.SET
-    _InternalCode("TinyBlob"  , 249, TypeCode.BINARY  ), #FIELD_TYPE.TINY_BLOB
-    _InternalCode("MediumBlob", 250, TypeCode.BINARY  ), #FIELD_TYPE.MEDIUM_BLOB
-    _InternalCode("LongBlob"  , 251, TypeCode.BINARY  ), #FIELD_TYPE.LONG_BLOB
-    _InternalCode("Blob"      , 252, TypeCode.BINARY  ), #FIELD_TYPE.BLOB
-    _InternalCode("Varchar"   , 253, TypeCode.STRING  ), #FIELD_TYPE.VAR_STRING
-    _InternalCode("String"    , 254, TypeCode.STRING  ), #FIELD_TYPE.STRING
-    _InternalCode("Geometry"  , 255, TypeCode.OTHER   ), #FIELD_TYPE.GEOMETRY
+    _InternalCode("VarString" ,  15, TypeCode.STRING  ), #  FIELD_TYPE.VARCHAR
+    _InternalCode("Bit"       ,  16, TypeCode.INTEGER ), #  FIELD_TYPE.BIT
+    _InternalCode("Json"      , 245, TypeCode.STRING  ), #  FIELD_TYPE.JSON
+    _InternalCode("NewDecimal", 246, TypeCode.INTEGER ), #  FIELD_TYPE.NEWDECIMAL
+    _InternalCode("Enum"      , 247, TypeCode.STRING  ), #  FIELD_TYPE.ENUM
+    _InternalCode("Set"       , 248, TypeCode.STRING  ), #  FIELD_TYPE.SET
+    _InternalCode("TinyBlob"  , 249, TypeCode.BINARY  ), #  FIELD_TYPE.TINY_BLOB
+    _InternalCode("MediumBlob", 250, TypeCode.BINARY  ), #  FIELD_TYPE.MEDIUM_BLOB
+    _InternalCode("LongBlob"  , 251, TypeCode.BINARY  ), #  FIELD_TYPE.LONG_BLOB
+    _InternalCode("Blob"      , 252, TypeCode.BINARY  ), #  FIELD_TYPE.BLOB
+    _InternalCode("Varchar"   , 253, TypeCode.STRING  ), #  FIELD_TYPE.VAR_STRING
+    _InternalCode("String"    , 254, TypeCode.STRING  ), #  FIELD_TYPE.STRING
+    _InternalCode("Geometry"  , 255, TypeCode.OTHER   ), #  FIELD_TYPE.GEOMETRY
     _InternalCode("UByte"     , 501, TypeCode.INTEGER ),
     _InternalCode("UInt16"    , 502, TypeCode.INTEGER ),
     _InternalCode("UInt32"    , 503, TypeCode.INTEGER ),
@@ -85,25 +85,25 @@ class MysqlConnectionData(ConnectionData):
     database: str
 
     @staticmethod
-    def create( \
-            *, \
-            user: str, \
-            password: str, \
-            host: str, \
-            port: int = 3306, \
-            database: str, \
+    def create(
+            *,
+            user: str,
+            password: str,
+            host: str,
+            port: int = 3306,
+            database: str,
     ) -> "MysqlConnectionData":
         return MysqlConnectionData(user, password, host, port, database)
 
     def connect(self) -> TransactedConnection:
         def make_connection() -> _MySQLConnectionWrapper:
             try:
-                return _MySQLConnectionWrapper(cast(CMySQLConnection, db_connect( \
-                    user = self.user, \
-                    password = self.password, \
-                    host = self.host, \
-                    port = self.port, \
-                    database = self.database \
+                return _MySQLConnectionWrapper(cast(CMySQLConnection, db_connect(
+                    user = self.user,
+                    password = self.password,
+                    host = self.host,
+                    port = self.port,
+                    database = self.database
                 )), self.database)
             except BaseException as x:
                 raise BadDatabaseConfigException(x)
@@ -114,18 +114,18 @@ def _find_code(code: int) -> _InternalCode:
     return __codemap.get(code, _InternalCode("Unknown", code, TypeCode.OTHER))
 
 
-def connect( \
-        *, \
-        user: str, \
-        password: str, \
-        host: str, \
-        port: int = 3306, \
-        database: str, \
+def connect(
+        *,
+        user: str,
+        password: str,
+        host: str,
+        port: int = 3306,
+        database: str,
 ) -> TransactedConnection:
     return MysqlConnectionData.create(user = user, password = password, host = host, port = port, database = database).connect()
 
 
-_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) #  Delete when PEP 695 is ready.
 
 
 #def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
@@ -149,13 +149,13 @@ class _PatchMySQLCursor(CMySQLCursor):
 
     @override
     def _handle_result(self, result: CextEofPacketType | CextResultType) -> None:
-        self._last_insert_id = None # type: ignore
+        self._last_insert_id = None #  type: ignore
         super()._handle_result(result)
 
     @override
     def reset(self, free: bool = True) -> None:
         super().reset(free)
-        self._last_insert_id: int = None # type: ignore
+        self._last_insert_id: int = None #  type: ignore
 
 
 @for_all_methods(_wrap_exceptions, even_privates = False)

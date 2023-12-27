@@ -1,10 +1,11 @@
 from typing import Any, Callable, cast, override, Self, Sequence
-from typing import TypeVar # Delete when PEP 695 is ready.
+from typing import TypeVar #  Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
-from .conn import \
-    BadDatabaseConfigException, ColumnDescriptor, Descriptor, \
+from .conn import (
+    BadDatabaseConfigException, ColumnDescriptor, Descriptor,
     IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+)
 from .trans import ConnectionData, TransactedConnection
 from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
 from dataclasses import dataclass
@@ -36,7 +37,7 @@ def connect(file: str) -> TransactedConnection:
     return SqliteConnectionData.create(file_name = file).connect()
 
 
-_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) #  Delete when PEP 695 is ready.
 
 
 #def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695

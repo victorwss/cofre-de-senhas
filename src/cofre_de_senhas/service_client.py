@@ -12,11 +12,14 @@ from .service import *
 from sucesso import *
 from .erro import *
 
+
 _X = TypeVar("_X") # Delete when PEP 695 is ready.
+
 
 class _ErroDesconhecido(Exception):
     def __init__(self, dados: Any):
         super.__init__(dados)
+
 
 class _Requester:
 
@@ -69,6 +72,7 @@ class _Requester:
             raise eval(j["tipo"])()
         raise _ErroDesconhecido(f"[{j["tipo"]}] {j["mensagem"]}")
 
+
 class Servicos:
 
     def __init__(self, requester: _Requester) -> None:
@@ -90,6 +94,7 @@ class Servicos:
     def segredo(self) -> ServicoSegredo:
         return _ServicoSegredoClient(self.__requester)
 
+
 class _ServicoBDClient(ServicoBD):
 
     def __init__(self, requester: _Requester) -> None:
@@ -98,6 +103,7 @@ class _ServicoBDClient(ServicoBD):
     @override
     def criar_bd(self, dados: LoginComSenha) -> None:
         raise Exception("Não implementado")
+
 
 # Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class _ServicoUsuarioClient(ServicoUsuario):
@@ -148,6 +154,7 @@ class _ServicoUsuarioClient(ServicoUsuario):
     def listar(self) -> ResultadoListaDeUsuarios:
         return self.__requester.get(f"/usuarios", ResultadoListaDeUsuarios)
 
+
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class _ServicoSegredoClient(ServicoSegredo):
 
@@ -187,6 +194,7 @@ class _ServicoSegredoClient(ServicoSegredo):
     @override
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
         raise Exception("Não implementado")
+
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class _ServicoCategoriaClient(ServicoCategoria):

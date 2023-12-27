@@ -1,6 +1,5 @@
-from typing import cast, Generic
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, is_dataclass
+from dataclasses import dataclass
 from validator import dataclass_validate
 from connection.trans import TransactedConnection
 from threadlocal import ThreadLocal
@@ -54,12 +53,12 @@ class CategoriaPK:
 class DadosCategoriaSemPK:
     nome: str
 
+
 @dataclass_validate
 @dataclass(frozen = True)
 class DadosCategoria:
     pk_categoria: int
     nome: str
-
 
 
 @dataclass_validate
@@ -176,7 +175,7 @@ class SegredoDAO(DAO):
         super().__init__(con)
         SegredoDAO.__instance.value = self
 
-    # CRUD básico.
+    #  CRUD básico.
 
     @abstractmethod
     def buscar_por_pk(self, pk: SegredoPK) -> DadosSegredo | None:
@@ -202,7 +201,7 @@ class SegredoDAO(DAO):
     def deletar_por_pk(self, pk: SegredoPK) -> bool:
         pass
 
-    # Métodos auxiliares.
+    #  Métodos auxiliares.
 
     @abstractmethod
     def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
@@ -212,13 +211,13 @@ class SegredoDAO(DAO):
     def limpar_segredo(self, pk: SegredoPK) -> None:
         pass
 
-    # Categoria de segredo
+    #  Categoria de segredo
 
     @abstractmethod
     def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> bool:
         pass
 
-    # Campos
+    #  Campos
 
     @abstractmethod
     def criar_campo_segredo(self, campo: CampoDeSegredo) -> bool:
@@ -228,7 +227,7 @@ class SegredoDAO(DAO):
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
         pass
 
-    # Permissões
+    #  Permissões
 
     @abstractmethod
     def criar_permissao(self, permissao: PermissaoDeSegredo) -> bool:
@@ -253,7 +252,7 @@ class CategoriaDAO(DAO):
         super().__init__(con)
         CategoriaDAO.__instance.value = self
 
-    # CRUD básico
+    #  CRUD básico
 
     @abstractmethod
     def buscar_por_pk(self, pk_categoria: CategoriaPK) -> DadosCategoria | None:
@@ -283,7 +282,7 @@ class CategoriaDAO(DAO):
     def deletar_por_pk(self, pk_categoria: CategoriaPK) -> bool:
         pass
 
-    # Métodos auxiliares
+    #  Métodos auxiliares
 
     @abstractmethod
     def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
@@ -293,7 +292,7 @@ class CategoriaDAO(DAO):
     #def deletar_por_nome(self, nome: NomeCategoria) -> None:
     #    pass
 
-    # Métodos com joins em outras tabelas
+    #  Métodos com joins em outras tabelas
 
     @abstractmethod
     def listar_por_segredo(self, pk_segredo: SegredoPK) -> list[DadosCategoria]:
@@ -314,7 +313,7 @@ class UsuarioDAO(DAO):
         super().__init__(con)
         UsuarioDAO.__instance.value = self
 
-    # CRUD básico
+    #  CRUD básico
 
     @abstractmethod
     def buscar_por_pk(self, pk_usuario: UsuarioPK) -> DadosUsuario | None:
@@ -344,7 +343,7 @@ class UsuarioDAO(DAO):
     def deletar_por_pk(self, pk_usuario: UsuarioPK) -> bool:
         pass
 
-    # Métodos auxiliares
+    #  Métodos auxiliares
 
     @abstractmethod
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
@@ -354,7 +353,7 @@ class UsuarioDAO(DAO):
     #def deletar_por_login(self, login: LoginUsuario) -> None:
     #    pass
 
-    # Métodos com joins em outras tabelas
+    #  Métodos com joins em outras tabelas
 
     @abstractmethod
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:

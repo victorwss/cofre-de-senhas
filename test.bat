@@ -6,10 +6,11 @@ mypy .\src .\test
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
-:RADON
+:RADON_FLAKE
 @echo ON
 radon cc -nb -s --no-assert .\src
 radon mi -nb -s             .\src
+flake8                      .\src
 @echo OFF
 
 :COVERAGE

@@ -1,13 +1,13 @@
-from typing import Any, Callable, cast, Literal, override, ParamSpec, Self, Sequence
-from typing import TypeVar # Delete when PEP 695 is ready.
+from typing import Any, Callable, Literal, override, ParamSpec, Self, Sequence
+from typing import TypeVar  # Delete when PEP 695 is ready.
 from abc import ABC, abstractmethod
 from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
 from threadlocal import ThreadLocal
 
-_T = TypeVar("_T") # Delete when PEP 695 is ready.
-_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) # Delete when PEP 695 is ready.
+_T = TypeVar("_T")  # Delete when PEP 695 is ready.
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])  # Delete when PEP 695 is ready.
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
@@ -55,11 +55,11 @@ class TransactedConnection(SimpleConnection):
                 self.__wrapped.close()
                 self.__conn.value = None
 
-    def __exit__( \
-            self, \
-            exc_type: type[BaseException] | None, \
-            exc_val : BaseException       | None, \
-            exc_tb  : TracebackType       | None  \
+    def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val : BaseException       | None,
+            exc_tb  : TracebackType       | None
     ) -> Literal[False]:
         if self.__count.value == 1:
             if exc_type is None:

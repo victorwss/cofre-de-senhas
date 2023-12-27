@@ -4,9 +4,16 @@ import sys
 import collections
 import dataclasses
 from abc import ABC, abstractmethod
-from .typezoo import *
+from .typezoo import (
+    TT1, TT2, TT3, UnionType, OptionalType, LiteralType, GenericType,
+    GenericAlias, EllipsisType, CallableTypeFormal, TypedDictType,
+    CallableTypeRealUserDefined, CallableTypeRealBuiltIn
+)
 from .errorset import *
-from typing import Any, Callable, cast, ForwardRef, get_type_hints, Iterable, overload, override, TYPE_CHECKING
+from typing import (
+    Any, Callable, cast, ForwardRef, get_type_hints, Iterable, overload,
+    override, TYPE_CHECKING
+)
 from typing import TypeVar # Delete when PEP 695 is ready.
 
 if TYPE_CHECKING: # pragma: no cover
@@ -17,6 +24,7 @@ else:
 
 NS_T = dict[str, Any]
 _U = TypeVar("_U") # Delete when PEP 695 is ready.
+_T = TypeVar("_T", bound = TT2) # Delete when PEP 695 is ready.
 
 
 class TypeValidationError(TypeError):
@@ -379,19 +387,19 @@ def _validate_generic_type_without_values(expected_type: GenericType, globalns: 
 
 class _TypeMapper:
     def __init__(self) -> None:
-        self.__mappeds_with_values   : dict[Any, Callable[..., ErrorSet]] = {}
-        self.__mappeds_without_values: dict[Any, Callable[..., ErrorSet]] = {}
+        self.__mappeds_with_values   : dict[Any, Callable[[TT2, Any, NS_T], ErrorSet]] = {}
+        self.__mappeds_without_values: dict[Any, Callable[[Any, NS_T], ErrorSet]] = {}
 
-    #def put[U](self, key: type[U], with_values: Callable[[U, Any, NS_T], ErrorSet], without_values: Callable[[U, NS_T], ErrorSet]) -> None: # PEP 695
-    def put(self, key: type[_U], with_values: Callable[[_U, Any, NS_T], ErrorSet], without_values: Callable[[_U, NS_T], ErrorSet]) -> None:
+    #def put[T: TT2](self, key: type[T], with_values: Callable[[T, Any, NS_T], ErrorSet], without_values: Callable[[T, NS_T], ErrorSet]) -> None: # PEP 695
+    def put(self, key: type[_T], with_values: Callable[[_T, Any, NS_T], ErrorSet], without_values: Callable[[_T, NS_T], ErrorSet]) -> None:
         self.__mappeds_with_values   [key] = with_values
         self.__mappeds_without_values[key] = without_values
 
     def validate_types_without_values(self, key: TT2, globalns: NS_T) -> ErrorSet:
-        return self.__mappeds_without_values.get(type(key), _blindly_accept)(key, globalns)
+        return self.__mappeds_without_values.get(key, _blindly_accept)(key, globalns)
 
     def validate_types_with_values(self, key: TT2, value: Any, globalns: NS_T) -> ErrorSet:
-        return self.__mappeds_with_values.get(type(key), _validate_simple_type)(key, value, globalns)
+        return self.__mappeds_with_values.get(key, _validate_simple_type)(key, value, globalns)
 
 
 _TM = _TypeMapper()

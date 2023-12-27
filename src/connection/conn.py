@@ -1,5 +1,5 @@
 from typing import Any, Callable, cast, Iterator, Literal, override, Self, Sequence
-from typing import TypeVar # Delete when PEP 695 is ready.
+from typing import TypeVar #  Delete when PEP 695 is ready.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
@@ -7,7 +7,7 @@ from enum import Enum
 from .inflater import *
 from datetime import date, time, datetime
 
-_T = TypeVar("_T") # Delete when PEP 695 is ready.
+_T = TypeVar("_T") #  Delete when PEP 695 is ready.
 
 RAW_DATA = str | int | float | bool | None | date | time | datetime
 
@@ -70,34 +70,34 @@ class ColumnDescriptor:
     original_table_name : str | None
 
     @staticmethod
-    def create( \
-            *, \
-            name                : str, \
-            type_code           : TypeCode = TypeCode.UNSPECIFIED, \
-            column_type_name    : str = "Unspecified", \
-            display_size        : int | None = None, \
-            internal_size       : int | None = None, \
-            precision           : int | None = None, \
-            scale               : int | None = None, \
-            null_ok             : NullStatus = NullStatus.DONT_KNOW, \
-            field_flags         : FieldFlags = EMPTY_FLAGS, \
-            table_name          : str | None = None, \
-            original_column_name: str | None = None, \
-            original_table_name : str | None = None  \
+    def create(
+            *,
+            name                : str,
+            type_code           : TypeCode = TypeCode.UNSPECIFIED,
+            column_type_name    : str = "Unspecified",
+            display_size        : int | None = None,
+            internal_size       : int | None = None,
+            precision           : int | None = None,
+            scale               : int | None = None,
+            null_ok             : NullStatus = NullStatus.DONT_KNOW,
+            field_flags         : FieldFlags = EMPTY_FLAGS,
+            table_name          : str | None = None,
+            original_column_name: str | None = None,
+            original_table_name : str | None = None
     ) -> "ColumnDescriptor":
-        return ColumnDescriptor( \
-                name, \
-                type_code, \
-                column_type_name, \
-                display_size, \
-                internal_size, \
-                precision, \
-                scale, \
-                null_ok, \
-                field_flags, \
-                table_name, \
-                original_column_name, \
-                original_table_name \
+        return ColumnDescriptor(
+                name,
+                type_code,
+                column_type_name,
+                display_size,
+                internal_size,
+                precision,
+                scale,
+                null_ok,
+                field_flags,
+                table_name,
+                original_column_name,
+                original_table_name
         )
 
 

@@ -1,4 +1,3 @@
-from typing import Any
 from connection.trans import TransactedConnection
 from connection.load import connect_from_file
 

@@ -1,12 +1,13 @@
 from typing import Any, Callable, ForwardRef, List, Literal, Optional, ParamSpecArgs, ParamSpecKwargs, TypeAlias, TypeVar, TypedDict, TYPE_CHECKING
 
-def _just_some_func_dont_call() -> None:  # pragma: no cover
+def _just_some_func_dont_call() -> None: #  pragma: no cover
     assert False
+
 
 CallableTypeRealUserDefined = type(_just_some_func_dont_call)
 CallableTypeRealBuiltIn = type(print)
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING: #  pragma: no cover
 
     class UnionType(type):
         @property
@@ -67,7 +68,7 @@ TT1: TypeAlias = GenericAlias | ForwardRef | str | None
 TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType \
         | ParamSpecArgs | ParamSpecKwargs | TypeVar
 
-TT3: list[type[Any]] = [ \
-    type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType, ParamSpecArgs, \
-    ParamSpecKwargs, TypeVar \
+TT3: list[type[Any]] = [
+    type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType, ParamSpecArgs,
+    ParamSpecKwargs, TypeVar
 ]

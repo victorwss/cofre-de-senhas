@@ -1,10 +1,10 @@
-from typing import Self, TypeGuard
+from typing import Self
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from ..dao import ( \
-    SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, \
-    LoginUsuario as LoginUsuarioDAO, BuscaPermissaoPorLogin, \
-    CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo \
+from ..dao import (
+    SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK,
+    LoginUsuario as LoginUsuarioDAO, BuscaPermissaoPorLogin,
+    CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo
 )
 from ..service import *
 from ..usuario.usuario import Usuario, Permissao

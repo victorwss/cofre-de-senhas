@@ -9,3 +9,4 @@ types-requests
 flask
 radon
 coverage
+flake8
