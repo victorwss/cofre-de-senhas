@@ -4,11 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
 from enum import Enum
-from .inflater import (
-    ColumnNames,
-    row_to_dict_opt, row_to_class_opt, row_to_class_lambda_opt,
-    rows_to_dicts, rows_to_classes, rows_to_classes_lambda
-)
+from .inflater import ColumnNames
 from datetime import date, time, datetime
 
 _T = TypeVar("_T")  # Delete when PEP 695 is ready.
@@ -164,37 +160,37 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
         pass
 
     def fetchone_dict(self) -> dict[str, RAW_DATA] | None:
-        return row_to_dict_opt(self.column_names, self.fetchone())
+        return self.column_names.row_to_dict_opt(self.fetchone())
 
     def fetchall_dict(self) -> list[dict[str, RAW_DATA]]:
-        return rows_to_dicts(self.column_names, self.fetchall())
+        return self.column_names.rows_to_dicts(self.fetchall())
 
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, RAW_DATA]]:
-        return rows_to_dicts(self.column_names, self.fetchmany(size))
+        return self.column_names.rows_to_dicts(self.fetchmany(size))
 
     # def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
     def fetchone_class(self, klass: type[_T]) -> _T | None:
-        return row_to_class_opt(klass, self.column_names, self.fetchone())
+        return self.column_names.row_to_class_opt(klass, self.fetchone())
 
     # def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
-        return rows_to_classes(klass, self.column_names, self.fetchall())
+        return self.column_names.rows_to_classes(klass, self.fetchall())
 
     # def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
-        return rows_to_classes(klass, self.column_names, self.fetchmany(size))
+        return self.column_names.rows_to_classes(klass, self.fetchmany(size))
 
     # def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
-        return row_to_class_lambda_opt(ctor, self.column_names, self.fetchone())
+        return self.column_names.row_to_class_lambda_opt(ctor, self.fetchone())
 
     # def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
-        return rows_to_classes_lambda(ctor, self.column_names, self.fetchall())
+        return self.column_names.rows_to_classes_lambda(ctor, self.fetchall())
 
     # def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
-        return rows_to_classes_lambda(ctor, self.column_names, self.fetchmany(size))
+        return self.column_names.rows_to_classes_lambda(ctor, self.fetchmany(size))
 
     @abstractmethod
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:

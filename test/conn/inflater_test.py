@@ -3,7 +3,7 @@ from pytest import raises
 from connection.conn import ColumnDescriptor, Descriptor, NullStatus, TypeCode
 from dataclasses import dataclass
 from validator import dataclass_validate
-from connection.inflater import *
+from connection.inflater import ColumnNames
 from dacite.exceptions import MissingValueError, WrongTypeError, UnexpectedDataError
 
 def make_column_descriptor(name: str) -> ColumnDescriptor:
@@ -45,100 +45,100 @@ def test_bad_column_names() -> None:
 def test_row_to_dict() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
-    result: dict[str, Any] = row_to_dict(columns, row)
+    result: dict[str, Any] = columns.row_to_dict(row)
     assert result == {"lemon": 1, "strawberry": "xyz", "grape": 27}
 
 def test_row_to_dict_empty() -> None:
     columns: ColumnNames = make_columns([])
     row: tuple[Any, ...] = ()
-    result: dict[str, Any] = row_to_dict(columns, row)
+    result: dict[str, Any] = columns.row_to_dict(row)
     assert result == {}
 
 def test_row_to_dict_no_columns() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = ()
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, row)
+        columns.row_to_dict(row)
 
 def test_row_to_dict_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, row)
+        columns.row_to_dict(row)
 
 def test_row_to_dict_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2, 3, 4)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, row)
+        columns.row_to_dict(row)
 
 # Tests of row_to_dict_opt
 
 def test_row_to_dict_opt() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
-    result: dict[str, Any] | None = row_to_dict_opt(columns, row)
+    result: dict[str, Any] | None = columns.row_to_dict_opt(row)
     assert result == {"lemon": 1, "strawberry": "xyz", "grape": 27}
 
 def test_row_to_dict_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
     row: tuple[Any, ...] = ()
-    result: dict[str, Any] | None = row_to_dict_opt(columns, row)
+    result: dict[str, Any] | None = columns.row_to_dict_opt(row)
     assert result == {}
 
 def test_row_to_dict_opt_no_columns() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = ()
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict_opt(columns, row)
+        columns.row_to_dict_opt(row)
 
 def test_row_to_dict_opt_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict_opt(columns, row)
+        columns.row_to_dict_opt(row)
 
 def test_row_to_dict_opt_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2, 3, 4)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict_opt(columns, row)
+        columns.row_to_dict_opt(row)
 
 def test_row_to_dict_opt_none() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
-    assert None == row_to_dict_opt(columns, None)
+    assert None == columns.row_to_dict_opt(None)
 
 # Tests of rows_to_dicts
 
 def test_rows_to_dicts() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     rows: list[tuple[Any, ...]] = [(1, "xyz", 27), (5, "uvw", 55)]
-    results: list[dict[str, Any]] = rows_to_dicts(columns, rows)
+    results: list[dict[str, Any]] = columns.rows_to_dicts(rows)
     assert results == [{"lemon": 1, "strawberry": "xyz", "grape": 27}, {"lemon": 5, "strawberry": "uvw", "grape": 55}]
 
 def test_rows_to_dict_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
     rows: list[tuple[Any, ...]] = []
-    results: list[dict[str, Any]] = rows_to_dicts(columns, rows)
+    results: list[dict[str, Any]] = columns.rows_to_dicts(rows)
     assert results == []
 
 def test_rows_to_dict_no_columns() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, row)
+        columns.row_to_dict(row)
 
 def test_rows_to_dict_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, row)
+        columns.row_to_dict(row)
 
 def test_rows_to_dict_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2, 3, 4)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_dict(columns, row)
+        columns.row_to_dict(row)
 
 # Tests of row_to_class
 
@@ -152,7 +152,7 @@ class FruitSalad:
 def test_row_to_class() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
-    result: FruitSalad = row_to_class(FruitSalad, columns, row)
+    result: FruitSalad = columns.row_to_class(FruitSalad, row)
     assert result.lemon == 1
     assert result.strawberry == "xyz"
     assert result.grape == 27
@@ -161,109 +161,109 @@ def test_row_to_class_empty() -> None:
     columns: ColumnNames = make_columns([])
     row: tuple[Any, ...] = ()
     with raises(MissingValueError):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_no_columns() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = ()
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz")
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27, 6)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_name_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "orange", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
     with raises(UnexpectedDataError):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_type_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 6, 27)
     with raises(WrongTypeError):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_extra_name() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape", "orange"])
     row: tuple[Any, ...] = (1, "xyz", 27, 55)
     with raises(UnexpectedDataError):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 def test_row_to_class_missing_name() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry"])
     row: tuple[Any, ...] = (1, "xyz")
     with raises(MissingValueError):
-        row_to_class(FruitSalad, columns, row)
+        columns.row_to_class(FruitSalad, row)
 
 # Tests of row_to_class_opt
 
 def test_row_to_class_opt() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
-    result: FruitSalad | None = row_to_class_opt(FruitSalad, columns, row)
+    result: FruitSalad | None = columns.row_to_class_opt(FruitSalad, row)
     assert result == FruitSalad(1, "xyz", 27)
 
 def test_row_to_class_opt_empty() -> None:
     columns: ColumnNames = make_columns([])
     row: tuple[Any, ...] = ()
     with raises(MissingValueError):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_no_columns() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = ()
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 2, 3, 4)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_name_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "orange", "grape"])
     row: tuple[Any, ...] = (1, "xyz", 27)
     with raises(UnexpectedDataError):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_type_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     row: tuple[Any, ...] = (1, 6, 27)
     with raises(WrongTypeError):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_extra_name() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape", "orange"])
     row: tuple[Any, ...] = (1, "xyz", 27, 55)
     with raises(UnexpectedDataError):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_missing_name() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry"])
     row: tuple[Any, ...] = (1, "xyz")
     with raises(MissingValueError):
-        row_to_class_opt(FruitSalad, columns, row)
+        columns.row_to_class_opt(FruitSalad, row)
 
 def test_row_to_class_opt_none() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
-    assert None == row_to_class_opt(FruitSalad, columns, None)
+    assert None == columns.row_to_class_opt(FruitSalad, None)
 
 # Tests of row_to_class_lambda
 
@@ -273,7 +273,7 @@ def test_row_to_class_lambda() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert t == {"lemon": 1, "strawberry": "abc", "grape": 27}
         return FruitSalad(5, "xyz", 9)
-    result: FruitSalad = row_to_class_lambda(make, columns, row)
+    result: FruitSalad = columns.row_to_class_lambda(make, row)
     assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_empty() -> None:
@@ -282,7 +282,7 @@ def test_row_to_class_lambda_empty() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert t == {}
         return FruitSalad(5, "xyz", 9)
-    result: FruitSalad = row_to_class_lambda(make, columns, row)
+    result: FruitSalad = columns.row_to_class_lambda(make, row)
     assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_no_columns() -> None:
@@ -291,7 +291,7 @@ def test_row_to_class_lambda_no_columns() -> None:
         assert False
     row: tuple[Any, ...] = ()
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda(make, columns, row)
+        columns.row_to_class_lambda(make, row)
 
 def test_row_to_class_lambda_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -299,7 +299,7 @@ def test_row_to_class_lambda_missing_column() -> None:
         assert False
     row: tuple[Any, ...] = (1, 2)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda(make, columns, row)
+        columns.row_to_class_lambda(make, row)
 
 def test_row_to_class_lambda_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -307,7 +307,7 @@ def test_row_to_class_lambda_extra_column() -> None:
         assert False
     row: tuple[Any, ...] = (1, 2, 3, 4)
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda(make, columns, row)
+        columns.row_to_class_lambda(make, row)
 
 # Tests of row_to_class_lambda_opt
 
@@ -317,7 +317,7 @@ def test_row_to_class_lambda_opt() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert t == {"lemon": 1, "strawberry": "abc", "grape": 27}
         return FruitSalad(5, "xyz", 9)
-    result: FruitSalad | None = row_to_class_lambda_opt(make, columns, row)
+    result: FruitSalad | None = columns.row_to_class_lambda_opt(make, row)
     assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_opt_empty() -> None:
@@ -326,7 +326,7 @@ def test_row_to_class_lambda_opt_empty() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert t == {}
         return FruitSalad(5, "xyz", 9)
-    result: FruitSalad | None = row_to_class_lambda_opt(make, columns, row)
+    result: FruitSalad | None = columns.row_to_class_lambda_opt(make, row)
     assert result == FruitSalad(5, "xyz", 9)
 
 def test_row_to_class_lambda_opt_no_columns() -> None:
@@ -335,7 +335,7 @@ def test_row_to_class_lambda_opt_no_columns() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda_opt(make, columns, row)
+        columns.row_to_class_lambda_opt(make, row)
 
 def test_row_to_class_lambda_opt_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -343,7 +343,7 @@ def test_row_to_class_lambda_opt_missing_column() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda_opt(make, columns, row)
+        columns.row_to_class_lambda_opt(make, row)
 
 def test_row_to_class_lambda_opt_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -351,75 +351,75 @@ def test_row_to_class_lambda_opt_extra_column() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        row_to_class_lambda_opt(make, columns, row)
+        columns.row_to_class_lambda_opt(make, row)
 
 def test_row_to_class_lambda_opt_none() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
-    assert None == row_to_class_lambda_opt(make, columns, None)
+    assert None == columns.row_to_class_lambda_opt(make, None)
 
 # Tests of rows_to_classes
 
 def test_rows_to_classes() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     rows: list[tuple[Any, ...]] = [(1, "abc", 27), (3, "xyz", 18), (7, "pqr", 3)]
-    result: list[FruitSalad] = rows_to_classes(FruitSalad, columns, rows)
+    result: list[FruitSalad] = columns.rows_to_classes(FruitSalad, rows)
     assert result == [FruitSalad(1, "abc", 27), FruitSalad(3, "xyz", 18), FruitSalad(7, "pqr", 3)]
 
 def test_rows_to_classes_empty() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     rows: list[tuple[Any, ...]] = []
-    result: list[FruitSalad] = rows_to_classes(FruitSalad, columns, rows)
+    result: list[FruitSalad] = columns.rows_to_classes(FruitSalad, rows)
     assert result == []
 
 def test_rows_to_classes_no_columns() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape", "orange"])
     rows: list[tuple[Any, ...]] = [(), (), ()]
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     rows: list[tuple[Any, ...]] = [(1, "abc"), (3, "xyz"), (7, "pqr")]
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     rows: list[tuple[Any, ...]] = [(1, "abc", 27, "x"), (3, "xyz", 18, "y"), (7, "pqr", 3, "z")]
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_name_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "orange", "grape"])
     rows: list[tuple[Any, ...]] = [(1, "abc", 27), (3, "xyz", 18), (7, "pqr", 3)]
     with raises(UnexpectedDataError):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_type_mismatch() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
     rows: list[tuple[Any, ...]] = [(1, 7, 27), (3, 7, 18), (7, 56, 3)]
     with raises(WrongTypeError):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_extra_name() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape", "orange"])
     rows: list[tuple[Any, ...]] = [(1, "abc", 27, "x"), (3, "xyz", 18, "y"), (7, "pqr", 3, "z")]
     with raises(UnexpectedDataError):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_missing_name() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry"])
     rows: list[tuple[Any, ...]] = [(1, "abc"), (3, "xyz"), (7, "pqr")]
     with raises(MissingValueError):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 def test_rows_to_classes_mixed_data() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry"])
     rows: list[tuple[Any, ...]] = [(1, "abc", 27), (3, "xyz"), (7, "pqr", 3, 10)]
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes(FruitSalad, columns, rows)
+        columns.rows_to_classes(FruitSalad, rows)
 
 # Tests of rows_to_classes_lambda
 
@@ -441,7 +441,7 @@ def test_rows_to_classes_lambda() -> None:
             return s[v]
         finally:
             v += 1
-    result: list[FruitSalad] = rows_to_classes_lambda(make, columns, rows)
+    result: list[FruitSalad] = columns.rows_to_classes_lambda(make, rows)
     assert result == s
     assert result is not s
 
@@ -450,7 +450,7 @@ def test_rows_to_classes_lambda_empty() -> None:
     rows: list[tuple[Any, ...]] = []
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
-    result: list[FruitSalad] = rows_to_classes_lambda(make, columns, rows)
+    result: list[FruitSalad] = columns.rows_to_classes_lambda(make, rows)
     assert result == []
 
 def test_rows_to_classes_lambda_no_columns() -> None:
@@ -459,7 +459,7 @@ def test_rows_to_classes_lambda_no_columns() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes_lambda(make, columns, rows)
+        columns.rows_to_classes_lambda(make, rows)
 
 def test_rows_to_classes_lambda_missing_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -467,7 +467,7 @@ def test_rows_to_classes_lambda_missing_column() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes_lambda(make, columns, rows)
+        columns.rows_to_classes_lambda(make, rows)
 
 def test_rows_to_classes_lambda_extra_column() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry", "grape"])
@@ -475,7 +475,7 @@ def test_rows_to_classes_lambda_extra_column() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes_lambda(make, columns, rows)
+        columns.rows_to_classes_lambda(make, rows)
 
 def test_rows_to_classes_lambda_mixed_data() -> None:
     columns: ColumnNames = make_columns(["lemon", "strawberry"])
@@ -483,4 +483,4 @@ def test_rows_to_classes_lambda_mixed_data() -> None:
     def make(t: dict[str, Any]) -> FruitSalad:
         assert False
     with raises(ValueError, match = "^Column descriptions and rows do not have the same length.$"):
-        rows_to_classes_lambda(make, columns, rows)
+        columns.rows_to_classes_lambda(make, rows)
