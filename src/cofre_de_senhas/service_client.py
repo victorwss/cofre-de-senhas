@@ -1,19 +1,22 @@
 import requests
-import hashlib
 from typing import Any, override
-from typing import TypeVar # Delete when PEP 695 is ready.
+from typing import TypeVar  # Delete when PEP 695 is ready.
 from dacite import Config, from_dict
 from enum import Enum
-from decorators.for_all import for_all_methods
-from dataclasses import dataclass, replace, asdict
+from dataclasses import asdict
 from requests.models import Response
-from requests.cookies import RequestsCookieJar
-from .service import *
-from sucesso import *
-from .erro import *
+# from requests.cookies import RequestsCookieJar
+from .service import (
+    ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo,
+    UsuarioComChave, ChaveUsuario, LoginUsuario, LoginComSenha, ResultadoListaDeUsuarios,
+    TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario,
+    CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
+    SegredoComChave, SegredoSemChave, ChaveSegredo, PesquisaSegredos, ResultadoPesquisaDeSegredos,
+)
+from sucesso import Ok
 
 
-_X = TypeVar("_X") # Delete when PEP 695 is ready.
+_X = TypeVar("_X")  # Delete when PEP 695 is ready.
 
 
 class _ErroDesconhecido(Exception):
@@ -27,27 +30,27 @@ class _Requester:
         self.__base_url: str = "http://127.0.0.1:5000"
         self.__cookies: dict[str, str] = {}
 
-    #def get[X](self, path: str, t: type[X]) -> X: # PEP 695
+    # def get[X](self, path: str, t: type[X]) -> X: # PEP 695
     def get(self, path: str, t: type[_X]) -> _X:
         r: Response = requests.get(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
-    #def post[X](self, path: str, json: Any, t: type[X]) -> X: # PEP 695
+    # def post[X](self, path: str, json: Any, t: type[X]) -> X: # PEP 695
     def post(self, path: str, json: Any, t: type[_X]) -> _X:
         r: Response = requests.post(self.__base_url + path, json = json, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
-    #def put[X](self, path: str, json: Any, t: type[X]) -> X: # PEP 695
+    # def put[X](self, path: str, json: Any, t: type[X]) -> X: # PEP 695
     def put(self, path: str, json: Any, t: type[_X]) -> _X:
         r: Response = requests.put(self.__base_url + path, json = json, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
-    #def delete[X](self, path: str, t: type[X]) -> X: # PEP 695
+    # def delete[X](self, path: str, t: type[X]) -> X: # PEP 695
     def delete(self, path: str, t: type[_X]) -> _X:
         r: Response = requests.delete(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t)
 
-    #def move[X](self, path: str, to: str, overwrite: bool, t: type[X]) -> X: # PEP 695
+    # def move[X](self, path: str, to: str, overwrite: bool, t: type[X]) -> X: # PEP 695
     def move(self, path: str, to: str, overwrite: bool, t: type[_X]) -> _X:
         h: dict[str, str] = {
             "Destination": to,
@@ -56,7 +59,7 @@ class _Requester:
         r: Response = requests.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = h)
         return self.__unwrap(r, t)
 
-    #def __unwrap[X](self, r: Response, t: type[X]) -> X: # PEP 695
+    # def __unwrap[X](self, r: Response, t: type[X]) -> X: # PEP 695
     def __unwrap(self, r: Response, t: type[_X]) -> _X:
         self.__cookies = dict(r.cookies)
         j: Any
@@ -152,7 +155,7 @@ class _ServicoUsuarioClient(ServicoUsuario):
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @override
     def listar(self) -> ResultadoListaDeUsuarios:
-        return self.__requester.get(f"/usuarios", ResultadoListaDeUsuarios)
+        return self.__requester.get("/usuarios", ResultadoListaDeUsuarios)
 
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
@@ -164,7 +167,7 @@ class _ServicoSegredoClient(ServicoSegredo):
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     @override
     def criar(self, dados: SegredoSemChave) -> SegredoComChave:
-        return self.__requester.put(f"/segredos", dados, SegredoComChave)
+        return self.__requester.put("/segredos", dados, SegredoComChave)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException, PermissaoNegadaException
     @override
@@ -178,7 +181,7 @@ class _ServicoSegredoClient(ServicoSegredo):
 
     @override
     def listar(self) -> ResultadoPesquisaDeSegredos:
-        return self.__requester.get(f"/segredos", ResultadoPesquisaDeSegredos)
+        return self.__requester.get("/segredos", ResultadoPesquisaDeSegredos)
 
     # Pode lançar SegredoNaoExisteException
     @override
@@ -229,4 +232,4 @@ class _ServicoCategoriaClient(ServicoCategoria):
 
     @override
     def listar(self) -> ResultadoListaDeCategorias:
-        return self.__requester.get(f"/categorias", ResultadoListaDeCategorias)
+        return self.__requester.get("/categorias", ResultadoListaDeCategorias)

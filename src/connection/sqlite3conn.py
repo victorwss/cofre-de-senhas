@@ -1,10 +1,10 @@
 from typing import Any, Callable, cast, override, Self, Sequence
-from typing import TypeVar #  Delete when PEP 695 is ready.
+from typing import TypeVar  # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import (
     BadDatabaseConfigException, ColumnDescriptor, Descriptor,
-    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+    IntegrityViolationException, RAW_DATA, SimpleConnection,
 )
 from .trans import ConnectionData, TransactedConnection
 from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
@@ -18,9 +18,9 @@ class SqliteConnectionData(ConnectionData):
     file_name: str
 
     @staticmethod
-    def create( \
-            *, \
-            file_name: str, \
+    def create(
+            *,
+            file_name: str,
     ) -> "SqliteConnectionData":
         return SqliteConnectionData(file_name)
 
@@ -37,10 +37,10 @@ def connect(file: str) -> TransactedConnection:
     return SqliteConnectionData.create(file_name = file).connect()
 
 
-_TRANS = TypeVar("_TRANS", bound = Callable[..., Any]) #  Delete when PEP 695 is ready.
+_TRANS = TypeVar("_TRANS", bound = Callable[..., Any])  # Delete when PEP 695 is ready.
 
 
-#def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
+# def _wrap_exceptions[T: Callable[..., Any]](operation: T) -> T: # PEP 695
 def _wrap_exceptions(operation: _TRANS) -> _TRANS:
 
     @wraps(operation)
@@ -117,7 +117,8 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
     @property
     @override
     def description(self) -> Descriptor:
-        if self.__curr.description is None: return Descriptor([])
+        if self.__curr.description is None:
+            return Descriptor([])
         return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
 
     @property

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from .erro import *
 from enum import Enum
 
 

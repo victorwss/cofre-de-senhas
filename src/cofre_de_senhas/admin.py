@@ -5,7 +5,8 @@ from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from connection.trans import TransactedConnection
 from .conn_factory import connect
 
-class _Nao(GerenciadorLogin): #  pragma: no cover
+
+class _Nao(GerenciadorLogin):  # pragma: no cover
 
     @override
     def login(self, usuario: UsuarioComChave) -> None:

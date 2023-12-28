@@ -9,4 +9,4 @@ types-requests
 flask
 radon
 coverage
-flake8
+Flake8-pyproject

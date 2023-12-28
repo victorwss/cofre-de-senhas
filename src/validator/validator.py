@@ -3,28 +3,28 @@ import functools
 import sys
 import collections
 import dataclasses
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from .typezoo import (
     TT1, TT2, TT3, UnionType, OptionalType, LiteralType, GenericType,
     GenericAlias, EllipsisType, CallableTypeFormal, TypedDictType,
     CallableTypeRealUserDefined, CallableTypeRealBuiltIn
 )
-from .errorset import *
+from .errorset import ErrorSet, SignalingErrorSet, make_error, make_errors, no_error, bad_ellipsis, to_error, split_errors, split_valids
 from typing import (
-    Any, Callable, cast, ForwardRef, get_type_hints, Iterable, overload,
+    Any, Callable, cast, ForwardRef, get_type_hints, Iterable,
     override, TYPE_CHECKING
 )
-from typing import TypeVar # Delete when PEP 695 is ready.
+from typing import Generic, TypeVar  # Delete when PEP 695 is ready.
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from _typeshed import DataclassInstance
     _D = TypeVar("_D", bound = DataclassInstance)
 else:
     _D = TypeVar("_D")
 
 NS_T = dict[str, Any]
-_U = TypeVar("_U") # Delete when PEP 695 is ready.
-_T = TypeVar("_T", bound = TT2) # Delete when PEP 695 is ready.
+_U = TypeVar("_U")  # Delete when PEP 695 is ready.
+_T = TypeVar("_T", bound = TT2, covariant = True)  # Delete when PEP 695 is ready.
 
 
 class TypeValidationError(TypeError):
@@ -92,7 +92,7 @@ def _validate_typing_iterable_with_values(expected_type: GenericType, value: Any
     return make_errors([_validate_types_with_values(expected_item_type, v, globalns) for v in value])
 
 
-#def _item_multiply[U](element: U, times: int) -> list[U]: # PEP 695
+# def _item_multiply[U](element: U, times: int) -> list[U]: # PEP 695
 def _item_multiply(element: _U, times: int) -> list[_U]:
     return [element for x in range(0, times)]
 
@@ -192,9 +192,9 @@ def _validate_typing_typed_dict_with_values(expected_type: TypedDictType, value:
     fields: dict[str, type] = part
     errors: dict[str, ErrorSet] = {}
 
-    common_fields    : set[str] = set(fields.keys()).intersection(set(value .keys()))
-    missing_fields   : set[str] = set(fields.keys()).difference  (set(value .keys()))
-    unexpected_fields: set[str] = set(value .keys()).difference  (set(fields.keys()))
+    common_fields    : set[str] = set(fields.keys()).intersection(set(value .keys()))  # noqa: E202,E203,E211
+    missing_fields   : set[str] = set(fields.keys()).difference  (set(value .keys()))  # noqa: E202,E203,E211
+    unexpected_fields: set[str] = set(value .keys()).difference  (set(fields.keys()))  # noqa: E202,E203,E211
 
     for f in missing_fields:
         errors[f] = make_error(f"field {f} is missing in {expected_type}")
@@ -212,8 +212,8 @@ def _validate_typing_dict_without_values_in(expected_type: GenericType, globalns
     if len(expected_type.__args__) != 2:
         return make_error(f"bad parameters for {expected_type}")
 
-    expected_key_type  : SignalingErrorSet | TT2 = _type_resolve(expected_type.__args__[0], globalns)
-    expected_value_type: SignalingErrorSet | TT2 = _type_resolve(expected_type.__args__[1], globalns)
+    expected_key_type  : SignalingErrorSet | TT2 = _type_resolve(expected_type.__args__[0], globalns)  # noqa: E203
+    expected_value_type: SignalingErrorSet | TT2 = _type_resolve(expected_type.__args__[1], globalns)  # noqa: E203
 
     bad: dict[str, ErrorSet] = {
         "key": to_error(expected_key_type),
@@ -243,7 +243,8 @@ def _validate_typing_dict_with_values(expected_type: GenericType, value: Any, gl
 
     if isinstance(es, SignalingErrorSet):
         return es
-    expected_key_type  : TT2 = es[0]
+
+    expected_key_type: TT2 = es[0]
     expected_value_type: TT2 = es[1]
 
     if not isinstance(value, dict):
@@ -311,10 +312,11 @@ def _validate_typing_callable_with_values(expected_type: CallableTypeFormal, val
     if not isinstance(value, CallableTypeRealUserDefined) and not isinstance(value, CallableTypeRealBuiltIn):
         return make_error(f"must be an instance of {expected_type.__str__()}, but received {type(value)}")
 
-    names  : list[str] = list(value.__annotations__.keys())
-    reals  : list[SignalingErrorSet | TT2] = _type_resolve_all(value.__annotations__.values(), globalns)
+    names: list[str] = list(value.__annotations__.keys())
+    reals: list[SignalingErrorSet | TT2] = _type_resolve_all(value.__annotations__.values(), globalns)
     formals: list[TT2] = inner[0]
     is_ellipsis: bool = inner[1]
+
     if is_ellipsis:
         t: type[Any] = cast(Any, type)
         r: TT2 = formals[1]
@@ -358,20 +360,22 @@ def _validate_union_types_with_values(expected_type: UnionType | OptionalType, v
 
 
 _dict_values: type = type({}.values())
-_dict_keys  : type = type({}.keys())
+_dict_keys: type = type({}.keys())
 
 
 _validate_typing_mappings: dict[type, tuple[Callable[[GenericType, Any, NS_T], ErrorSet], Callable[[GenericType, NS_T], ErrorSet]]] = {
-    tuple                   : (_validate_typing_tuple_with_values,    _validate_typing_tuple_without_values   ),
-    dict                    : (_validate_typing_dict_with_values,     _validate_typing_dict_without_values    ),
-    list                    : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),
-    frozenset               : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),
-    set                     : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),
-    _dict_keys              : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),
-    _dict_values            : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),
-    collections.abc.Sequence: (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),
-    collections.abc.Iterable: (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values)
+    tuple                   : (_validate_typing_tuple_with_values   , _validate_typing_tuple_without_values   ),  # noqa: E202,E203
+    dict                    : (_validate_typing_dict_with_values    , _validate_typing_dict_without_values    ),  # noqa: E202,E203
+    list                    : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),  # noqa: E202,E203
+    frozenset               : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),  # noqa: E202,E203
+    set                     : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),  # noqa: E202,E203
+    _dict_keys              : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),  # noqa: E202,E203
+    _dict_values            : (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),  # noqa: E202,E203
+    collections.abc.Sequence: (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values),  # noqa: E202,E203
+    collections.abc.Iterable: (_validate_typing_iterable_with_values, _validate_typing_iterable_without_values)   # noqa: E202,E203
 }
+
+
 _default_mapping: tuple[Callable[[GenericType, Any, NS_T], ErrorSet], Callable[[GenericType, NS_T], ErrorSet]] = (_validate_simple_type, _blindly_accept)
 
 
@@ -385,33 +389,43 @@ def _validate_generic_type_without_values(expected_type: GenericType, globalns: 
     return c(expected_type, globalns)
 
 
+@dataclass(frozen = True)
+# class CallWrapper[_T]: # PEP 695
+class CallWrapper(Generic[_T]):  # Delete when PEP 695 is ready.
+    with_values: Callable[[_T, Any, NS_T], ErrorSet]
+    without_values: Callable[[_T, NS_T], ErrorSet]
+
+
+_default_wrapper: CallWrapper[Any] = CallWrapper(_validate_simple_type, _blindly_accept)
+
+
 class _TypeMapper:
     def __init__(self) -> None:
-        self.__mappeds_with_values   : dict[Any, Callable[[TT2, Any, NS_T], ErrorSet]] = {}
-        self.__mappeds_without_values: dict[Any, Callable[[Any, NS_T], ErrorSet]] = {}
+        self.__mappeds: dict[Any, CallWrapper[Any]] = {}
 
-    #def put[T: TT2](self, key: type[T], with_values: Callable[[T, Any, NS_T], ErrorSet], without_values: Callable[[T, NS_T], ErrorSet]) -> None: # PEP 695
+    # def put[T: TT2](self, key: type[T], with_values: Callable[[T, Any, NS_T], ErrorSet], without_values: Callable[[T, NS_T], ErrorSet]) -> None: # PEP 695
     def put(self, key: type[_T], with_values: Callable[[_T, Any, NS_T], ErrorSet], without_values: Callable[[_T, NS_T], ErrorSet]) -> None:
-        self.__mappeds_with_values   [key] = with_values
-        self.__mappeds_without_values[key] = without_values
+        self.__mappeds[key] = CallWrapper(with_values, without_values)
 
     def validate_types_without_values(self, key: TT2, globalns: NS_T) -> ErrorSet:
-        return self.__mappeds_without_values.get(key, _blindly_accept)(key, globalns)
+        w: CallWrapper[Any] = self.__mappeds.get(type(key), _default_wrapper)
+        return w.without_values(key, globalns)
 
     def validate_types_with_values(self, key: TT2, value: Any, globalns: NS_T) -> ErrorSet:
-        return self.__mappeds_with_values.get(key, _validate_simple_type)(key, value, globalns)
+        w: CallWrapper[Any] = self.__mappeds.get(type(key), _default_wrapper)
+        return w.with_values(key, value, globalns)
 
 
 _TM = _TypeMapper()
-_TM.put(TypedDictType     , _validate_typing_typed_dict_with_values, _validate_typing_typed_dict_without_values)
-_TM.put(UnionType         , _validate_union_types_with_values      , _validate_union_types_without_values      )
-_TM.put(OptionalType      , _validate_union_types_with_values      , _validate_union_types_without_values      )
-_TM.put(LiteralType       , _validate_typing_literal               , _blindly_accept                           )
-_TM.put(CallableTypeFormal, _validate_typing_callable_with_values  , _validate_typing_callable_without_values  )
-_TM.put(GenericType       , _validate_generic_type_with_values     , _validate_generic_type_without_values     )
+_TM.put(TypedDictType     , _validate_typing_typed_dict_with_values, _validate_typing_typed_dict_without_values)  # noqa: E202,E203
+_TM.put(UnionType         , _validate_union_types_with_values      , _validate_union_types_without_values      )  # noqa: E202,E203
+_TM.put(OptionalType      , _validate_union_types_with_values      , _validate_union_types_without_values      )  # noqa: E202,E203
+_TM.put(LiteralType       , _validate_typing_literal               , _blindly_accept                           )  # noqa: E202,E203
+_TM.put(CallableTypeFormal, _validate_typing_callable_with_values  , _validate_typing_callable_without_values  )  # noqa: E202,E203
+_TM.put(GenericType       , _validate_generic_type_with_values     , _validate_generic_type_without_values     )  # noqa: E202,E203
 
 
-def _is_type_ok( reworked_type: Any) -> bool:
+def _is_type_ok(reworked_type: Any) -> bool:
     return any(isinstance(reworked_type, x) for x in TT3)
 
 
@@ -521,11 +535,11 @@ def _evaluate_forward_reference(ref_type: ForwardRef | str, globalns: NS_T) -> S
         if isinstance(ref_type, str):
             ref_type = ForwardRef(ref_type)
         return cast(type[Any], ref_type._evaluate(globalns, None, frozenset()))
-    except BaseException as x:
+    except BaseException as x:  # noqa: F841
         return make_error(f'Could not evaluate "{ref_type}" as a valid type')
 
 
-#def dataclass_type_validator_without_values[D: DataclassInstance](target: type[D], localns: NS_T) -> None: # PEP 695
+# def dataclass_type_validator_without_values[D: DataclassInstance](target: type[D], localns: NS_T) -> None: # PEP 695
 def dataclass_type_validator_without_values(target: type[_D], localns: NS_T) -> None:
     fields: tuple[dataclasses.Field[Any], ...] = dataclasses.fields(target)
     globalns: NS_T = sys.modules[target.__module__].__dict__.copy()
@@ -542,7 +556,7 @@ def dataclass_type_validator_without_values(target: type[_D], localns: NS_T) -> 
         raise TypeValidationError("Dataclass Type Validation Error", target = target, errors = es)
 
 
-#def dataclass_type_validator_with_values[D: DataclassInstance](target: D, localns: NS_T) -> None: # PEP 695
+# def dataclass_type_validator_with_values[D: DataclassInstance](target: D, localns: NS_T) -> None: # PEP 695
 def dataclass_type_validator_with_values(target: _D, localns: NS_T) -> None:
     fields: tuple[dataclasses.Field[Any], ...] = dataclasses.fields(target)
     globalns: NS_T = sys.modules[target.__module__].__dict__.copy()
@@ -560,7 +574,7 @@ def dataclass_type_validator_with_values(target: _D, localns: NS_T) -> None:
         raise TypeValidationError("Dataclass Type Validation Error", target = target, errors = es)
 
 
-#def dataclass_validate[D: DataclassInstance](localns: NS_T | None = None, cls: type[U] | None = None) -> type[D] | Callable[[type[D]], type[D]]: # PEP 695
+# def dataclass_validate[D: DataclassInstance](localns: NS_T | None = None, cls: type[U] | None = None) -> type[D] | Callable[[type[D]], type[D]]: # PEP 695
 def dataclass_validate_local(localns: NS_T) -> Callable[[type[_D]], type[_D]]:
     """Dataclass decorator to automatically add validation to a dataclass.
     So you don't have to add a __post_init__ method, or if you have one, you don't have
@@ -572,7 +586,7 @@ def dataclass_validate_local(localns: NS_T) -> Callable[[type[_D]], type[_D]]:
     return x
 
 
-#def dataclass_validate[D: DataclassInstance](cls: type[D]) -> type[D]: # PEP 695
+# def dataclass_validate[D: DataclassInstance](cls: type[D]) -> type[D]: # PEP 695
 def dataclass_validate(cls: type[_D]) -> type[_D]:
     """Dataclass decorator to automatically add validation to a dataclass.
     So you don't have to add a __post_init__ method, or if you have one, you don't have
@@ -582,7 +596,7 @@ def dataclass_validate(cls: type[_D]) -> type[_D]:
     return _dataclass_full_validate(cls, {})
 
 
-#def _dataclass_full_validate[D: DataclassInstance](cls: type[D]) -> type[D]: # PEP 695
+# def _dataclass_full_validate[D: DataclassInstance](cls: type[D]) -> type[D]: # PEP 695
 def _dataclass_full_validate(cls: type[_D], localns: NS_T) -> type[_D]:
     localns[cls.__name__] = cls
 

@@ -2,6 +2,7 @@ from typing import override
 from connection.trans import TransactedConnection
 from ..dao import CofreDeSenhasDAO
 
+
 class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
 
     def __init__(self, conn: TransactedConnection) -> None:

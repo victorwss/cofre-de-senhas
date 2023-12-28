@@ -1,13 +1,19 @@
-from typing import Any, cast, override
-from flask import Flask, jsonify, redirect, request, session, url_for
+from typing import cast, override
+from flask import Flask, redirect, session, url_for
 from werkzeug import Response
-from httpwrap import *
-from webrpc import Converter, WebMethod, WebParam, WebSuite, from_body_typed, from_path, from_path_int, from_path_float
-from .service import *
+from httpwrap import empty_json, bodyless, jsoner, read_body, move
+from sucesso import PrecondicaoFalhouException, ConteudoIncompreensivelException
+from webrpc import WebParam, WebSuite, from_body_typed, from_path, from_path_int
+from .service import (
+    GerenciadorLogin, UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
+    UsuarioNovo, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
+    NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias,
+    SegredoComChave, SegredoSemChave, ChaveSegredo, ResultadoPesquisaDeSegredos
+)
 from .service_impl import Servicos
+from .erro import UsuarioNaoLogadoException, CategoriaJaExisteException
 from validator import dataclass_validate
 from dataclasses import dataclass
-#from werkzeug.datastructures import MultiDict
 from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from .categoria.categoria_dao_impl import CategoriaDAOImpl
 from .usuario.usuario_dao_impl import UsuarioDAOImpl
@@ -26,12 +32,14 @@ class GerenciadorLoginImpl(GerenciadorLogin):
     def logout(self) -> None:
         session.pop("chave", None)
 
-    #  Pode lançar UsuarioNaoLogadoException.
+    # Pode lançar UsuarioNaoLogadoException.
     @property
     @override
     def usuario_logado(self) -> ChaveUsuario:
-        #if app.secret_key == "": return ChaveUsuario(-1)
-        if "chave" not in session: raise UsuarioNaoLogadoException()
+        # if app.secret_key == "":
+        #    return ChaveUsuario(-1)
+        if "chave" not in session:
+            raise UsuarioNaoLogadoException()
         return cast(ChaveUsuario, session["chave"])
 
 
@@ -59,7 +67,7 @@ def servir() -> None:
 
     app.secret_key = sx.segredo.buscar_por_chave_sem_logar(ChaveSegredo(-1)).campos["Chave da sessão"]
 
-    #  Usuários
+    # Usuários
 
     @ws.route("POST", "/login", WebParam("body", from_body_typed(LoginComSenha)))
     @empty_json
@@ -96,7 +104,7 @@ def servir() -> None:
         dados: DadosNovoUsuario = read_body(DadosNovoUsuario)
         try:
             p: NivelAcesso = NivelAcesso[dados.nivel_acesso]
-        except:
+        except BaseException as e:  # noqa: F841
             raise ConteudoIncompreensivelException()
         return sx.usuario.criar(UsuarioNovo(nome, p, dados.senha))
 
@@ -117,7 +125,7 @@ def servir() -> None:
         dados: DadosNovoUsuario = read_body(DadosNovoUsuario)
         try:
             p: NivelAcesso = NivelAcesso[dados.nivel_acesso]
-        except:
+        except BaseException as e:  # noqa: F841
             raise ConteudoIncompreensivelException()
         sx.usuario.alterar_nivel_por_login(UsuarioComNivel(nome, p))
 
@@ -127,7 +135,7 @@ def servir() -> None:
         bodyless()
         return sx.usuario.resetar_senha_por_login(ResetLoginUsuario(nome))
 
-    #  Categorias
+    # Categorias
 
     @ws.route("GET", "/categorias/<pk_categoria>", WebParam("pk_categoria", from_path_int("pk_categoria")))
     @jsoner
@@ -154,8 +162,9 @@ def servir() -> None:
         dest, overwrite = move()
         try:
             sx.categoria.renomear_por_nome(RenomeCategoria(nome, dest))
-        except CategoriaJaExisteException as x:
-            if not overwrite: raise PrecondicaoFalhouException()
+        except CategoriaJaExisteException as x:  # noqa: F841
+            if not overwrite:
+                raise PrecondicaoFalhouException()
             raise x
 
     @ws.route("GET", "/categorias")
@@ -170,7 +179,7 @@ def servir() -> None:
         bodyless()
         sx.categoria.excluir_por_nome(NomeCategoria(nome))
 
-    #  Segredos
+    # Segredos
 
     @ws.route("PUT", "/segredos")
     @jsoner
@@ -204,13 +213,13 @@ def servir() -> None:
         bodyless()
         return sx.segredo.listar()
 
-    #  Front-end
+    # Front-end
 
     @app.route("/")
     def index() -> Response:
         bodyless()
         return redirect(url_for("static", filename = "index.html"))
 
-    #  E aqui, a mágica acontece...
+    # E aqui, a mágica acontece...
 
     app.run(host = "0.0.0.0", port = PORTA, debug = True)

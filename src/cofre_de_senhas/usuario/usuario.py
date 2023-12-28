@@ -2,9 +2,13 @@ import hasher
 from typing import Self
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from ..erro import *
+from ..erro import SenhaErradaException, UsuarioNaoExisteException, UsuarioJaExisteException, PermissaoNegadaException
 from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuario as LoginUsuarioDAO
-from ..service import *
+from ..service import (
+    TipoPermissao,
+    UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
+    UsuarioNovo, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
+)
 from typing import TYPE_CHECKING
 
 
@@ -23,7 +27,8 @@ class Usuario:
     # Propriedades e métodos de instância.
 
     def __validar_senha(self, senha: str) -> None:
-        if not hasher.comparar_hash(self.hash_com_sal, senha): raise SenhaErradaException()
+        if not hasher.comparar_hash(self.hash_com_sal, senha):
+            raise SenhaErradaException()
 
     def __redefinir_senha(self, nova_senha: str) -> "Usuario":
         return replace(self, hash_com_sal = hasher.criar_hash(nova_senha)).__salvar()
@@ -39,9 +44,9 @@ class Usuario:
     def __alterar_nivel_de_acesso(self, novo_nivel_acesso: NivelAcesso) -> "Usuario":
         return replace(self, nivel_acesso = novo_nivel_acesso).__salvar()
 
-    #def __excluir(self) -> Self:
-    #    UsuarioDAO.instance().deletar_por_pk(self.__pk)
-    #    return self
+    # def __excluir(self) -> Self:
+    #     UsuarioDAO.instance().deletar_por_pk(self.__pk)
+    #     return self
 
     # Exportado para a classe Segredo.
     @property
@@ -53,11 +58,13 @@ class Usuario:
         return self.nivel_acesso != NivelAcesso.DESATIVADO
 
     def __permitir_admin(self) -> Self:
-        if not self.is_admin: raise PermissaoNegadaException()
+        if not self.is_admin:
+            raise PermissaoNegadaException()
         return self
 
     def __permitir_acesso(self) -> Self:
-        if not self.__is_permitido: raise PermissaoNegadaException()
+        if not self.__is_permitido:
+            raise PermissaoNegadaException()
         return self
 
     def __salvar(self) -> Self:
@@ -94,13 +101,15 @@ class Usuario:
     @staticmethod
     def __encontrar_por_chave(chave: ChaveUsuario) -> "Usuario | None":
         dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_pk(UsuarioPK(chave.valor))
-        if dados is None: return None
+        if dados is None:
+            return None
         return Usuario.__promote(dados)
 
     @staticmethod
     def __encontrar_existente_por_chave(chave: ChaveUsuario) -> "Usuario":
         encontrado: Usuario | None = Usuario.__encontrar_por_chave(chave)
-        if encontrado is None: raise UsuarioNaoExisteException()
+        if encontrado is None:
+            raise UsuarioNaoExisteException()
         return encontrado
 
     # Exportado para a classe Segredo.
@@ -116,19 +125,22 @@ class Usuario:
     @staticmethod
     def __encontrar_por_login(login: str) -> "Usuario | None":
         dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(login))
-        if dados is None: return None
+        if dados is None:
+            return None
         return Usuario.__promote(dados)
 
     @staticmethod
     def __encontrar_existente_por_login(login: str) -> "Usuario":
         encontrado: Usuario | None = Usuario.__encontrar_por_login(login)
-        if encontrado is None: raise UsuarioNaoExisteException()
+        if encontrado is None:
+            raise UsuarioNaoExisteException()
         return encontrado
 
     @staticmethod
     def __nao_existente_por_login(login: str) -> None:
         talvez: Usuario | None = Usuario.__encontrar_por_login(login)
-        if talvez is not None: raise UsuarioJaExisteException()
+        if talvez is not None:
+            raise UsuarioJaExisteException()
 
     @staticmethod
     def __listar() -> list["Usuario"]:
@@ -159,13 +171,13 @@ class Usuario:
         lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao(dados.fk_tipo_permissao)) for dados in lista1]
         return {permissao.usuario.login: permissao for permissao in lista2}
 
-
     class Servico:
 
         __me: "Usuario.Servico | None" = None
 
         def __init__(self) -> None:
-            if Usuario.Servico.__me: raise Exception()
+            if Usuario.Servico.__me:
+                raise Exception()
 
         @staticmethod
         def instance() -> "Usuario.Servico":
@@ -182,7 +194,8 @@ class Usuario:
 
         def login(self, quem_faz: LoginComSenha) -> UsuarioComChave:
             dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(quem_faz.login))
-            if dados is None: raise SenhaErradaException()
+            if dados is None:
+                raise SenhaErradaException()
             cadastrado: Usuario = Usuario.__promote(dados)
             cadastrado.__validar_senha(quem_faz.senha)
             return cadastrado.__permitir_acesso().__up

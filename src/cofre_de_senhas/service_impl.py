@@ -1,10 +1,16 @@
 from typing import Callable, override, ParamSpec, TypeVar
 from decorators.for_all import for_all_methods
 from connection.trans import TransactedConnection
-from .service import *
+from .service import (
+    GerenciadorLogin, ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo,
+    UsuarioComChave, ChaveUsuario, LoginUsuario, LoginComSenha, ResultadoListaDeUsuarios,
+    TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario,
+    CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
+    SegredoComChave, SegredoSemChave, ChaveSegredo, PesquisaSegredos, ResultadoPesquisaDeSegredos,
+)
 from .dao import CofreDeSenhasDAO
 from .categoria.categoria import Categoria
-from .usuario.usuario import Usuario, SenhaAlterada
+from .usuario.usuario import Usuario
 from .segredo.segredo import Segredo
 from decorators.tracer import Logger
 
@@ -32,6 +38,7 @@ class Servicos:
     @property
     def usuario(self) -> ServicoUsuario:
         gl: GerenciadorLogin = self.__gl
+
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
         @for_all_methods(self.__inject)
@@ -43,6 +50,7 @@ class Servicos:
     @property
     def categoria(self) -> ServicoCategoria:
         gl: GerenciadorLogin = self.__gl
+
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
         @for_all_methods(self.__inject)
@@ -54,6 +62,7 @@ class Servicos:
     @property
     def segredo(self) -> ServicoSegredo:
         gl: GerenciadorLogin = self.__gl
+
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
         @for_all_methods(self.__inject)

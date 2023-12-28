@@ -1,7 +1,8 @@
 from typing import Any, Callable, Literal, override, ParamSpec, Self, Sequence
 from typing import TypeVar  # Delete when PEP 695 is ready.
 from abc import ABC, abstractmethod
-from .conn import ColumnNames, Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
+from .inflater import ColumnNames
+from .conn import Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
 from threadlocal import ThreadLocal
@@ -57,9 +58,9 @@ class TransactedConnection(SimpleConnection):
 
     def __exit__(
             self,
-            exc_type: type[BaseException] | None,
-            exc_val : BaseException       | None,
-            exc_tb  : TracebackType       | None
+            exc_type: type[BaseException] | None,  # noqa: E203,E221
+            exc_val : BaseException       | None,  # noqa: E203,E221
+            exc_tb  : TracebackType       | None   # noqa: E203,E221
     ) -> Literal[False]:
         if self.__count.value == 1:
             if exc_type is None:
@@ -69,11 +70,11 @@ class TransactedConnection(SimpleConnection):
         self.close()
         return False
 
-    #def transact[T: Callable[..., Any]](self, operation: T) -> T: # PEP 695
+    # def transact[T: Callable[..., Any]](self, operation: T) -> T: # PEP 695
     def transact(self, operation: Callable[_P, _R]) -> Callable[_P, _R]:
         @wraps(operation)
         def transacted_operation(*args: _P.args, **kwargs: _P.kwargs) -> Any:
-            with self as xxx:
+            with self as xxx:  # noqa: F841
                 return operation(*args, **kwargs)
         return transacted_operation
 
@@ -133,32 +134,32 @@ class TransactedConnection(SimpleConnection):
         return self.__wrapped.fetchmany_dict(size)
 
     @override
-    #def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
+    # def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
     def fetchone_class(self, klass: type[_T]) -> _T | None:
         return self.__wrapped.fetchone_class(klass)
 
     @override
-    #def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
+    # def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
         return self.__wrapped.fetchall_class(klass)
 
     @override
-    #def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
+    # def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class(klass, size)
 
     @override
-    #def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
+    # def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         return self.__wrapped.fetchone_class_lambda(ctor)
 
     @override
-    #def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
+    # def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         return self.__wrapped.fetchall_class_lambda(ctor)
 
     @override
-    #def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
+    # def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         return self.__wrapped.fetchmany_class_lambda(ctor, size)
 
@@ -205,21 +206,24 @@ class TransactedConnection(SimpleConnection):
     @override
     def placeholder(self) -> str:
         c: SimpleConnection | None = self.__wrapped_or_none
-        if c is None: return self.__placeholder
+        if c is None:
+            return self.__placeholder
         return c.placeholder
 
     @property
     @override
     def database_type(self) -> str:
         c: SimpleConnection | None = self.__wrapped_or_none
-        if c is None: return self.__database_type
+        if c is None:
+            return self.__database_type
         return c.database_type
 
     @property
     @override
     def database_name(self) -> str:
         c: SimpleConnection | None = self.__wrapped_or_none
-        if c is None: return self.__database_name
+        if c is None:
+            return self.__database_name
         return c.database_name
 
 

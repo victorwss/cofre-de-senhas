@@ -30,10 +30,10 @@ class _DatabaseConfig:
         b: Callable[[], ConnectionData] = lambda: MariadbConnectionData.create(**self.properties)
         c: Callable[[], ConnectionData] = lambda: MysqlConnectionData  .create(**self.properties)
         x: Callable[[], ConnectionData] = lambda: _raiseit(database_name)
-        d: dict[str, Callable[[], ConnectionData]] = { \
-            "sqlite" : a, \
-            "mariadb": b, \
-            "mysql"  : c  \
+        d: dict[str, Callable[[], ConnectionData]] = {
+            "sqlite" : a,  # noqa: E203
+            "mariadb": b,  # noqa: E203
+            "mysql"  : c   # noqa: E203
         }
         cd: ConnectionData = d.get(database_name, x)()
         return cd.connect()

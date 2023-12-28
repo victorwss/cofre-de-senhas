@@ -1,13 +1,17 @@
-from typing import Any, Callable, cast, Iterator, Literal, override, Self, Sequence
-from typing import TypeVar #  Delete when PEP 695 is ready.
+from typing import Any, Callable, Iterator, Literal, override, Self, Sequence
+from typing import TypeVar  # Delete when PEP 695 is ready.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
 from enum import Enum
-from .inflater import *
+from .inflater import (
+    ColumnNames,
+    row_to_dict_opt, row_to_class_opt, row_to_class_lambda_opt,
+    rows_to_dicts, rows_to_classes, rows_to_classes_lambda
+)
 from datetime import date, time, datetime
 
-_T = TypeVar("_T") #  Delete when PEP 695 is ready.
+_T = TypeVar("_T")  # Delete when PEP 695 is ready.
 
 RAW_DATA = str | int | float | bool | None | date | time | datetime
 
@@ -47,7 +51,7 @@ class NullStatus(Enum):
 @dataclass(frozen = True)
 class FieldFlags:
     raw_value: int
-    meanings : frozenset[str]
+    meanings: frozenset[str]
 
 
 EMPTY_FLAGS = FieldFlags(0, frozenset())
@@ -56,48 +60,48 @@ EMPTY_FLAGS = FieldFlags(0, frozenset())
 @dataclass_validate
 @dataclass(frozen = True)
 class ColumnDescriptor:
-    name                : str
-    type_code           : TypeCode
-    column_type_name    : str
-    display_size        : int | None
-    internal_size       : int | None
-    precision           : int | None
-    scale               : int | None
-    null_ok             : NullStatus
-    field_flags         : FieldFlags
-    table_name          : str | None
-    original_column_name: str | None
-    original_table_name : str | None
+    name                : str         # noqa: E203
+    type_code           : TypeCode    # noqa: E203
+    column_type_name    : str         # noqa: E203
+    display_size        : int | None  # noqa: E203
+    internal_size       : int | None  # noqa: E203
+    precision           : int | None  # noqa: E203
+    scale               : int | None  # noqa: E203
+    null_ok             : NullStatus  # noqa: E203
+    field_flags         : FieldFlags  # noqa: E203
+    table_name          : str | None  # noqa: E203
+    original_column_name: str | None  # noqa: E203
+    original_table_name : str | None  # noqa: E203
 
     @staticmethod
     def create(
             *,
-            name                : str,
-            type_code           : TypeCode = TypeCode.UNSPECIFIED,
-            column_type_name    : str = "Unspecified",
-            display_size        : int | None = None,
-            internal_size       : int | None = None,
-            precision           : int | None = None,
-            scale               : int | None = None,
-            null_ok             : NullStatus = NullStatus.DONT_KNOW,
-            field_flags         : FieldFlags = EMPTY_FLAGS,
-            table_name          : str | None = None,
-            original_column_name: str | None = None,
-            original_table_name : str | None = None
+            name                : str,                                # noqa: E203
+            type_code           : TypeCode = TypeCode.UNSPECIFIED,    # noqa: E203
+            column_type_name    : str = "Unspecified",                # noqa: E203
+            display_size        : int | None = None,                  # noqa: E203
+            internal_size       : int | None = None,                  # noqa: E203
+            precision           : int | None = None,                  # noqa: E203
+            scale               : int | None = None,                  # noqa: E203
+            null_ok             : NullStatus = NullStatus.DONT_KNOW,  # noqa: E203
+            field_flags         : FieldFlags = EMPTY_FLAGS,           # noqa: E203
+            table_name          : str | None = None,                  # noqa: E203
+            original_column_name: str | None = None,                  # noqa: E203
+            original_table_name : str | None = None                   # noqa: E203
     ) -> "ColumnDescriptor":
         return ColumnDescriptor(
-                name,
-                type_code,
-                column_type_name,
-                display_size,
-                internal_size,
-                precision,
-                scale,
-                null_ok,
-                field_flags,
-                table_name,
-                original_column_name,
-                original_table_name
+            name,
+            type_code,
+            column_type_name,
+            display_size,
+            internal_size,
+            precision,
+            scale,
+            null_ok,
+            field_flags,
+            table_name,
+            original_column_name,
+            original_table_name
         )
 
 
@@ -168,27 +172,27 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, RAW_DATA]]:
         return rows_to_dicts(self.column_names, self.fetchmany(size))
 
-    #def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
+    # def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
     def fetchone_class(self, klass: type[_T]) -> _T | None:
         return row_to_class_opt(klass, self.column_names, self.fetchone())
 
-    #def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
+    # def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
         return rows_to_classes(klass, self.column_names, self.fetchall())
 
-    #def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
+    # def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         return rows_to_classes(klass, self.column_names, self.fetchmany(size))
 
-    #def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
+    # def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         return row_to_class_lambda_opt(ctor, self.column_names, self.fetchone())
 
-    #def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
+    # def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         return rows_to_classes_lambda(ctor, self.column_names, self.fetchall())
 
-    #def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
+    # def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         return rows_to_classes_lambda(ctor, self.column_names, self.fetchmany(size))
 
@@ -235,7 +239,8 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
 
     def next(self) -> tuple[RAW_DATA, ...]:
         x: tuple[RAW_DATA, ...] | None = self.fetchone()
-        if x is None: raise StopIteration
+        if x is None:
+            raise StopIteration
         return x
 
     @override

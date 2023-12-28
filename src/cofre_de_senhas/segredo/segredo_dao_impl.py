@@ -1,8 +1,8 @@
 from typing import override
 from connection.trans import TransactedConnection
-from ..dao import ( \
-    SegredoDAO, SegredoPK, UsuarioPK, CategoriaPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, \
-    LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin \
+from ..dao import (
+    SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo,
+    LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 )
 
 
@@ -31,7 +31,14 @@ class SegredoDAOImpl(SegredoDAO):
 
     @override
     def salvar_com_pk(self, dados: DadosSegredo) -> bool:
-        sql: str = f"UPDATE segredo SET pk_segredo = {self._placeholder}, nome = {self._placeholder}, descricao = {self._placeholder}, fk_tipo_segredo = {self._placeholder} WHERE pk_segredo = {self._placeholder}"
+        sql: str = " ".join([
+            "UPDATE segredo SET",
+            f"pk_segredo = {self._placeholder},",
+            f"nome = {self._placeholder},",
+            f"descricao = {self._placeholder},",
+            f"fk_tipo_segredo = {self._placeholder}",
+            f"WHERE pk_segredo = {self._placeholder}"
+        ])
         self._connection.execute(sql, [dados.pk_segredo, dados.nome, dados.descricao, dados.fk_tipo_segredo, dados.pk_segredo])
         return self._connection.rowcount > 0
 
@@ -46,17 +53,18 @@ class SegredoDAOImpl(SegredoDAO):
 
     @override
     def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
-        sql: str = "" \
-            + "SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo " \
-            + "FROM segredo s " \
-            + "INNER JOIN permissao p ON p.pfk_segredo = s.pk_segredo " \
-            + "INNER JOIN usuario u ON p.pfk_usuario = u.pk_usuario " \
-            + f"WHERE u.login = {self._placeholder} AND u.fk_nivel_acesso IN (1, 2)" \
-            + "UNION " \
-            + "SELECT p.pk_segredo, p.nome, p.descricao, p.fk_tipo_segredo " \
-            + "FROM segredo p " \
-            + "WHERE p.fk_tipo_segredo IN (1, 2) " \
-            + "ORDER BY pk_segredo"
+        sql: str = " ".join([
+            "SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo",
+            "FROM segredo s",
+            "INNER JOIN permissao p ON p.pfk_segredo = s.pk_segredo",
+            "INNER JOIN usuario u ON p.pfk_usuario = u.pk_usuario",
+            f"WHERE u.login = {self._placeholder} AND u.fk_nivel_acesso IN (1, 2)",
+            "UNION",
+            "SELECT p.pk_segredo, p.nome, p.descricao, p.fk_tipo_segredo",
+            "FROM segredo p",
+            "WHERE p.fk_tipo_segredo IN (1, 2)",
+            "ORDER BY pk_segredo"
+        ])
         return self._connection.execute(sql, [login.valor]).fetchall_class(DadosSegredo)
 
     # TESTAR
@@ -73,16 +81,17 @@ class SegredoDAOImpl(SegredoDAO):
         sql: str = f"SELECT pk_segredo, nome, descricao, fk_tipo_segredo FROM segredo WHERE pk_segredo IN ({wildcards}) ORDER BY pk_segredo"
         return self._connection.execute(sql, [pk.pk_segredo for pk in pks]).fetchall_class(DadosSegredo)
 
-    #def buscar_por_nomes(self, nomes: list[nome]) -> list[DadosSegredo]:
-    #    wildcards: str = ", ".join([self._placeholder for pk in pks])
-    #    sql: str = "" \
-    #        + "SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo " \
-    #        + "FROM segredo s " \
-    #        + "INNER JOIN categoria_segredo cs ON s.pk_segredo = cs.pfk_segredo " \
-    #        + "INNER JOIN categoria c ON c.categoria = cs.pfk_categoria " \
-    #        + f"WHERE nome IN ({wildcards})"
-    #    self._connection.execute(sql, nomes)
-    #    return self._connection.fetchall_class(DadosSegredo)
+    # def buscar_por_nomes(self, nomes: list[nome]) -> list[DadosSegredo]:
+    #     wildcards: str = ", ".join([self._placeholder for pk in pks])
+    #     sql: str = " ".join([
+    #         "SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo",
+    #         "FROM segredo s",
+    #         "INNER JOIN categoria_segredo cs ON s.pk_segredo = cs.pfk_segredo",
+    #         "INNER JOIN categoria c ON c.categoria = cs.pfk_categoria",
+    #         f"WHERE nome IN ({wildcards})"
+    #     ])
+    #     self._connection.execute(sql, nomes)
+    #     return self._connection.fetchall_class(DadosSegredo)
 
     # Categoria de segredo
 
@@ -115,9 +124,10 @@ class SegredoDAOImpl(SegredoDAO):
 
     @override
     def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
-        sql: str = "" \
-            + "SELECT p.pfk_usuario, p.pfk_segredo, p.fk_tipo_permissao " \
-            + "FROM permissao p " \
-            + "INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario " \
-            + f"WHERE p.pfk_segredo = {self._placeholder} AND u.login = {self._placeholder}"
+        sql: str = " ".join([
+            "SELECT p.pfk_usuario, p.pfk_segredo, p.fk_tipo_permissao",
+            "FROM permissao p",
+            "INNER JOIN usuario u ON u.pk_usuario = p.pfk_usuario",
+            f"WHERE p.pfk_segredo = {self._placeholder} AND u.login = {self._placeholder}"
+        ])
         return self._connection.execute(sql, [busca.pfk_segredo, busca.login]).fetchone_class(PermissaoDeSegredo)

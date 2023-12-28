@@ -8,7 +8,7 @@ class CategoriaDAOImpl(CategoriaDAO):
     def __init__(self, con: TransactedConnection) -> None:
         super().__init__(con)
 
-    #  CRUD básico
+    # CRUD básico
 
     @override
     def buscar_por_pk(self, pk: CategoriaPK) -> DadosCategoria | None:
@@ -52,26 +52,27 @@ class CategoriaDAOImpl(CategoriaDAO):
         self._connection.execute(sql, [pk.pk_categoria])
         return self._connection.rowcount > 0
 
-    #  Métodos auxiliares
+    # Métodos auxiliares
 
     @override
     def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
         sql: str = f"SELECT pk_categoria, nome FROM categoria WHERE nome = {self._placeholder}"
         return self._connection.execute(sql, [nome.valor]).fetchone_class(DadosCategoria)
 
-    #def deletar_por_nome(self, nome: NomeCategoria) -> bool:
-    #    sql: str = f"DELETE categoria WHERE nome = {self._placeholder}"
-    #    self._connection.execute(sql, [nome.valor])
-    #    return self._connection.rowcount > 0
+    # def deletar_por_nome(self, nome: NomeCategoria) -> bool:
+    #     sql: str = f"DELETE categoria WHERE nome = {self._placeholder}"
+    #     self._connection.execute(sql, [nome.valor])
+    #     return self._connection.rowcount > 0
 
-    #  Métodos com joins em outras tabelas
+    # Métodos com joins em outras tabelas
 
     @override
     def listar_por_segredo(self, pk: SegredoPK) -> list[DadosCategoria]:
-        sql: str = "" \
-            + "SELECT c.pk_categoria, c.nome " \
-            + "FROM categoria c " \
-            + "INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria " \
-            + f"WHERE cs.pfk_segredo = {self._placeholder} " \
-            + "ORDER BY c.pk_categoria"
+        sql: str = " ".join([
+            "SELECT c.pk_categoria, c.nome",
+            "FROM categoria c",
+            "INNER JOIN categoria_segredo cs ON c.pk_categoria = cs.pfk_categoria",
+            f"WHERE cs.pfk_segredo = {self._placeholder}",
+            "ORDER BY c.pk_categoria"
+        ])
         return self._connection.execute(sql, [pk.pk_segredo]).fetchall_class(DadosCategoria)

@@ -1,13 +1,15 @@
 from typing import Any, Callable, ForwardRef, List, Literal, Optional, ParamSpecArgs, ParamSpecKwargs, TypeAlias, TypeVar, TypedDict, TYPE_CHECKING
 
-def _just_some_func_dont_call() -> None: #  pragma: no cover
+
+def _just_some_func_dont_call() -> None:  # pragma: no cover
     assert False
 
 
 CallableTypeRealUserDefined = type(_just_some_func_dont_call)
 CallableTypeRealBuiltIn = type(print)
 
-if TYPE_CHECKING: #  pragma: no cover
+
+if TYPE_CHECKING:  # pragma: no cover
 
     class UnionType(type):
         @property
@@ -54,19 +56,19 @@ if TYPE_CHECKING: #  pragma: no cover
         pass
 
 else:
-    UnionType          = type(str | int)
-    OptionalType       = type(Optional[int])
-    LiteralType        = type(Literal[True])
-    GenericType        = type(list[str])
-    GenericAlias       = type(List[str])
-    EllipsisType       = type(...)
-    CallableTypeFormal = type(Callable[[], Any])
-    TypedDictType      = type(TypedDict("X", {"x": int}))
+    UnionType          = type(str | int)                   # noqa: E221
+    OptionalType       = type(Optional[int])               # noqa: E221
+    LiteralType        = type(Literal[True])               # noqa: E221
+    GenericType        = type(list[str])                   # noqa: E221
+    GenericAlias       = type(List[str])                   # noqa: E221
+    EllipsisType       = type(...)                         # noqa: E221
+    CallableTypeFormal = type(Callable[[], Any])           # noqa: E221
+    TypedDictType      = type(TypedDict("X", {"x": int}))  # noqa: E221
 
 TT1: TypeAlias = GenericAlias | ForwardRef | str | None
 
 TT2: TypeAlias = type[Any] | UnionType | OptionalType | LiteralType | GenericType | CallableTypeFormal | TypedDictType \
-        | ParamSpecArgs | ParamSpecKwargs | TypeVar
+    | ParamSpecArgs | ParamSpecKwargs | TypeVar
 
 TT3: list[type[Any]] = [
     type, UnionType, OptionalType, LiteralType, GenericType, CallableTypeFormal, TypedDictType, ParamSpecArgs,

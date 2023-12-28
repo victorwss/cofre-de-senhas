@@ -16,7 +16,7 @@ class Status(Protocol):
 @dataclass_validate
 @dataclass(frozen = True)
 class Erro:
-    sucesso: Literal[False] # Sempre falso aqui. Mas o campo se faz presente ainda assim para ser serializado via JSON.
+    sucesso: Literal[False]  # Sempre falso aqui. Mas o campo se faz presente ainda assim para ser serializado via JSON.
     interno: bool
     mensagem: str
     tipo: str
@@ -36,7 +36,7 @@ class Ok:
 @dataclass_validate
 @dataclass(frozen = True)
 class Sucesso:
-    sucesso: Literal[True] # Sempre verdadeiro aqui. Mas o campo se faz presente ainda assim para ser serializado via JSON.
+    sucesso: Literal[True]  # Sempre verdadeiro aqui. Mas o campo se faz presente ainda assim para ser serializado via JSON.
     conteudo: Any
     status: int
 

@@ -40,3 +40,8 @@ show_absolute_path          = true
 pythonpath = [
   "."
 ]
+
+[tool.flake8]
+ignore = ["E251"]
+max-line-length = 160
+count = true

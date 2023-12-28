@@ -1,14 +1,10 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from flask import Flask, make_response, request, Response
 from typing import Any, Callable, Generic, TypeVar
 from inspect import signature, Signature, Parameter
-from validator import TypeValidationError, make_error
-from werkzeug.datastructures.structures import MultiDict, ImmutableMultiDict
 from werkzeug.datastructures.file_storage import FileStorage
-from werkzeug.datastructures.headers import Headers
-from sucesso import *
-from httpwrap import *
+from sucesso import RequisicaoMalFormadaException
+from httpwrap import read_body
 from functools import wraps
 from types import MappingProxyType
 from dacite import Config, from_dict
@@ -35,14 +31,14 @@ def or_throw(data: _X | None) -> _X:
 def parse_int(data: str) -> int:
     try:
         return int(data)
-    except:
+    except BaseException as e:  # noqa: F841
         raise RequisicaoMalFormadaException()
 
 
 def parse_float(data: str) -> float:
     try:
         return float(data)
-    except:
+    except BaseException as e:  # noqa: F841
         raise RequisicaoMalFormadaException()
 
 
@@ -307,7 +303,7 @@ class WebSuite:
 
     def flaskenify(self, wm: WebMethod) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
         def middle(what: _T) -> Callable[[], tuple[_RS, int]]:
-            args_names: tuple[str, ...] = what.__code__.co_varnames[:what.__code__.co_argcount]
+            # args_names: tuple[str, ...] = what.__code__.co_varnames[:what.__code__.co_argcount]
 
             s: Signature = signature(what)
             if len(s.parameters) != len(wm.params):
@@ -319,11 +315,13 @@ class WebSuite:
             @self.__flask.route(wm.url_template, methods = [wm.http_method])
             @wraps(what)
             def inner() -> tuple[_RS, int]:
-                request.get_data() # Ensure caching
+                request.get_data()  # Ensure caching
                 params: list[Any] = wm.handle()
                 f: _RS | tuple[_RS, int] = what(*params)
-                if isinstance(f, Response): return f, 200
-                if isinstance(f, str): return f, 200
+                if isinstance(f, Response):
+                    return f, 200
+                if isinstance(f, str):
+                    return f, 200
                 return f
 
             return inner

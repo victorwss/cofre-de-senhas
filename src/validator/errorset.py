@@ -1,15 +1,15 @@
-import dataclasses
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import Any, override, TypeGuard
-from typing import Generic, TypeVar # Delete when PEP 695 is ready.
+from typing import override, TypeGuard
+from typing import Generic, TypeVar  # Delete when PEP 695 is ready.
 from .typezoo import EllipsisType, TT2
 
 
-_SI = TypeVar("_SI", bound = str | int) # Delete when PEP 695 is ready.
-_X = TypeVar("_X") # Delete when PEP 695 is ready.
+_SI = TypeVar("_SI", bound = str | int)  # Delete when PEP 695 is ready.
+_X = TypeVar("_X")  # Delete when PEP 695 is ready.
 
 
-@dataclasses.dataclass
+@dataclass
 class _FieldChain:
     fields: list[str | int]
 
@@ -51,7 +51,7 @@ class SignalingErrorSet(ErrorSet):
         return False
 
 
-@dataclasses.dataclass
+@dataclass
 class _ErrorSetLeaf(SignalingErrorSet):
     error: str
 
@@ -60,10 +60,10 @@ class _ErrorSetLeaf(SignalingErrorSet):
         return [f"{fields}: {self.error}"]
 
 
-@dataclasses.dataclass
-#class _ErrorSetDict[SI: str | int](SignalingErrorSet, Generic[SI]): # PEP 695
+@dataclass
+# class _ErrorSetDict[SI: str | int](SignalingErrorSet, Generic[SI]): # PEP 695
 class _ErrorSetDict(SignalingErrorSet, Generic[_SI]):
-    #errors: dict[SI, SignalingErrorSet]
+    # errors: dict[SI, SignalingErrorSet]
     errors: dict[_SI, SignalingErrorSet]
 
     @override
@@ -71,7 +71,7 @@ class _ErrorSetDict(SignalingErrorSet, Generic[_SI]):
         return _flatten([self.errors[k]._list_all(fields.append(k)) for k in self.errors])
 
 
-@dataclasses.dataclass
+@dataclass
 class _ErrorSetEmpty(ErrorSet):
     pass
 
@@ -85,7 +85,7 @@ class _ErrorSetEmpty(ErrorSet):
         return True
 
 
-#def _flatten[X](data: list[list[X]]) -> list[X]: # PEP 695
+# def _flatten[X](data: list[list[X]]) -> list[X]: # PEP 695
 def _flatten(data: list[list[_X]]) -> list[_X]:
     d: list[_X] = []
     for p in data:
@@ -93,17 +93,17 @@ def _flatten(data: list[list[_X]]) -> list[_X]:
     return d
 
 
-#def _as_dict[X](what: list[X]) -> dict[int, X]: # PEP 695
+# def _as_dict[X](what: list[X]) -> dict[int, X]: # PEP 695
 def _as_dict(what: list[_X]) -> dict[int, _X]:
     return {i: what[i] for i in range(0, len(what))}
 
 
-#def _thou_shalt_not_pass[X](pair: tuple[X, ErrorSet]) -> TypeGuard[tuple[_X, SignalingErrorSet]]: # PEP 695
+# def _thou_shalt_not_pass[X](pair: tuple[X, ErrorSet]) -> TypeGuard[tuple[_X, SignalingErrorSet]]: # PEP 695
 def _thou_shalt_not_pass(pair: tuple[_X, ErrorSet]) -> TypeGuard[tuple[_X, SignalingErrorSet]]:
     return not pair[1].empty
 
 
-#def _make_dict_errors[SI: str | int](what: dict[SI, ErrorSet]) -> ErrorSet: # PEP 695
+# def _make_dict_errors[SI: str | int](what: dict[SI, ErrorSet]) -> ErrorSet: # PEP 695
 def _make_dict_errors(what: dict[_SI, ErrorSet]) -> ErrorSet:
     d2: dict[_SI, SignalingErrorSet] = dict(filter(_thou_shalt_not_pass, what.items()))
 
@@ -124,7 +124,7 @@ def make_errors(what: list[ErrorSet] | dict[str, ErrorSet]) -> ErrorSet:
 
 
 no_error: ErrorSet = _ErrorSetEmpty()
-bad_ellipsis: SignalingErrorSet = make_error("Unexpected ... here")
+bad_ellipsis: SignalingErrorSet = _ErrorSetLeaf("Unexpected ... here")
 
 
 def to_error(what: SignalingErrorSet | TT2) -> ErrorSet:

@@ -1,10 +1,10 @@
-from typing import Self, TypeGuard
+from typing import Self
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
-from ..erro import *
+from ..erro import CategoriaNaoExisteException, CategoriaJaExisteException
 from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria as NomeCategoriaDAO
-from ..service import *
-from ..usuario.usuario import Usuario, Permissao
+from ..service import ChaveCategoria, CategoriaComChave, NomeCategoria, ChaveUsuario, RenomeCategoria, ResultadoListaDeCategorias
+from ..usuario.usuario import Usuario
 
 
 @dataclass_validate
@@ -55,31 +55,36 @@ class Categoria:
     @staticmethod
     def __encontrar_por_chave(chave: ChaveCategoria) -> "Categoria | None":
         dados: DadosCategoria | None = CategoriaDAO.instance().buscar_por_pk(CategoriaPK(chave.valor))
-        if dados is None: return None
+        if dados is None:
+            return None
         return Categoria.__promote(dados)
 
     @staticmethod
     def __encontrar_existente_por_chave(chave: ChaveCategoria) -> "Categoria":
         encontrado: Categoria | None = Categoria.__encontrar_por_chave(chave)
-        if encontrado is None: raise CategoriaNaoExisteException()
+        if encontrado is None:
+            raise CategoriaNaoExisteException()
         return encontrado
 
     @staticmethod
     def __encontrar_por_nome(nome: str) -> "Categoria | None":
         dados: DadosCategoria | None = CategoriaDAO.instance().buscar_por_nome(NomeCategoriaDAO(nome))
-        if dados is None: return None
+        if dados is None:
+            return None
         return Categoria.__promote(dados)
 
     @staticmethod
     def __encontrar_existente_por_nome(nome: str) -> "Categoria":
         encontrado: Categoria | None = Categoria.__encontrar_por_nome(nome)
-        if encontrado is None: raise CategoriaNaoExisteException()
+        if encontrado is None:
+            raise CategoriaNaoExisteException()
         return encontrado
 
     @staticmethod
     def __nao_existente_por_nome(nome: str) -> None:
         talvez: Categoria | None = Categoria.__encontrar_por_nome(nome)
-        if talvez is not None: raise CategoriaJaExisteException()
+        if talvez is not None:
+            raise CategoriaJaExisteException()
 
     @staticmethod
     def __criar(nome: str) -> "Categoria":
@@ -109,17 +114,18 @@ class Categoria:
 
         if len(r) != len(nomes):
             for nome in nomes:
-                if nome not in r: raise CategoriaNaoExisteException(nome)
+                if nome not in r:
+                    raise CategoriaNaoExisteException(nome)
 
         return r
-
 
     class Servico:
 
         __me: "Categoria.Servico | None" = None
 
         def __init__(self) -> None:
-            if Categoria.Servico.__me: raise Exception()
+            if Categoria.Servico.__me:
+                raise Exception()
 
         @staticmethod
         def instance() -> "Categoria.Servico":
@@ -128,25 +134,25 @@ class Categoria:
             return Categoria.Servico.__me
 
         def buscar_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
-            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            Usuario.verificar_acesso(quem_faz)
             return Categoria.__encontrar_existente_por_nome(dados.nome).__up
 
         def buscar_por_chave(self, quem_faz: ChaveUsuario, chave: ChaveCategoria) -> CategoriaComChave:
-            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            Usuario.verificar_acesso(quem_faz)
             return Categoria.__encontrar_existente_por_chave(chave).__up
 
         def criar(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
-            quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
+            Usuario.verificar_acesso_admin(quem_faz)
             return Categoria.__criar(dados.nome).__up
 
         def renomear_por_nome(self, quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None:
-            quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
+            Usuario.verificar_acesso_admin(quem_faz)
             Categoria.__encontrar_existente_por_nome(dados.antigo).__renomear(dados.novo)
 
         def excluir_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> None:
-            quem_eh: Usuario = Usuario.verificar_acesso_admin(quem_faz)
+            Usuario.verificar_acesso_admin(quem_faz)
             Categoria.__encontrar_existente_por_nome(dados.nome).__excluir()
 
         def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias:
-            quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
+            Usuario.verificar_acesso(quem_faz)
             return ResultadoListaDeCategorias([x.__up for x in Categoria.__listar()])

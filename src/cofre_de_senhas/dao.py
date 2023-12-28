@@ -163,7 +163,8 @@ class CofreDeSenhasDAO(DAO):
     @staticmethod
     def instance() -> "CofreDeSenhasDAO":
         u: CofreDeSenhasDAO | None = CofreDeSenhasDAO.__instance.value
-        if u is None: raise BaseException()
+        if u is None:
+            raise BaseException()
         return u
 
 
@@ -175,7 +176,7 @@ class SegredoDAO(DAO):
         super().__init__(con)
         SegredoDAO.__instance.value = self
 
-    #  CRUD básico.
+    # CRUD básico.
 
     @abstractmethod
     def buscar_por_pk(self, pk: SegredoPK) -> DadosSegredo | None:
@@ -201,7 +202,7 @@ class SegredoDAO(DAO):
     def deletar_por_pk(self, pk: SegredoPK) -> bool:
         pass
 
-    #  Métodos auxiliares.
+    # Métodos auxiliares.
 
     @abstractmethod
     def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
@@ -211,13 +212,13 @@ class SegredoDAO(DAO):
     def limpar_segredo(self, pk: SegredoPK) -> None:
         pass
 
-    #  Categoria de segredo
+    # Categoria de segredo
 
     @abstractmethod
     def criar_categoria_segredo(self, c: CategoriaDeSegredo) -> bool:
         pass
 
-    #  Campos
+    # Campos
 
     @abstractmethod
     def criar_campo_segredo(self, campo: CampoDeSegredo) -> bool:
@@ -227,7 +228,7 @@ class SegredoDAO(DAO):
     def ler_campos_segredo(self, pk: SegredoPK) -> list[CampoDeSegredo]:
         pass
 
-    #  Permissões
+    # Permissões
 
     @abstractmethod
     def criar_permissao(self, permissao: PermissaoDeSegredo) -> bool:
@@ -240,7 +241,8 @@ class SegredoDAO(DAO):
     @staticmethod
     def instance() -> "SegredoDAO":
         u: SegredoDAO | None = SegredoDAO.__instance.value
-        if u is None: raise BaseException()
+        if u is None:
+            raise BaseException()
         return u
 
 
@@ -252,7 +254,7 @@ class CategoriaDAO(DAO):
         super().__init__(con)
         CategoriaDAO.__instance.value = self
 
-    #  CRUD básico
+    # CRUD básico
 
     @abstractmethod
     def buscar_por_pk(self, pk_categoria: CategoriaPK) -> DadosCategoria | None:
@@ -282,17 +284,17 @@ class CategoriaDAO(DAO):
     def deletar_por_pk(self, pk_categoria: CategoriaPK) -> bool:
         pass
 
-    #  Métodos auxiliares
+    # Métodos auxiliares
 
     @abstractmethod
     def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
         pass
 
-    #@abstractmethod
-    #def deletar_por_nome(self, nome: NomeCategoria) -> None:
-    #    pass
+    # @abstractmethod
+    # def deletar_por_nome(self, nome: NomeCategoria) -> None:
+    #     pass
 
-    #  Métodos com joins em outras tabelas
+    # Métodos com joins em outras tabelas
 
     @abstractmethod
     def listar_por_segredo(self, pk_segredo: SegredoPK) -> list[DadosCategoria]:
@@ -301,7 +303,8 @@ class CategoriaDAO(DAO):
     @staticmethod
     def instance() -> "CategoriaDAO":
         u: CategoriaDAO | None = CategoriaDAO.__instance.value
-        if u is None: raise BaseException()
+        if u is None:
+            raise BaseException()
         return u
 
 
@@ -313,7 +316,7 @@ class UsuarioDAO(DAO):
         super().__init__(con)
         UsuarioDAO.__instance.value = self
 
-    #  CRUD básico
+    # CRUD básico
 
     @abstractmethod
     def buscar_por_pk(self, pk_usuario: UsuarioPK) -> DadosUsuario | None:
@@ -349,11 +352,11 @@ class UsuarioDAO(DAO):
     def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
         pass
 
-    #@abstractmethod
-    #def deletar_por_login(self, login: LoginUsuario) -> None:
-    #    pass
+    # @abstractmethod
+    # def deletar_por_login(self, login: LoginUsuario) -> None:
+    #     pass
 
-    #  Métodos com joins em outras tabelas
+    # Métodos com joins em outras tabelas
 
     @abstractmethod
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:
@@ -362,5 +365,6 @@ class UsuarioDAO(DAO):
     @staticmethod
     def instance() -> "UsuarioDAO":
         u: UsuarioDAO | None = UsuarioDAO.__instance.value
-        if u is None: raise BaseException()
+        if u is None:
+            raise BaseException()
         return u
