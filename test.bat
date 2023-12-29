@@ -6,16 +6,12 @@ mypy .\src .\test
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
-:RADON_FLAKE
+:RADON_FLAKE_COVERAGE
 @echo ON
 radon cc -nb -s --no-assert .\src
 radon mi -nb -s             .\src
 flake8                      .\src
 flake8                      .\test
-@echo OFF
-
-:COVERAGE
-@echo ON
 coverage run --branch --source=src -m pytest --timeout=8
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT

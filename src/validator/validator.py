@@ -31,14 +31,14 @@ class TypeValidationError(TypeError):
     """Exception raised on type validation errors.
     """
 
-    def __init__(self, *args: Any, target: Any, errors: SignalingErrorSet) -> None:
+    def __init__(self, *args: Any, target: type[_D] | _D, errors: SignalingErrorSet) -> None:
         super(TypeValidationError, self).__init__(*args)
 
-        cls: type[Any] = target.__class__
+        cls: type[_D] = target if isinstance(target, type) else target.__class__
         cls_name: str = f"{cls.__module__}.{cls.__name__}" if cls.__module__ != "__main__" else cls.__name__
         attrs: str = ", ".join([repr(v) for v in self.args])
 
-        self.__target_class: type[Any] = cls
+        self.__target_class: type[_D] = cls
         self.__errors: SignalingErrorSet = errors
         self.__r = f"{cls_name}({attrs}, errors={repr(errors)})"
         self.__s = f"{cls_name} (errors = {errors})"
@@ -48,7 +48,7 @@ class TypeValidationError(TypeError):
         return self.__errors
 
     @property
-    def target_class(self) -> type[Any]:
+    def target_class(self) -> type[_D]:
         return self.__target_class
 
     @override

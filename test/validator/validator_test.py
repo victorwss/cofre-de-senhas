@@ -1,7 +1,27 @@
+from validator.errorset import SignalingErrorSet, make_error
 from validator import TypeValidationError, dataclass_validate, dataclass_validate_local
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Literal, ParamSpec, Sequence, Set, Tuple, TypeVar, TypedDict
 from pytest import raises
+
+
+@dataclass(frozen = True)
+class Dummy:
+    pass
+
+
+def test_validation_error_basic_properties() -> None:
+    e: SignalingErrorSet = make_error("bla")
+    t: TypeValidationError = TypeValidationError("x", "y", "z", target = Dummy, errors = e)
+    assert t.errors is e
+    assert t.target_class is Dummy
+
+
+def test_validation_error_str_repr() -> None:
+    e: SignalingErrorSet = make_error("bla")
+    t: TypeValidationError = TypeValidationError("x", "y", "z", target = Dummy, errors = e)
+    assert f"{t}" == "test.validator.validator_test.Dummy (errors = : bla)"
+    assert repr(t) == "test.validator.validator_test.Dummy('x', 'y', 'z', errors=_ErrorSetLeaf(error='bla'))"
 
 
 def test_simple_1() -> None:
