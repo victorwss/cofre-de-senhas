@@ -1,8 +1,10 @@
-from typing import Sequence
-from connection.conn import RAW_DATA
-from connection.trans import TransactedConnection
-from .fixtures import *
+from ..db_test_util import applier, DbTestConfig
+from .fixtures import (
+    dbs, dbs_x, mariadb_db_x, assert_db_ok, read_all,
+    todas_categorias, todos_usuarios, todos_segredos
+)
 from cofre_de_senhas.dao import DadosUsuario, DadosCategoria, DadosSegredo
+
 
 @applier(dbs, assert_db_ok)
 def test_instanciar(db: DbTestConfig) -> None:
@@ -11,15 +13,6 @@ def test_instanciar(db: DbTestConfig) -> None:
     f: CofreDeSenhasDAO = CofreDeSenhasDAOImpl(db.conn)
     assert f == CofreDeSenhasDAO.instance()
 
-sqlite_db_x : SqliteTestConfig  = SqliteTestConfig ("test/empty.db", "test/cofre-teste-create-run.db")
-mysql_db_x  : MysqlTestConfig   = MysqlTestConfig  ("", "root", "root", "mariadb", 3306, "test_cofre_empty")
-mariadb_db_x: MariaDbTestConfig = MariaDbTestConfig("", "root", "root", "mariadb", 3306, "test_cofre_empty", 3)
-
-dbs_x: dict[str, DbTestConfig] = { \
-    "sqlite" : sqlite_db_x , \
-    "mysql"  : mysql_db_x  , \
-    "mariadb": mariadb_db_x  \
-}
 
 @applier(dbs_x)
 def test_criar_bd(db: DbTestConfig) -> None:

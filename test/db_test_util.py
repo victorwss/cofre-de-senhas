@@ -1,12 +1,12 @@
-import sqlite3
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Any, Callable, ParamSpec, TypeVar
+from typing import Callable, ParamSpec, TypeVar
 from connection.trans import TransactedConnection
 import pytest
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
+
 
 class DbTestConfig(ABC):
 
@@ -51,7 +51,8 @@ class DbTestConfig(ABC):
         return conn
 
     def _del_conn(self) -> None:
-        if self.__conn is not None: self.__conn.close()
+        if self.__conn is not None:
+            self.__conn.close()
         self.__conn = None
 
     @property
@@ -71,12 +72,14 @@ class DbTestConfig(ABC):
     def database_name(self) -> str:
         return self.__database_name
 
+
 class SqliteTestConfig(DbTestConfig):
 
     def __init__(self, pristine: str, sandbox: str) -> None:
         def inner() -> TransactedConnection:
             from connection.sqlite3conn import connect
             return connect(sandbox)
+
         super().__init__("?", "Sqlite", "test/fruits.db", inner)
         self.__pristine: str = pristine
         self.__sandbox: str = sandbox
@@ -91,7 +94,7 @@ class SqliteTestConfig(DbTestConfig):
 
                 try:
                     os.remove(self.__sandbox)
-                except FileNotFoundError as x:
+                except FileNotFoundError as x:  # noqa: F841
                     pass
 
                 shutil.copy2(self.__pristine, self.__sandbox)
@@ -106,12 +109,14 @@ class SqliteTestConfig(DbTestConfig):
             return inner
         return middle
 
+
 class MariaDbTestConfig(DbTestConfig):
 
     def __init__(self, reset_script: str, user: str, password: str, host: str, port: int, database: str, connect_timeout: int) -> None:
         def inner() -> TransactedConnection:
             from connection.mariadbconn import connect
             return connect(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout)
+
         super().__init__("%s", "MariaDB", "test_fruits", inner)
         self.__reset_script: str = reset_script
 
@@ -132,12 +137,14 @@ class MariaDbTestConfig(DbTestConfig):
             return inner
         return middle
 
+
 class MysqlTestConfig(DbTestConfig):
 
     def __init__(self, reset_script: str, user: str, password: str, host: str, port: int, database: str) -> None:
         def inner() -> TransactedConnection:
             from connection.mysqlconn import connect
             return connect(user = user, password = password, host = host, port = port, database = database)
+
         super().__init__("%s", "MySQL", "test_fruits", inner)
         self.__reset_script: str = reset_script
 
@@ -158,39 +165,56 @@ class MysqlTestConfig(DbTestConfig):
             return inner
         return middle
 
+
 def _do_nothing(which: DbTestConfig) -> None:
     pass
 
-def applier(appliances: dict[str, DbTestConfig], pretest: Callable[[DbTestConfig], None] = _do_nothing) -> Callable[[Callable[[DbTestConfig], None]], Callable[[str], None]]:
-    def outer(applied: Callable[[DbTestConfig], None]) -> Callable[[str], None]:
+
+_A = Callable[[DbTestConfig], None]
+_B = Callable[[TransactedConnection], None]
+_C = Callable[[TransactedConnection, DbTestConfig], None]
+_D = Callable[[str], None]
+_E = dict[str, DbTestConfig]
+_F = Callable[[str], None]
+
+
+def applier(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_A], _D]:
+    def outer(applied: _A) -> _F:
         @pytest.mark.parametrize("db", appliances.keys())
         def middle(db: str) -> None:
             dbc: DbTestConfig = appliances[db]
             pretest(dbc)
+
             @wraps(applied)
             @dbc.decorator
             def call() -> None:
                 applied(dbc)
+
             call()
+
         return middle
     return outer
 
-def applier_trans(appliances: dict[str, DbTestConfig], pretest: Callable[[DbTestConfig], None] = _do_nothing) -> Callable[[Callable[[TransactedConnection], None]], Callable[[str], None]]:
-    def outer(applied: Callable[[TransactedConnection], None]) -> Callable[[str], None]:
+
+def applier_trans(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_B], _D]:
+    def outer(applied: _B) -> _F:
         @applier(appliances, pretest)
         def inner(db: DbTestConfig) -> None:
             conn: TransactedConnection = db.conn
             with conn as c:
                 applied(c)
+
         return inner
     return outer
 
-def applier_trans2(appliances: dict[str, DbTestConfig], pretest: Callable[[DbTestConfig], None] = _do_nothing) -> Callable[[Callable[[TransactedConnection, DbTestConfig], None]], Callable[[str], None]]:
-    def outer(applied: Callable[[TransactedConnection, DbTestConfig], None]) -> Callable[[str], None]:
+
+def applier_trans2(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_C], _D]:
+    def outer(applied: _C) -> _F:
         @applier(appliances, pretest)
         def inner(db: DbTestConfig) -> None:
             conn: TransactedConnection = db.conn
             with conn as c:
                 applied(c, db)
+
         return inner
     return outer
