@@ -103,7 +103,7 @@ class Cursor:
         ...
 
     @property
-    def description(self) -> Sequence[tuple[str, int, int, int, int, int, int, int, str, str, str]]:
+    def description(self) -> Sequence[tuple[str, int, int, int, int, int, int, int, str, str, str]] | None:
         ...
 
     @property

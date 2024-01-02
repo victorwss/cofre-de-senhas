@@ -4,7 +4,7 @@ from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import (
     BadDatabaseConfigException, ColumnDescriptor, Descriptor,
-    IntegrityViolationException, RAW_DATA, SimpleConnection,
+    IntegrityViolationException, RAW_DATA, SimpleConnection, MisplacedOperationError
 )
 from .trans import ConnectionData, TransactedConnection
 from sqlite3 import Connection, connect as db_connect, Cursor, IntegrityError
@@ -61,6 +61,8 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
         self.__curr: Cursor = conn.cursor()
         self.__file_name: str = file_name
         self.execute("PRAGMA foreign_keys = ON;")
+        self.__fetched: bool = False
+        self.__executed: bool = False
 
     @override
     def commit(self) -> None:
@@ -74,17 +76,22 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
     def close(self) -> None:
         self.__curr.close()
         self.__conn.close()
+        self.__fetched = False
+        self.__executed = False
 
     @override
     def fetchone(self) -> tuple[Any, ...] | None:
+        self.__fetched = True
         return cast(tuple[Any, ...], self.__curr.fetchone())
 
     @override
     def fetchall(self) -> Sequence[tuple[Any, ...]]:
+        self.__fetched = True
         return self.__curr.fetchall()
 
     @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
+        self.__fetched = True
         return self.__curr.fetchmany(size)
 
     @override
@@ -93,22 +100,30 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
 
     @override
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.execute(sql, parameters)
         return self
 
     @override
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.executemany(sql, parameters)
         return self
 
     @override
     def executescript(self, sql: str) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.executescript(sql)
         return self
 
     @property
     @override
     def rowcount(self) -> int:
+        if not self.__executed:
+            raise MisplacedOperationError("rowcount shouldn't be used before execute, executemany, executescript or callproc")
         return self.__curr.rowcount
 
     def __make_descriptor(self, k: tuple[str, None, None, None, None, None, None]) -> ColumnDescriptor:
@@ -117,6 +132,8 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
     @property
     @override
     def description(self) -> Descriptor:
+        if not self.__fetched:
+            raise MisplacedOperationError("description shouldn't be used before a fetcher method")
         if self.__curr.description is None:
             return Descriptor([])
         return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
@@ -124,6 +141,8 @@ class _Sqlite3ConnectionWrapper(SimpleConnection):
     @property
     @override
     def lastrowid(self) -> int | None:
+        if not self.__executed:
+            raise MisplacedOperationError("lastrowid shouldn't be used before execute, executemany, executescript or callproc")
         return self.__curr.lastrowid
 
     @property

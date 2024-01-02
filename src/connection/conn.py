@@ -17,6 +17,11 @@ class UnsupportedOperationError(Exception):
         super().__init__(message)
 
 
+class MisplacedOperationError(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class IntegrityViolationException(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -160,37 +165,46 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
         pass
 
     def fetchone_dict(self) -> dict[str, RAW_DATA] | None:
-        return self.column_names.row_to_dict_opt(self.fetchone())
+        t: tuple[RAW_DATA, ...] | None = self.fetchone()
+        return self.column_names.row_to_dict_opt(t)
 
     def fetchall_dict(self) -> list[dict[str, RAW_DATA]]:
-        return self.column_names.rows_to_dicts(self.fetchall())
+        t: Sequence[tuple[RAW_DATA, ...]] = self.fetchall()
+        return self.column_names.rows_to_dicts(t)
 
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, RAW_DATA]]:
-        return self.column_names.rows_to_dicts(self.fetchmany(size))
+        t: Sequence[tuple[RAW_DATA, ...]] = self.fetchmany(size)
+        return self.column_names.rows_to_dicts(t)
 
     # def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
     def fetchone_class(self, klass: type[_T]) -> _T | None:
-        return self.column_names.row_to_class_opt(klass, self.fetchone())
+        t: tuple[RAW_DATA, ...] | None = self.fetchone()
+        return self.column_names.row_to_class_opt(klass, t)
 
     # def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
-        return self.column_names.rows_to_classes(klass, self.fetchall())
+        t: Sequence[tuple[RAW_DATA, ...]] = self.fetchall()
+        return self.column_names.rows_to_classes(klass, t)
 
     # def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
-        return self.column_names.rows_to_classes(klass, self.fetchmany(size))
+        t: Sequence[tuple[RAW_DATA, ...]] = self.fetchmany(size)
+        return self.column_names.rows_to_classes(klass, t)
 
     # def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
-        return self.column_names.row_to_class_lambda_opt(ctor, self.fetchone())
+        t: tuple[RAW_DATA, ...] | None = self.fetchone()
+        return self.column_names.row_to_class_lambda_opt(ctor, t)
 
     # def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
-        return self.column_names.rows_to_classes_lambda(ctor, self.fetchall())
+        t: Sequence[tuple[RAW_DATA, ...]] = self.fetchall()
+        return self.column_names.rows_to_classes_lambda(ctor, t)
 
     # def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
-        return self.column_names.rows_to_classes_lambda(ctor, self.fetchmany(size))
+        t: Sequence[tuple[RAW_DATA, ...]] = self.fetchmany(size)
+        return self.column_names.rows_to_classes_lambda(ctor, t)
 
     @abstractmethod
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ...) -> Self:

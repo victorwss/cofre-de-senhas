@@ -4,7 +4,7 @@ from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import (
     BadDatabaseConfigException, ColumnDescriptor, Descriptor,
-    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode
+    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, MisplacedOperationError
 )
 from .trans import ConnectionData, TransactedConnection
 from mysql.connector import connect as db_connect, IntegrityError
@@ -163,6 +163,8 @@ class _MySQLConnectionWrapper(SimpleConnection):
         self.__conn: CMySQLConnection = conn
         self.__curr: CMySQLCursor = conn.cursor(cursor_class = _PatchMySQLCursor)
         self.__database_name: str = database_name
+        self.__fetched: bool = False
+        self.__executed: bool = False
 
     @override
     def commit(self) -> None:
@@ -176,36 +178,49 @@ class _MySQLConnectionWrapper(SimpleConnection):
     def close(self) -> None:
         self.__curr.close()
         self.__conn.close()
+        self.__fetched = False
+        self.__executed = False
 
     @override
     def fetchone(self) -> tuple[Any, ...] | None:
+        self.__fetched = True
         return self.__curr.fetchone()
 
     @override
     def fetchall(self) -> Sequence[tuple[Any, ...]]:
+        self.__fetched = True
         return self.__curr.fetchall()
 
     @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
+        self.__fetched = True
         return self.__curr.fetchmany(size)
 
     @override
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.callproc(sql, parameters)
         return self
 
     @override
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.execute(sql, parameters)
         return self
 
     @override
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.executemany(sql, parameters)
         return self
 
     @override
     def executescript(self, sql: str) -> Self:
+        self.__fetched = False
+        self.__executed = True
         x: Generator[CMySQLCursor, None, None] | None = self.__curr.execute(sql, multi = True)
         if x is not None:
             for i in x:
@@ -215,6 +230,8 @@ class _MySQLConnectionWrapper(SimpleConnection):
     @property
     @override
     def rowcount(self) -> int:
+        if not self.__executed:
+            raise MisplacedOperationError("rowcount shouldn't be used before execute, executemany, executescript or callproc")
         return self.__curr.rowcount
 
     def __make_descriptor(self, k: tuple[str, int, None, None, None, None, bool | int, int, int]) -> ColumnDescriptor:
@@ -229,6 +246,8 @@ class _MySQLConnectionWrapper(SimpleConnection):
     @property
     @override
     def description(self) -> Descriptor:
+        if not self.__fetched:
+            raise MisplacedOperationError("description shouldn't be used before a fetcher method")
         if self.__curr.description is None:
             return Descriptor([])
         return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
@@ -236,6 +255,8 @@ class _MySQLConnectionWrapper(SimpleConnection):
     @property
     @override
     def lastrowid(self) -> int | None:
+        if not self.__executed:
+            raise MisplacedOperationError("lastrowid shouldn't be used before execute, executemany, executescript or callproc")
         return self.__curr.lastrowid
 
     @property

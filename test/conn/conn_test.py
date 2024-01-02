@@ -1,5 +1,7 @@
 from typing import cast, Sequence
-from connection.conn import RAW_DATA, IntegrityViolationException, TransactionNotActiveException, UnsupportedOperationError
+from connection.conn import (
+    RAW_DATA, IntegrityViolationException, MisplacedOperationError, TransactionNotActiveException, UnsupportedOperationError
+)
 from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
@@ -473,8 +475,19 @@ def test_foreign_key_constraint_on_delete_restrict(db: DbTestConfig) -> None:
 
 
 @applier_trans2(dbs, assert_db_ok)
+def test_rowcount_before(c: TransactedConnection, db: DbTestConfig) -> None:
+    with raises(MisplacedOperationError, match = "^rowcount shouldn't be used before execute, executemany, executescript or callproc$"):
+        c.rowcount
+
+
+@applier_trans2(dbs, assert_db_ok)
+def test_lastrowid_before(c: TransactedConnection, db: DbTestConfig) -> None:
+    with raises(MisplacedOperationError, match = "^lastrowid shouldn't be used before execute, executemany, executescript or callproc$"):
+        c.lastrowid
+
+
+@applier_trans2(dbs, assert_db_ok)
 def test_lastrowid(c: TransactedConnection, db: DbTestConfig) -> None:
-    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
     c.execute("INSERT INTO fruit (name) VALUES ('melon')")
     assert c.lastrowid == 4
     assert c.asserted_lastrowid == 4
@@ -482,11 +495,10 @@ def test_lastrowid(c: TransactedConnection, db: DbTestConfig) -> None:
 
 @applier_trans2(dbs, assert_db_ok)
 def test_lastrowid_none(c: TransactedConnection, db: DbTestConfig) -> None:
-    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
     c.execute("SELECT pk_fruit FROM fruit WHERE pk_fruit = -1")
     t: tuple[RAW_DATA, ...] | None = c.fetchone()
     assert t is None
-    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None
+    assert c.lastrowid == 0 if db == sqlite_db else c.lastrowid is None  # Sqlite is buggy and gives zero instead of None!
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -597,6 +609,21 @@ def test_description_trans(c: TransactedConnection) -> None:
         conn.fetchone()
         f: Fruit = conn.description.column_names.row_to_class(Fruit, (5, "watermelon"))
         assert f == Fruit(5, "watermelon")
+
+
+@applier(dbs, assert_db_ok)
+def test_description_nonfetched_1(db: DbTestConfig) -> None:
+    with db.conn as c:
+        with raises(MisplacedOperationError, match = "^description shouldn't be used before a fetcher method$"):
+            c.description
+
+
+# @applier(dbs, assert_db_ok)
+# def test_description_nonfetched_2(db: DbTestConfig) -> None:
+#     with db.conn as c:
+#         c.execute("SELECT pk_fruit, name FROM fruit WHERE pk_fruit = 2")
+#         with raises(MisplacedOperationError, match = "^description shouldn't be used before a fetcher method$"):
+#             c.description
 
 
 @applier(dbs, assert_db_ok)

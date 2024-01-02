@@ -3,8 +3,8 @@ from typing import TypeVar  # Delete when PEP 695 is ready.
 from decorators.for_all import for_all_methods
 from functools import wraps
 from .conn import (
-    BadDatabaseConfigException, ColumnDescriptor, Descriptor, FieldFlags,
-    IntegrityViolationException, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError
+    BadDatabaseConfigException, ColumnDescriptor, Descriptor, FieldFlags, IntegrityViolationException,
+    MisplacedOperationError, NullStatus, RAW_DATA, SimpleConnection, TypeCode, UnsupportedOperationError
 )
 from .trans import ConnectionData, TransactedConnection
 from mariadb import connect as db_connect
@@ -220,6 +220,8 @@ class _MariaDBConnectionWrapper(SimpleConnection):
         self.__conn: MariaDBConnection = conn
         self.__curr: MariaDBCursor = conn.cursor()
         self.__database_name: str = database_name
+        self.__fetched: bool = False
+        self.__executed: bool = False
 
     @override
     def commit(self) -> None:
@@ -233,36 +235,49 @@ class _MariaDBConnectionWrapper(SimpleConnection):
     def close(self) -> None:
         self.__curr.close()
         self.__conn.close()
+        self.__fetched = False
+        self.__executed = False
 
     @override
     def fetchone(self) -> tuple[Any, ...] | None:
+        self.__fetched = True
         return self.__curr.fetchone()
 
     @override
     def fetchall(self) -> Sequence[tuple[Any, ...]]:
+        self.__fetched = True
         return self.__curr.fetchall()
 
     @override
     def fetchmany(self, size: int = 0) -> Sequence[tuple[Any, ...]]:
+        self.__fetched = True
         return self.__curr.fetchmany(size)
 
     @override
     def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.callproc(sql, parameters)
         return self
 
     @override
     def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.execute(sql, parameters)
         return self
 
     @override
     def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
+        self.__fetched = False
+        self.__executed = True
         self.__curr.executemany(sql, parameters)
         return self
 
     @override
     def executescript(self, sql: str) -> Self:
+        self.__fetched = False
+        self.__executed = False
         raise UnsupportedOperationError("Sorry. The executescript method was not implemented yet.")
         # x: Generator[MySQLCursor, None, None] | None = self.__curr.execute(sql, multi = True)
         # if x is not None:
@@ -273,6 +288,8 @@ class _MariaDBConnectionWrapper(SimpleConnection):
     @property
     @override
     def rowcount(self) -> int:
+        if not self.__executed:
+            raise MisplacedOperationError("rowcount shouldn't be used before execute, executemany, executescript or callproc")
         return self.__curr.rowcount
 
     def __make_descriptor(self, k: tuple[str, int, int, int, int, int, int, int, str, str, str]) -> ColumnDescriptor:
@@ -295,11 +312,17 @@ class _MariaDBConnectionWrapper(SimpleConnection):
     @property
     @override
     def description(self) -> Descriptor:
+        if not self.__fetched:
+            raise MisplacedOperationError("description shouldn't be used before a fetcher method")
+        if self.__curr.description is None:
+            return Descriptor([])
         return Descriptor([self.__make_descriptor(k) for k in self.__curr.description])
 
     @property
     @override
     def lastrowid(self) -> int | None:
+        if not self.__executed:
+            raise MisplacedOperationError("lastrowid shouldn't be used before execute, executemany, executescript or callproc")
         return self.__curr.lastrowid
 
     @property
