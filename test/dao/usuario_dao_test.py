@@ -21,7 +21,7 @@ def test_instanciar(db: DbTestConfig) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_usuario(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = snape_sem_pk
     pk: UsuarioPK = dao.criar(dados)
     assert pk.pk_usuario == snape.pk_usuario
@@ -29,7 +29,7 @@ def test_criar_usuario(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_usuario_por_pk(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     pk: UsuarioPK = UsuarioPK(dumbledore.pk_usuario)
     lido: DadosUsuario | None = dao.buscar_por_pk(pk)
     assert lido == dumbledore
@@ -37,14 +37,14 @@ def test_ler_usuario_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_usuario_por_login(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     lido: DadosUsuario | None = dao.buscar_por_login(login_dumbledore)
     assert lido == dumbledore
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_e_ler_usuario(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = snape_sem_pk
     pk: UsuarioPK = dao.criar(dados)
     assert pk.pk_usuario == snape.pk_usuario
@@ -61,21 +61,21 @@ def test_criar_e_ler_usuario(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_usuario_por_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     lido: DadosUsuario | None = dao.buscar_por_pk(UsuarioPK(lixo2))
     assert lido is None
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_usuario_por_login_nao_existe(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     lido: DadosUsuario | None = dao.buscar_por_login(login_lixo_1)
     assert lido is None
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_por_pk(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     pk1: UsuarioPK = UsuarioPK(harry_potter.pk_usuario)
     pk2: UsuarioPK = UsuarioPK(dumbledore.pk_usuario)
     lido: list[DadosUsuario] = dao.listar_por_pks([pk1, pk2])
@@ -84,7 +84,7 @@ def test_listar_usuarios_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_por_pk_nao_existem(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     pk1: UsuarioPK = UsuarioPK(lixo1)
     pk2: UsuarioPK = UsuarioPK(lixo2)
     pk3: UsuarioPK = UsuarioPK(lixo3)
@@ -94,7 +94,7 @@ def test_listar_usuarios_por_pk_nao_existem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_por_pk_alguns_existem(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     pk1: UsuarioPK = UsuarioPK(lixo3)
     pk2: UsuarioPK = UsuarioPK(harry_potter.pk_usuario)
     pk3: UsuarioPK = UsuarioPK(lixo1)
@@ -106,7 +106,7 @@ def test_listar_usuarios_por_pk_alguns_existem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_por_login(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     n1: LoginUsuario = login_dumbledore
     n2: LoginUsuario = login_harry_potter
     lido: list[DadosUsuario] = dao.listar_por_logins([n1, n2])
@@ -115,7 +115,7 @@ def test_listar_usuarios_por_login(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_por_login_nao_existem(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     n1: LoginUsuario = login_lixo_1
     n2: LoginUsuario = login_lixo_2
     n3: LoginUsuario = login_lixo_3
@@ -125,7 +125,7 @@ def test_listar_usuarios_por_login_nao_existem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_por_login_alguns_existem(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     n1: LoginUsuario = login_dumbledore
     n2: LoginUsuario = login_lixo_1
     n3: LoginUsuario = login_harry_potter
@@ -137,14 +137,14 @@ def test_listar_usuarios_por_login_alguns_existem(c: TransactedConnection) -> No
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_tudo(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     lido: list[DadosUsuario] = dao.listar()
     assert lido == todos_usuarios
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = snape_sem_pk
     pk: UsuarioPK = dao.criar(dados)
     assert pk.pk_usuario == snape.pk_usuario
@@ -156,7 +156,7 @@ def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_usuario_por_pk(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     pk: UsuarioPK = UsuarioPK(voldemort.pk_usuario)
     lido1: DadosUsuario | None = dao.buscar_por_pk(pk)
     assert lido1 == voldemort
@@ -167,7 +167,7 @@ def test_excluir_usuario_por_pk(c: TransactedConnection) -> None:
 
 # @applier_trans(dbs, assert_db_ok)
 # def test_excluir_usuario_por_pk_cascateia_permissao(c: TransactedConnection) -> None:
-#     dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+#     dao: UsuarioDAO = UsuarioDAOImpl(c)
 #     pk: UsuarioPK = UsuarioPK(harry_potter.pk_usuario)
 #
 #     dao.deletar_por_pk(pk)
@@ -177,7 +177,7 @@ def test_excluir_usuario_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_usuario_por_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     pk: UsuarioPK = UsuarioPK(lixo2)
     assert not dao.deletar_por_pk(pk)
     lido: DadosUsuario | None = dao.buscar_por_pk(pk)
@@ -186,7 +186,7 @@ def test_excluir_usuario_por_pk_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_usuario_com_pk(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuario = DadosUsuario(voldemort.pk_usuario, "Snape", 1, sectumsempra)
     assert dao.salvar_com_pk(dados)  # Substitui Voldemort por Snape.
 
@@ -197,7 +197,7 @@ def test_salvar_usuario_com_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_usuario_com_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuario = DadosUsuario(lixo3, "Snape", 1, sectumsempra)
     assert not dao.salvar_com_pk(dados)  # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
 
@@ -208,7 +208,7 @@ def test_salvar_usuario_com_pk_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_usuario_tipo_nao_existe(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = DadosUsuarioSemPK("Snape", lixo1, sectumsempra)
 
     with raises(IntegrityViolationException):
@@ -220,7 +220,7 @@ def test_criar_usuario_tipo_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_usuario_login_repetido(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = DadosUsuarioSemPK("Harry Potter", 0, sectumsempra)
 
     with raises(IntegrityViolationException):
@@ -232,7 +232,7 @@ def test_criar_usuario_login_repetido(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_usuario_login_curto(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = DadosUsuarioSemPK(nome_curto, 0, sectumsempra)
 
     with raises(IntegrityViolationException):
@@ -244,7 +244,7 @@ def test_criar_usuario_login_curto(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_usuario_login_longo(c: TransactedConnection) -> None:
-    dao: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = DadosUsuarioSemPK(nome_longo, 0, sectumsempra)
 
     with raises(IntegrityViolationException):

@@ -115,3 +115,19 @@ visiv_segredos: list[DadosSegredo] = [segredo_m1, lotr, star_wars]
 lixo1: int = 444
 lixo2: int = 555
 lixo3: int = 666
+lixo4: str = "Melancia"
+lixo5: str = "Cachorro"
+lixo6: str = "Garfo"
+
+
+def mix(nome: str) -> str:
+    out: str = ""
+    a: bool = True
+    for x in range(0, len(nome)):
+        n: str = nome[x]
+        if a:
+            out += n.lower()
+        else:
+            out += n.upper()
+        a = not a
+    return out

@@ -1,10 +1,10 @@
 from ..db_test_util import applier, applier_trans, DbTestConfig
 from .fixtures import (
-    dbs, assert_db_ok,
+    dbs, assert_db_ok, mix,
     todas_categorias, parte_categorias, nome_longo, nome_nao_existe,
     millenium_falcon, nome_millenium_falcon, dados_millenium_falcon,
-    api, qa, producao, homologacao, desenvolvimento, nome_qa, nome_producao,
-    lixo1, lixo2, lixo3
+    api, qa, producao, homologacao, desenvolvimento, servidor, nome_qa, nome_producao,
+    lixo1, lixo2, lixo3, lixo4, lixo5, lixo6
 )
 from connection.trans import TransactedConnection
 from connection.conn import IntegrityViolationException
@@ -21,7 +21,7 @@ def test_instanciar(db: DbTestConfig) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoriaSemPK = dados_millenium_falcon
     pk: CategoriaPK = dao.criar(dados)
     assert pk.pk_categoria == millenium_falcon.pk_categoria
@@ -29,7 +29,7 @@ def test_criar_categoria(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_pk(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk: CategoriaPK = CategoriaPK(producao.pk_categoria)
     lido: DadosCategoria | None = dao.buscar_por_pk(pk)
     assert lido == producao
@@ -37,14 +37,23 @@ def test_ler_categoria_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_nome(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     lido: DadosCategoria | None = dao.buscar_por_nome(nome_producao)
     assert lido == producao
 
 
 @applier_trans(dbs, assert_db_ok)
+def test_ler_categoria_por_nome_case_sensitive(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_producao.valor.lower()))
+    assert lido1 is None
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_qa.valor.lower()))
+    assert lido2 is None
+
+
+@applier_trans(dbs, assert_db_ok)
 def test_criar_e_ler_categoria(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoriaSemPK = dados_millenium_falcon
     pk: CategoriaPK = dao.criar(dados)
     assert pk.pk_categoria == millenium_falcon.pk_categoria
@@ -61,21 +70,21 @@ def test_criar_e_ler_categoria(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     lido: DadosCategoria | None = dao.buscar_por_pk(CategoriaPK(lixo3))
     assert lido is None
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_nome_nao_existe(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     lido: DadosCategoria | None = dao.buscar_por_nome(nome_nao_existe)
     assert lido is None
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_pk(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk1: CategoriaPK = CategoriaPK(api.pk_categoria)
     pk2: CategoriaPK = CategoriaPK(producao.pk_categoria)
     pk3: CategoriaPK = CategoriaPK(homologacao.pk_categoria)
@@ -85,7 +94,7 @@ def test_listar_categorias_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_pk_nao_existem(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk1: CategoriaPK = CategoriaPK(lixo2)
     pk2: CategoriaPK = CategoriaPK(lixo1)
     pk3: CategoriaPK = CategoriaPK(lixo3)
@@ -95,7 +104,7 @@ def test_listar_categorias_por_pk_nao_existem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_pk_alguns_existem(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk1: CategoriaPK = CategoriaPK(lixo3)
     pk2: CategoriaPK = CategoriaPK(api.pk_categoria)
     pk3: CategoriaPK = CategoriaPK(lixo2)
@@ -108,47 +117,59 @@ def test_listar_categorias_por_pk_alguns_existem(c: TransactedConnection) -> Non
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria("Homologação")
-    n2: NomeCategoria = NomeCategoria("API")
-    n3: NomeCategoria = NomeCategoria("Produção")
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n1: NomeCategoria = NomeCategoria(homologacao.nome)
+    n2: NomeCategoria = NomeCategoria(api.nome)
+    n3: NomeCategoria = NomeCategoria(producao.nome)
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3])
     assert lido == parte_categorias
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome_nao_existem(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria("Melancia")
-    n2: NomeCategoria = NomeCategoria("Cachorro")
-    n3: NomeCategoria = NomeCategoria("Elefante")
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n1: NomeCategoria = NomeCategoria(lixo4)
+    n2: NomeCategoria = NomeCategoria(lixo5)
+    n3: NomeCategoria = NomeCategoria(lixo6)
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3])
     assert lido == []
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome_alguns_existem(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria("Homologação")
-    n2: NomeCategoria = NomeCategoria("Melancia")
-    n3: NomeCategoria = NomeCategoria("API")
-    n4: NomeCategoria = NomeCategoria("Produção")
-    n5: NomeCategoria = NomeCategoria("Cachorro")
-    n6: NomeCategoria = NomeCategoria("Elefante")
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n1: NomeCategoria = NomeCategoria(homologacao.nome)
+    n2: NomeCategoria = NomeCategoria(lixo4)
+    n3: NomeCategoria = NomeCategoria(api.nome)
+    n4: NomeCategoria = NomeCategoria(producao.nome)
+    n5: NomeCategoria = NomeCategoria(lixo5)
+    n6: NomeCategoria = NomeCategoria(lixo6)
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3, n4, n5, n6])
     assert lido == parte_categorias
 
 
 @applier_trans(dbs, assert_db_ok)
+def test_listar_categorias_por_nome_case_sensitive(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n1: NomeCategoria = NomeCategoria(homologacao.nome.lower())
+    n2: NomeCategoria = NomeCategoria(api.nome.lower())
+    n3: NomeCategoria = NomeCategoria(producao.nome.upper())
+    n4: NomeCategoria = NomeCategoria(qa.nome.lower())
+    n5: NomeCategoria = NomeCategoria(mix(servidor.nome))
+    lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3, n4, n5])
+    assert lido == []
+
+
+@applier_trans(dbs, assert_db_ok)
 def test_listar_tudo(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     lido: list[DadosCategoria] = dao.listar()
     assert lido == todas_categorias
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoriaSemPK = dados_millenium_falcon
     pk: CategoriaPK = dao.criar(dados)
     assert pk.pk_categoria == millenium_falcon.pk_categoria
@@ -160,7 +181,7 @@ def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_por_pk(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk: CategoriaPK = CategoriaPK(desenvolvimento.pk_categoria)
     lido1: DadosCategoria | None = dao.buscar_por_pk(pk)
     assert lido1 == desenvolvimento
@@ -171,7 +192,7 @@ def test_excluir_categoria_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_por_pk_viola_chave_estrangeira(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk: CategoriaPK = CategoriaPK(qa.pk_categoria)
 
     with raises(IntegrityViolationException):
@@ -183,7 +204,7 @@ def test_excluir_categoria_por_pk_viola_chave_estrangeira(c: TransactedConnectio
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_por_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     pk: CategoriaPK = CategoriaPK(lixo2)
     dao.deletar_por_pk(pk)
     lido: DadosCategoria | None = dao.buscar_por_pk(pk)
@@ -192,7 +213,7 @@ def test_excluir_categoria_por_pk_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_categoria_com_pk(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoria = DadosCategoria(qa.pk_categoria, "Pikachu")
     dao.salvar_com_pk(dados)  # Transforma QA em Pikachu.
 
@@ -203,7 +224,7 @@ def test_salvar_categoria_com_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_categoria_com_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoria = DadosCategoria(lixo3, "Pikachu")
     dao.salvar_com_pk(dados)  # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
 
@@ -214,8 +235,8 @@ def test_salvar_categoria_com_pk_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_nome_repetido(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
-    dados: DadosCategoriaSemPK = DadosCategoriaSemPK("QA")
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    dados: DadosCategoriaSemPK = DadosCategoriaSemPK(qa.nome)
 
     with raises(IntegrityViolationException):
         dao.criar(dados)
@@ -226,7 +247,7 @@ def test_criar_categoria_nome_repetido(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_nome_curto(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoriaSemPK = DadosCategoriaSemPK("")
 
     with raises(IntegrityViolationException):
@@ -238,7 +259,7 @@ def test_criar_categoria_nome_curto(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_nome_longo(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoriaSemPK = DadosCategoriaSemPK(nome_longo)
 
     with raises(IntegrityViolationException):
@@ -250,8 +271,8 @@ def test_criar_categoria_nome_longo(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_categoria_com_pk_nome_repetido(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
-    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, "Produção")
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, producao.nome)
 
     with raises(IntegrityViolationException):
         dao.salvar_com_pk(dados)
@@ -265,7 +286,7 @@ def test_salvar_categoria_com_pk_nome_repetido(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoria = DadosCategoria(qa.pk_categoria, "")
 
     with raises(IntegrityViolationException):
@@ -280,7 +301,7 @@ def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_categoria_com_pk_nome_longo(c: TransactedConnection) -> None:
-    dao: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
     dados: DadosCategoria = DadosCategoria(qa.pk_categoria, nome_longo)
 
     with raises(IntegrityViolationException):

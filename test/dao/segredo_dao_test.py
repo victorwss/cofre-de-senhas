@@ -10,7 +10,8 @@ from .fixtures import (
 from connection.trans import TransactedConnection
 from connection.conn import IntegrityViolationException
 from cofre_de_senhas.dao import (
-    BuscaPermissaoPorLogin, SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, PermissaoDeSegredo,
+    CategoriaDAO, UsuarioDAO, SegredoDAO,
+    BuscaPermissaoPorLogin, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, PermissaoDeSegredo,
     DadosCategoria, CategoriaDeSegredo, UsuarioPK, DadosUsuarioSemPK
 )
 from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
@@ -27,7 +28,7 @@ def test_instanciar(db: DbTestConfig) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_segredo(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     dados: DadosSegredoSemPK = star_trek_sem_pk
     pk: SegredoPK = dao.criar(dados)
     assert pk.pk_segredo == star_trek.pk_segredo
@@ -35,7 +36,7 @@ def test_criar_segredo(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_segredo_por_pk(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk: SegredoPK = SegredoPK(3)
     lido: DadosSegredo | None = dao.buscar_por_pk(pk)
     assert lido == star_wars
@@ -43,7 +44,7 @@ def test_ler_segredo_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_e_ler_segredo(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     dados: DadosSegredoSemPK = star_trek_sem_pk
     pk: SegredoPK = dao.criar(dados)
     assert pk.pk_segredo == star_trek.pk_segredo
@@ -56,14 +57,14 @@ def test_criar_e_ler_segredo(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_segredo_por_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: DadosSegredo | None = dao.buscar_por_pk(SegredoPK(666))
     assert lido is None
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_por_pk(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk1: SegredoPK = SegredoPK(lotr.pk_segredo)
     pk2: SegredoPK = SegredoPK(star_wars.pk_segredo)
     lido: list[DadosSegredo] = dao.listar_por_pks([pk1, pk2])
@@ -72,7 +73,7 @@ def test_listar_segredos_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_por_pk_nao_existem(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk1: SegredoPK = SegredoPK(lixo1)
     pk2: SegredoPK = SegredoPK(lixo2)
     pk3: SegredoPK = SegredoPK(lixo3)
@@ -82,7 +83,7 @@ def test_listar_segredos_por_pk_nao_existem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_por_pk_alguns_existem(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk1: SegredoPK = SegredoPK(lixo3)
     pk2: SegredoPK = SegredoPK(lotr.pk_segredo)
     pk3: SegredoPK = SegredoPK(lixo1)
@@ -94,14 +95,14 @@ def test_listar_segredos_por_pk_alguns_existem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_tudo(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar()
     assert lido == todos_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     dados: DadosSegredoSemPK = star_trek_sem_pk
     pk: SegredoPK = dao.criar(dados)
     assert pk.pk_segredo == star_trek.pk_segredo
@@ -113,42 +114,42 @@ def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_1(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar_visiveis(login_harry_potter)
     assert lido == todos_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_2(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar_visiveis(login_voldemort)
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_3(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar_visiveis(login_dumbledore)  # Dumbledore é chaveiro, mas não é responsabilidade do DAO verificar isso.
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_4(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_5(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar_visiveis(login_snape)
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_segredo_por_pk(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk: SegredoPK = SegredoPK(dbz.pk_segredo)
     lido1: DadosSegredo | None = dao.buscar_por_pk(pk)
     assert lido1 == dbz
@@ -159,7 +160,7 @@ def test_excluir_segredo_por_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_segredo_por_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk: SegredoPK = SegredoPK(lixo2)
     assert not dao.deletar_por_pk(pk)
     lido: DadosSegredo | None = dao.buscar_por_pk(pk)
@@ -168,7 +169,7 @@ def test_excluir_segredo_por_pk_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_segredo_com_pk(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     dados: DadosSegredo = DadosSegredo(dbz.pk_segredo, "Pokémon", "Segredos da Equipe Rocket", 1)
     assert dao.salvar_com_pk(dados)  # Transforma Dragon Ball Z em Pokémon.
 
@@ -179,7 +180,7 @@ def test_salvar_segredo_com_pk(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_salvar_segredo_com_pk_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     dados: DadosSegredo = DadosSegredo(lixo3, "Pokémon", "Segredos da Equipe Rocket", 1)
     assert not dao.salvar_com_pk(dados)  # Não é responsabilidade do DAO saber se isso existe ou não, ele apenas roda o UPDATE.
 
@@ -190,7 +191,7 @@ def test_salvar_segredo_com_pk_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_campos_segredo(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
     campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
     assert campos == [
@@ -202,7 +203,7 @@ def test_ler_campos_segredo(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_campos_segredo_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     pk: SegredoPK = SegredoPK(lixo1)
     campos: list[CampoDeSegredo] = dao.ler_campos_segredo(pk)
     assert campos == []
@@ -210,7 +211,7 @@ def test_ler_campos_segredo_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_campo_segredo(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     campo: CampoDeSegredo = CampoDeSegredo(star_wars.pk_segredo, "Pequeno, mas poderoso", "Yoda")
     assert dao.criar_campo_segredo(campo)
     pk: SegredoPK = SegredoPK(star_wars.pk_segredo)
@@ -225,7 +226,7 @@ def test_criar_campo_segredo(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_campo_segredo_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     campo: CampoDeSegredo = CampoDeSegredo(lixo1, "Patati", "Patatá")
 
     with raises(IntegrityViolationException):
@@ -238,7 +239,7 @@ def test_criar_campo_segredo_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_campo_segredo_duplicado(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     campo: CampoDeSegredo = CampoDeSegredo(star_wars.pk_segredo, "Robô chato e falastrão", "R2D2")
 
     with raises(IntegrityViolationException):
@@ -255,7 +256,7 @@ def test_criar_campo_segredo_duplicado(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_permissao(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
     assert dao.criar_permissao(perm1)
 
@@ -269,13 +270,13 @@ def test_criar_permissao(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_permissao_usuario_nao_existe(c: TransactedConnection) -> None:
-    dao1: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao1: SegredoDAO = SegredoDAOImpl(c)
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(snape.pk_usuario, dbz.pk_segredo, 2)
 
     with raises(IntegrityViolationException):
         dao1.criar_permissao(perm1)
 
-    dao2: UsuarioDAOImpl = UsuarioDAOImpl(c)
+    dao2: UsuarioDAO = UsuarioDAOImpl(c)
     dados: DadosUsuarioSemPK = snape_sem_pk
     pk: UsuarioPK = dao2.criar(dados)
     assert pk.pk_usuario == snape.pk_usuario
@@ -287,7 +288,7 @@ def test_criar_permissao_usuario_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_permissao_segredo_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, lixo1, 2)
 
     with raises(IntegrityViolationException):
@@ -300,7 +301,7 @@ def test_criar_permissao_segredo_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_permissao_tipo_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, lixo1)
 
     with raises(IntegrityViolationException):
@@ -313,7 +314,7 @@ def test_criar_permissao_tipo_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_permissao_ja_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(harry_potter.pk_usuario, dbz.pk_segredo, 3)
 
     with raises(IntegrityViolationException):
@@ -326,7 +327,7 @@ def test_criar_permissao_ja_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_permissao_1(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Harry Potter")
     perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
     assert perm == PermissaoDeSegredo(harry_potter.pk_usuario, dbz.pk_segredo, 1)
@@ -334,7 +335,7 @@ def test_buscar_permissao_1(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_permissao_2(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lotr.pk_segredo, "Harry Potter")
     perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
     assert perm == PermissaoDeSegredo(harry_potter.pk_usuario, lotr.pk_segredo, 2)
@@ -342,7 +343,7 @@ def test_buscar_permissao_2(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_permissao_nao_tem(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lotr.pk_segredo, "Hermione")
     perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
     assert perm is None
@@ -350,7 +351,7 @@ def test_buscar_permissao_nao_tem(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_permissao_login_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lotr.pk_segredo, "Dollynho")
     perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
     assert perm is None
@@ -358,7 +359,7 @@ def test_buscar_permissao_login_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_permissao_segredo_nao_existe(c: TransactedConnection) -> None:
-    dao: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao: SegredoDAO = SegredoDAOImpl(c)
     busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(lixo1, "Harry Potter")
     perm: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
     assert perm is None
@@ -366,11 +367,11 @@ def test_buscar_permissao_segredo_nao_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_segredo(c: TransactedConnection) -> None:
-    dao1: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao1: SegredoDAO = SegredoDAOImpl(c)
     cs: CategoriaDeSegredo = CategoriaDeSegredo(star_wars.pk_segredo, qa.pk_categoria)
     assert dao1.criar_categoria_segredo(cs)
 
-    dao2: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao2: CategoriaDAO = CategoriaDAOImpl(c)
     spk: SegredoPK = SegredoPK(star_wars.pk_segredo)
     dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
 
@@ -379,13 +380,13 @@ def test_criar_categoria_segredo(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_segredo_com_segredo_que_nao_existe(c: TransactedConnection) -> None:
-    dao1: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao1: SegredoDAO = SegredoDAOImpl(c)
     cs: CategoriaDeSegredo = CategoriaDeSegredo(lixo1, qa.pk_categoria)
 
     with raises(IntegrityViolationException):
         dao1.criar_categoria_segredo(cs)
 
-    dao2: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao2: CategoriaDAO = CategoriaDAOImpl(c)
     spk: SegredoPK = SegredoPK(lixo1)
     dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
 
@@ -394,13 +395,13 @@ def test_criar_categoria_segredo_com_segredo_que_nao_existe(c: TransactedConnect
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_segredo_com_categoria_que_nao_existe(c: TransactedConnection) -> None:
-    dao1: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao1: SegredoDAO = SegredoDAOImpl(c)
     cs: CategoriaDeSegredo = CategoriaDeSegredo(star_wars.pk_segredo, lixo3)
 
     with raises(IntegrityViolationException):
         dao1.criar_categoria_segredo(cs)
 
-    dao2: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao2: CategoriaDAO = CategoriaDAOImpl(c)
     spk: SegredoPK = SegredoPK(star_wars.pk_segredo)
     dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
 
@@ -409,13 +410,13 @@ def test_criar_categoria_segredo_com_categoria_que_nao_existe(c: TransactedConne
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_categoria_segredo_ja_existe(c: TransactedConnection) -> None:
-    dao1: SegredoDAOImpl = SegredoDAOImpl(c)
+    dao1: SegredoDAO = SegredoDAOImpl(c)
     cs: CategoriaDeSegredo = CategoriaDeSegredo(dbz.pk_segredo, qa.pk_categoria)
 
     with raises(IntegrityViolationException):
         dao1.criar_categoria_segredo(cs)
 
-    dao2: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao2: CategoriaDAO = CategoriaDAOImpl(c)
     spk: SegredoPK = SegredoPK(dbz.pk_segredo)
     dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
 
@@ -424,7 +425,7 @@ def test_criar_categoria_segredo_ja_existe(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_categoria_segredo(c: TransactedConnection) -> None:
-    dao2: CategoriaDAOImpl = CategoriaDAOImpl(c)
+    dao2: CategoriaDAO = CategoriaDAOImpl(c)
     spk: SegredoPK = SegredoPK(lotr.pk_segredo)
     dados: list[DadosCategoria] = dao2.listar_por_segredo(spk)
     assert dados == [aplicacao, integracao]
