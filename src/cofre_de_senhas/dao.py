@@ -147,6 +147,10 @@ class DAO(ABC):
     def _placeholder(self) -> str:
         return self.__con.placeholder
 
+    @property
+    def _database_type(self) -> str:
+        return self.__con.database_type
+
 
 class CofreDeSenhasDAO(DAO):
 

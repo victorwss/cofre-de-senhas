@@ -27,11 +27,16 @@ class CategoriaDAOImpl(CategoriaDAO):
         sql: str = "SELECT c.pk_categoria, c.nome FROM categoria c ORDER BY pk_categoria"
         return self._connection.execute(sql).fetchall_class(DadosCategoria)
 
+    def __listar_por_nomes_sql(self, quantidade: int) -> str:
+        wildcards: str = ", ".join([self._placeholder for i in range(0, quantidade)])
+        if self._database_type in ["MySQL", "MariaDB"]:
+            return f"SELECT pk_categoria, nome FROM categoria WHERE BINARY nome IN ({wildcards}) ORDER BY pk_categoria"
+        return f"SELECT pk_categoria, nome FROM categoria WHERE nome IN ({wildcards}) ORDER BY pk_categoria"
+
     @override
     def listar_por_nomes(self, nomes: list[NomeCategoria]) -> list[DadosCategoria]:
-        wildcards: str = ", ".join([self._placeholder for nome in nomes])
         ns: list[str] = [nome.valor for nome in nomes]
-        sql: str = f"SELECT pk_categoria, nome FROM categoria WHERE nome IN ({wildcards}) ORDER BY pk_categoria"
+        sql: str = self.__listar_por_nomes_sql(len(ns))
         return self._connection.execute(sql, ns).fetchall_class(DadosCategoria)
 
     @override
@@ -54,13 +59,18 @@ class CategoriaDAOImpl(CategoriaDAO):
 
     # Métodos auxiliares
 
+    def __buscar_por_nome_sql(self) -> str:
+        if self._database_type in ["MySQL", "MariaDB"]:
+            return f"SELECT pk_categoria, nome FROM categoria WHERE BINARY nome = {self._placeholder}"
+        return f"SELECT pk_categoria, nome FROM categoria WHERE nome = {self._placeholder}"
+
     @override
     def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
-        sql: str = f"SELECT pk_categoria, nome FROM categoria WHERE nome = {self._placeholder}"
+        sql: str = self.__buscar_por_nome_sql()
         return self._connection.execute(sql, [nome.valor]).fetchone_class(DadosCategoria)
 
     # def deletar_por_nome(self, nome: NomeCategoria) -> bool:
-    #     sql: str = f"DELETE categoria WHERE nome = {self._placeholder}"
+    #     sql: str = f"DELETE categoria WHERE BINARY nome = {self._placeholder}"
     #     self._connection.execute(sql, [nome.valor])
     #     return self._connection.rowcount > 0
 
