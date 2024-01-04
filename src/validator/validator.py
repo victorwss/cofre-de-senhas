@@ -450,7 +450,6 @@ def _type_resolve(expected_type: TT1 | TT2, globalns: NS_T) -> SignalingErrorSet
     assert not isinstance(reworked_type, ErrorSet)
 
     if not _is_type_ok(reworked_type):
-        print(type(reworked_type))
         return make_error(f"{reworked_type} is not a valid type")
 
     return cast(TT2, reworked_type)
