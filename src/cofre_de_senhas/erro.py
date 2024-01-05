@@ -63,3 +63,10 @@ class SegredoNaoExisteException(Exception, Status):
     @property
     def status(self) -> int:
         return 404
+
+
+class ValorIncorretoException(Exception, Status):
+    @override
+    @property
+    def status(self) -> int:
+        return 422

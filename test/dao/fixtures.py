@@ -1,7 +1,7 @@
 from ..db_test_util import DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
 from cofre_de_senhas.dao import (
     DadosUsuario, DadosUsuarioSemPK, LoginUsuario,
-    DadosCategoria, DadosCategoriaSemPK, NomeCategoria,
+    DadosCategoria, DadosCategoriaSemPK, NomeCategoriaUK,
     DadosSegredo, DadosSegredoSemPK
 )
 
@@ -56,8 +56,8 @@ expecto_patronum: str = "sMIIsuQpzUZswvbW8bc81f083ae783d5dc4f4ae688b6d41d7c5d4b0
 sectumsempra    : str = "VaVnCicwVrQUJaCR39f3afe61dd624f7c3fb3da1ca1249bcb938d35dce3af64910ac3341c5f15cd1bfa2f1312ed3f89ceee2b126c834176f8202f5aca0e43fd8c5eea6a036c7f9b5"  # noqa: E203,E501
 expelliarmus    : str = "VPJWqamYPZTUKxsxe79b2fdd41d88c308f2be7c92432d68c9d55ecc9fb9b277c1424d5626777b6e26067875b5a28f10d64db83e41a7537b21850d1bd8359b8e9bfe68e7acb02ff1d"  # noqa: E203,E501
 
-nome_curto = "ABC"
-nome_longo = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy"
+nome_curto: str = "ABC"
+nome_longo: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy"
 
 harry_potter: DadosUsuario = DadosUsuario(1, "Harry Potter", 1, alohomora       )  # noqa: E202,E203
 voldemort   : DadosUsuario = DadosUsuario(2, "Voldemort"   , 0, avada_kedavra   )  # noqa: E202,E203
@@ -91,11 +91,14 @@ integracao      : DadosCategoria = DadosCategoria( 9, "Integração"            
 millenium_falcon: DadosCategoria = DadosCategoria(10, "Millenium Falcon"                           )  # noqa: E201,E202,E203
 nao_existe      : DadosCategoria = DadosCategoria(88, "Coisas feitas com boa qualidade pela Prodam")  # noqa: E201,E202,E203
 
-dados_millenium_falcon: DadosCategoriaSemPK = DadosCategoriaSemPK("Millenium Falcon"               )  # noqa: E201,E202,E203
-nome_millenium_falcon : NomeCategoria = NomeCategoria("Millenium Falcon"                           )  # noqa: E201,E202,E203
-nome_producao         : NomeCategoria = NomeCategoria("Produção"                                   )  # noqa: E201,E202,E203
-nome_qa               : NomeCategoria = NomeCategoria("QA"                                         )  # noqa: E201,E202,E203
-nome_nao_existe       : NomeCategoria = NomeCategoria("Coisas feitas com boa qualidade pela Prodam")  # noqa: E201,E202,E203
+dados_millenium_falcon: DadosCategoriaSemPK = DadosCategoriaSemPK("Millenium Falcon")
+
+nome_millenium_falcon : NomeCategoriaUK = NomeCategoriaUK("Millenium Falcon"                           )  # noqa: E201,E202,E203
+nome_producao         : NomeCategoriaUK = NomeCategoriaUK("Produção"                                   )  # noqa: E201,E202,E203
+nome_qa               : NomeCategoriaUK = NomeCategoriaUK("QA"                                         )  # noqa: E201,E202,E203
+nome_nao_existe       : NomeCategoriaUK = NomeCategoriaUK("Coisas feitas com boa qualidade pela Prodam")  # noqa: E201,E202,E203
+nome_em_branco        : NomeCategoriaUK = NomeCategoriaUK(""                                           )  # noqa: E201,E202,E203
+nome_longo_demais     : NomeCategoriaUK = NomeCategoriaUK(alohomora + alohomora + alohomora + alohomora)  # noqa: E201,E202,E203
 
 todas_categorias: list[DadosCategoria] = [banco_de_dados, aplicacao, servidor, api, producao, homologacao, desenvolvimento, qa, integracao]
 parte_categorias: list[DadosCategoria] = [api, producao, homologacao]

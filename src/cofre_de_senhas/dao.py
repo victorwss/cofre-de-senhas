@@ -104,12 +104,12 @@ class LoginUsuario:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class NomeCategoria:
+class NomeCategoriaUK:
     valor: str
 
     @staticmethod
-    def para_todos(nomes: set[str]) -> list["NomeCategoria"]:
-        return [NomeCategoria(v) for v in nomes]
+    def para_todos(nomes: set[str]) -> list["NomeCategoriaUK"]:
+        return [NomeCategoriaUK(v) for v in nomes]
 
 
 @dataclass_validate
@@ -273,7 +273,7 @@ class CategoriaDAO(DAO):
         pass
 
     @abstractmethod
-    def listar_por_nomes(self, nomes: list[NomeCategoria]) -> list[DadosCategoria]:
+    def listar_por_nomes(self, nomes: list[NomeCategoriaUK]) -> list[DadosCategoria]:
         pass
 
     @abstractmethod
@@ -291,11 +291,11 @@ class CategoriaDAO(DAO):
     # Métodos auxiliares
 
     @abstractmethod
-    def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
+    def buscar_por_nome(self, nome: NomeCategoriaUK) -> DadosCategoria | None:
         pass
 
     # @abstractmethod
-    # def deletar_por_nome(self, nome: NomeCategoria) -> None:
+    # def deletar_por_nome(self, nome: NomeCategoriaUK) -> None:
     #     pass
 
     # Métodos com joins em outras tabelas

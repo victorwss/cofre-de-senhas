@@ -2,7 +2,8 @@ from typing import override
 from cofre_de_senhas.erro import (
     SenhaErradaException, UsuarioNaoLogadoException, UsuarioBanidoException, PermissaoNegadaException,
     UsuarioJaExisteException, UsuarioNaoExisteException,
-    CategoriaJaExisteException, CategoriaNaoExisteException, SegredoNaoExisteException
+    CategoriaJaExisteException, CategoriaNaoExisteException, SegredoNaoExisteException,
+    ValorIncorretoException
 )
 from sucesso import (
     Sucesso, Erro, Status, Ok,
@@ -15,14 +16,14 @@ def test_erro_500() -> None:
         pass
 
         def __str__(self) -> str:
-            return "bababa"
+            return "deu pau"
 
     x: FooException = FooException()
     e: Erro = Erro.criar(x)
 
     assert not e.sucesso
     assert e.interno
-    assert e.mensagem == "bababa"
+    assert e.mensagem == "deu pau"
     assert e.tipo == "FooException"
     assert e.status == 500
 
@@ -32,7 +33,7 @@ def test_erro_449() -> None:
         pass
 
         def __str__(self) -> str:
-            return "bababa"
+            return "babaca"
 
         @override
         @property
@@ -44,7 +45,7 @@ def test_erro_449() -> None:
 
     assert not e.sucesso
     assert not e.interno
-    assert e.mensagem == "bababa"
+    assert e.mensagem == "babaca"
     assert e.tipo == "FooException"
     assert e.status == 449
 
@@ -101,8 +102,12 @@ def test_erro_415() -> None:
     verificar_excecao(ConteudoNaoReconhecidoException(), 415)
 
 
-def test_erro_422() -> None:
+def test_erro_422a() -> None:
     verificar_excecao(ConteudoIncompreensivelException(), 422)
+
+
+def test_erro_422b() -> None:
+    verificar_excecao(ValorIncorretoException(), 422)
 
 
 def test_senha_errada() -> None:

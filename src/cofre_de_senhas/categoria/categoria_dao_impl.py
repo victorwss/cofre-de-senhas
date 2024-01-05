@@ -1,6 +1,6 @@
 from typing import override
 from connection.trans import TransactedConnection
-from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoria
+from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoriaUK
 
 
 class CategoriaDAOImpl(CategoriaDAO):
@@ -34,7 +34,7 @@ class CategoriaDAOImpl(CategoriaDAO):
         return f"SELECT pk_categoria, nome FROM categoria WHERE nome IN ({wildcards}) ORDER BY pk_categoria"
 
     @override
-    def listar_por_nomes(self, nomes: list[NomeCategoria]) -> list[DadosCategoria]:
+    def listar_por_nomes(self, nomes: list[NomeCategoriaUK]) -> list[DadosCategoria]:
         ns: list[str] = [nome.valor for nome in nomes]
         sql: str = self.__listar_por_nomes_sql(len(ns))
         return self._connection.execute(sql, ns).fetchall_class(DadosCategoria)
@@ -65,7 +65,7 @@ class CategoriaDAOImpl(CategoriaDAO):
         return f"SELECT pk_categoria, nome FROM categoria WHERE nome = {self._placeholder}"
 
     @override
-    def buscar_por_nome(self, nome: NomeCategoria) -> DadosCategoria | None:
+    def buscar_por_nome(self, nome: NomeCategoriaUK) -> DadosCategoria | None:
         sql: str = self.__buscar_por_nome_sql()
         return self._connection.execute(sql, [nome.valor]).fetchone_class(DadosCategoria)
 

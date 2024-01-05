@@ -8,7 +8,7 @@ from .fixtures import (
 )
 from connection.trans import TransactedConnection
 from connection.conn import IntegrityViolationException
-from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, NomeCategoria
+from cofre_de_senhas.dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, NomeCategoriaUK
 from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
 from pytest import raises
 
@@ -45,9 +45,9 @@ def test_ler_categoria_por_nome(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_nome_case_sensitive(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_producao.valor.lower()))
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_producao.valor.lower()))
     assert lido1 is None
-    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_qa.valor.lower()))
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_qa.valor.lower()))
     assert lido2 is None
 
 
@@ -118,9 +118,9 @@ def test_listar_categorias_por_pk_alguns_existem(c: TransactedConnection) -> Non
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria(homologacao.nome)
-    n2: NomeCategoria = NomeCategoria(api.nome)
-    n3: NomeCategoria = NomeCategoria(producao.nome)
+    n1: NomeCategoriaUK = NomeCategoriaUK(homologacao.nome)
+    n2: NomeCategoriaUK = NomeCategoriaUK(api.nome)
+    n3: NomeCategoriaUK = NomeCategoriaUK(producao.nome)
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3])
     assert lido == parte_categorias
 
@@ -128,9 +128,9 @@ def test_listar_categorias_por_nome(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome_nao_existem(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria(lixo4)
-    n2: NomeCategoria = NomeCategoria(lixo5)
-    n3: NomeCategoria = NomeCategoria(lixo6)
+    n1: NomeCategoriaUK = NomeCategoriaUK(lixo4)
+    n2: NomeCategoriaUK = NomeCategoriaUK(lixo5)
+    n3: NomeCategoriaUK = NomeCategoriaUK(lixo6)
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3])
     assert lido == []
 
@@ -138,12 +138,12 @@ def test_listar_categorias_por_nome_nao_existem(c: TransactedConnection) -> None
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome_alguns_existem(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria(homologacao.nome)
-    n2: NomeCategoria = NomeCategoria(lixo4)
-    n3: NomeCategoria = NomeCategoria(api.nome)
-    n4: NomeCategoria = NomeCategoria(producao.nome)
-    n5: NomeCategoria = NomeCategoria(lixo5)
-    n6: NomeCategoria = NomeCategoria(lixo6)
+    n1: NomeCategoriaUK = NomeCategoriaUK(homologacao.nome)
+    n2: NomeCategoriaUK = NomeCategoriaUK(lixo4)
+    n3: NomeCategoriaUK = NomeCategoriaUK(api.nome)
+    n4: NomeCategoriaUK = NomeCategoriaUK(producao.nome)
+    n5: NomeCategoriaUK = NomeCategoriaUK(lixo5)
+    n6: NomeCategoriaUK = NomeCategoriaUK(lixo6)
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3, n4, n5, n6])
     assert lido == parte_categorias
 
@@ -151,11 +151,11 @@ def test_listar_categorias_por_nome_alguns_existem(c: TransactedConnection) -> N
 @applier_trans(dbs, assert_db_ok)
 def test_listar_categorias_por_nome_case_sensitive(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    n1: NomeCategoria = NomeCategoria(homologacao.nome.lower())
-    n2: NomeCategoria = NomeCategoria(api.nome.lower())
-    n3: NomeCategoria = NomeCategoria(producao.nome.upper())
-    n4: NomeCategoria = NomeCategoria(qa.nome.lower())
-    n5: NomeCategoria = NomeCategoria(mix(servidor.nome))
+    n1: NomeCategoriaUK = NomeCategoriaUK(homologacao.nome.lower())
+    n2: NomeCategoriaUK = NomeCategoriaUK(api.nome.lower())
+    n3: NomeCategoriaUK = NomeCategoriaUK(producao.nome.upper())
+    n4: NomeCategoriaUK = NomeCategoriaUK(qa.nome.lower())
+    n5: NomeCategoriaUK = NomeCategoriaUK(mix(servidor.nome))
     lido: list[DadosCategoria] = dao.listar_por_nomes([n1, n2, n3, n4, n5])
     assert lido == []
 
@@ -253,7 +253,7 @@ def test_criar_categoria_nome_curto(c: TransactedConnection) -> None:
     with raises(IntegrityViolationException):
         dao.criar(dados)
 
-    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(""))
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(""))
     assert lido is None
 
 
@@ -265,7 +265,7 @@ def test_criar_categoria_nome_longo(c: TransactedConnection) -> None:
     with raises(IntegrityViolationException):
         dao.criar(dados)
 
-    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_longo))
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_longo))
     assert lido is None
 
 
@@ -295,7 +295,7 @@ def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
     lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
     assert lido1 == qa
 
-    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(""))
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(""))
     assert lido2 is None
 
 
@@ -310,7 +310,7 @@ def test_salvar_categoria_com_pk_nome_longo(c: TransactedConnection) -> None:
     lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
     assert lido1 == qa
 
-    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoria(nome_longo))
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_longo))
     assert lido2 is None
 
 
