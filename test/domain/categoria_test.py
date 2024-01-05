@@ -5,7 +5,6 @@ from connection.trans import TransactedConnection
 from cofre_de_senhas.erro import CategoriaNaoExisteException, PermissaoNegadaException, UsuarioNaoLogadoException, UsuarioNaoExisteException
 from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, NomeCategoria, CategoriaComChave, ChaveCategoria, UsuarioComChave
 from cofre_de_senhas.service_impl import Servicos
-from cofre_de_senhas.categoria.categoria import Categoria
 from pytest import raises
 
 
@@ -44,16 +43,6 @@ class GerenciadorLoginChave(GerenciadorLogin):
     @override
     def usuario_logado(self) -> ChaveUsuario:
         return self.__chave
-
-
-def test_instanciar() -> None:
-    a: Categoria.Servico = Categoria.servicos()
-    b: Categoria.Servico = Categoria.Servico.instance()
-    c: Categoria.Servico = Categoria.servicos()
-    d: Categoria.Servico = Categoria.Servico.instance()
-    assert a is b
-    assert b is c
-    assert c is d
 
 
 def servicos_normal(c: TransactedConnection) -> Servicos:

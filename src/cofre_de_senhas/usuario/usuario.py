@@ -91,10 +91,6 @@ class Usuario:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def servicos() -> "Usuario.Servico":
-        return Usuario.Servico.instance()
-
-    @staticmethod
     def __promote(dados: DadosUsuario) -> "Usuario":
         return Usuario(dados.pk_usuario, dados.login, NivelAcesso(dados.fk_nivel_acesso), dados.hash_com_sal)
 
@@ -150,6 +146,13 @@ class Usuario:
     def __mapear_todos(dados: list[DadosUsuario]) -> dict[str, "Usuario"]:
         return {u.login: Usuario.__promote(u) for u in dados}
 
+    @staticmethod
+    def __criar_interno(dados: UsuarioNovo) -> UsuarioComChave:
+        Usuario.__nao_existente_por_login(dados.login)
+        hash_com_sal: str = hasher.criar_hash(dados.senha)
+        pk: UsuarioPK = UsuarioDAO.instance().criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
+        return Usuario(pk.pk_usuario, dados.login, dados.nivel_acesso, hash_com_sal).__up
+
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_logins(logins: set[str]) -> dict[str, "Usuario"]:
@@ -171,64 +174,59 @@ class Usuario:
         lista2: list[Permissao] = [Permissao(Usuario.__promote(dados.sem_permissoes), TipoPermissao(dados.fk_tipo_permissao)) for dados in lista1]
         return {permissao.usuario.login: permissao for permissao in lista2}
 
-    class Servico:
 
-        __me: "Usuario.Servico | None" = None
+class Servicos:
 
-        def __init__(self) -> None:
-            if Usuario.Servico.__me:
-                raise Exception()
+    def __init__(self) -> None:
+        raise Exception()
 
-        @staticmethod
-        def instance() -> "Usuario.Servico":
-            if not Usuario.Servico.__me:
-                Usuario.Servico.__me = Usuario.Servico()
-            return Usuario.Servico.__me
+    @staticmethod
+    def trocar_senha_por_chave(quem_faz: ChaveUsuario, dados: TrocaSenha) -> None:
+        Usuario.verificar_acesso(quem_faz).__trocar_senha(dados)
 
-        def trocar_senha_por_chave(self, quem_faz: ChaveUsuario, dados: TrocaSenha) -> None:
-            Usuario.verificar_acesso(quem_faz).__trocar_senha(dados)
+    @staticmethod
+    def alterar_nivel_por_login(quem_faz: ChaveUsuario, dados: UsuarioComNivel) -> None:
+        Usuario.verificar_acesso_admin(quem_faz)
+        Usuario.__encontrar_existente_por_login(dados.login).__alterar_nivel_de_acesso(dados.nivel_acesso)
 
-        def alterar_nivel_por_login(self, quem_faz: ChaveUsuario, dados: UsuarioComNivel) -> None:
-            Usuario.verificar_acesso_admin(quem_faz)
-            Usuario.__encontrar_existente_por_login(dados.login).__alterar_nivel_de_acesso(dados.nivel_acesso)
+    @staticmethod
+    def login(quem_faz: LoginComSenha) -> UsuarioComChave:
+        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(quem_faz.login))
+        if dados is None:
+            raise SenhaErradaException()
+        cadastrado: Usuario = Usuario.__promote(dados)
+        cadastrado.__validar_senha(quem_faz.senha)
+        return cadastrado.__permitir_acesso().__up
 
-        def login(self, quem_faz: LoginComSenha) -> UsuarioComChave:
-            dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(quem_faz.login))
-            if dados is None:
-                raise SenhaErradaException()
-            cadastrado: Usuario = Usuario.__promote(dados)
-            cadastrado.__validar_senha(quem_faz.senha)
-            return cadastrado.__permitir_acesso().__up
+    @staticmethod
+    def buscar_por_chave(quem_faz: ChaveUsuario, chave: ChaveUsuario) -> UsuarioComChave:
+        Usuario.verificar_acesso(quem_faz)
+        return Usuario.__encontrar_existente_por_chave(chave).__up
 
-        def buscar_por_chave(self, quem_faz: ChaveUsuario, chave: ChaveUsuario) -> UsuarioComChave:
-            Usuario.verificar_acesso(quem_faz)
-            return Usuario.__encontrar_existente_por_chave(chave).__up
+    @staticmethod
+    def resetar_senha_por_login(quem_faz: ChaveUsuario, dados: ResetLoginUsuario) -> SenhaAlterada:
+        Usuario.verificar_acesso_admin(quem_faz)
+        t: tuple[Usuario, str] = Usuario.__encontrar_existente_por_login(dados.login).__resetar_senha()
+        return SenhaAlterada(t[0].__chave, t[0].login, t[1])
 
-        def resetar_senha_por_login(self, quem_faz: ChaveUsuario, dados: ResetLoginUsuario) -> SenhaAlterada:
-            Usuario.verificar_acesso_admin(quem_faz)
-            t: tuple[Usuario, str] = Usuario.__encontrar_existente_por_login(dados.login).__resetar_senha()
-            return SenhaAlterada(t[0].__chave, t[0].login, t[1])
+    @staticmethod
+    def buscar_por_login(quem_faz: ChaveUsuario, dados: LoginUsuario) -> UsuarioComChave:
+        Usuario.verificar_acesso(quem_faz)
+        return Usuario.__encontrar_existente_por_login(dados.login).__up
 
-        def buscar_por_login(self, quem_faz: ChaveUsuario, dados: LoginUsuario) -> UsuarioComChave:
-            Usuario.verificar_acesso(quem_faz)
-            return Usuario.__encontrar_existente_por_login(dados.login).__up
+    @staticmethod
+    def criar_admin(dados: LoginComSenha) -> UsuarioComChave:
+        return Usuario.__criar_interno(dados.com_nivel(NivelAcesso.CHAVEIRO_DEUS_SUPREMO))
 
-        def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave:
-            return self.__criar_interno(dados.com_nivel(NivelAcesso.CHAVEIRO_DEUS_SUPREMO))
+    @staticmethod
+    def criar(quem_faz: ChaveUsuario, dados: UsuarioNovo) -> UsuarioComChave:
+        Usuario.verificar_acesso_admin(quem_faz)
+        return Usuario.__criar_interno(dados)
 
-        def criar(self, quem_faz: ChaveUsuario, dados: UsuarioNovo) -> UsuarioComChave:
-            Usuario.verificar_acesso_admin(quem_faz)
-            return self.__criar_interno(dados)
-
-        def __criar_interno(self, dados: UsuarioNovo) -> UsuarioComChave:
-            Usuario.__nao_existente_por_login(dados.login)
-            hash_com_sal: str = hasher.criar_hash(dados.senha)
-            pk: UsuarioPK = UsuarioDAO.instance().criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
-            return Usuario(pk.pk_usuario, dados.login, dados.nivel_acesso, hash_com_sal).__up
-
-        def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeUsuarios:
-            Usuario.verificar_acesso(quem_faz)
-            return ResultadoListaDeUsuarios([x.__up for x in Usuario.__listar()])
+    @staticmethod
+    def listar(quem_faz: ChaveUsuario) -> ResultadoListaDeUsuarios:
+        Usuario.verificar_acesso(quem_faz)
+        return ResultadoListaDeUsuarios([x.__up for x in Usuario.__listar()])
 
 
 @dataclass_validate

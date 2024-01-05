@@ -45,10 +45,6 @@ class Categoria:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def servicos() -> "Categoria.Servico":
-        return Categoria.Servico.instance()
-
-    @staticmethod
     def __promote(dados: DadosCategoria) -> "Categoria":
         return Categoria(dados.pk_categoria, dados.nome)
 
@@ -119,40 +115,38 @@ class Categoria:
 
         return r
 
-    class Servico:
 
-        __me: "Categoria.Servico | None" = None
+class Servicos:
 
-        def __init__(self) -> None:
-            if Categoria.Servico.__me:
-                raise Exception()
+    def __init__(self) -> None:
+        raise Exception()
 
-        @staticmethod
-        def instance() -> "Categoria.Servico":
-            if not Categoria.Servico.__me:
-                Categoria.Servico.__me = Categoria.Servico()
-            return Categoria.Servico.__me
+    @staticmethod
+    def buscar_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
+        Usuario.verificar_acesso(quem_faz)
+        return Categoria._encontrar_existente_por_nome(dados.nome)._up
 
-        def buscar_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
-            Usuario.verificar_acesso(quem_faz)
-            return Categoria._encontrar_existente_por_nome(dados.nome)._up
+    @staticmethod
+    def buscar_por_chave(quem_faz: ChaveUsuario, chave: ChaveCategoria) -> CategoriaComChave:
+        Usuario.verificar_acesso(quem_faz)
+        return Categoria._encontrar_existente_por_chave(chave)._up
 
-        def buscar_por_chave(self, quem_faz: ChaveUsuario, chave: ChaveCategoria) -> CategoriaComChave:
-            Usuario.verificar_acesso(quem_faz)
-            return Categoria._encontrar_existente_por_chave(chave)._up
+    @staticmethod
+    def criar(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
+        Usuario.verificar_acesso_admin(quem_faz)
+        return Categoria._criar(dados.nome)._up
 
-        def criar(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave:
-            Usuario.verificar_acesso_admin(quem_faz)
-            return Categoria._criar(dados.nome)._up
+    @staticmethod
+    def renomear_por_nome(quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None:
+        Usuario.verificar_acesso_admin(quem_faz)
+        Categoria._encontrar_existente_por_nome(dados.antigo).__renomear(dados.novo)
 
-        def renomear_por_nome(self, quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None:
-            Usuario.verificar_acesso_admin(quem_faz)
-            Categoria._encontrar_existente_por_nome(dados.antigo).__renomear(dados.novo)
+    @staticmethod
+    def excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None:
+        Usuario.verificar_acesso_admin(quem_faz)
+        Categoria._encontrar_existente_por_nome(dados.nome).__excluir()
 
-        def excluir_por_nome(self, quem_faz: ChaveUsuario, dados: NomeCategoria) -> None:
-            Usuario.verificar_acesso_admin(quem_faz)
-            Categoria._encontrar_existente_por_nome(dados.nome).__excluir()
-
-        def listar(self, quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias:
-            Usuario.verificar_acesso(quem_faz)
-            return ResultadoListaDeCategorias([x._up for x in Categoria.__listar()])
+    @staticmethod
+    def listar(quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias:
+        Usuario.verificar_acesso(quem_faz)
+        return ResultadoListaDeCategorias([x._up for x in Categoria.__listar()])
