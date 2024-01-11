@@ -16,6 +16,13 @@ class UsuarioNaoLogadoException(Exception, Status):
         return 401
 
 
+class LoginExpiradoException(Exception, Status):
+    @override
+    @property
+    def status(self) -> int:
+        return 401
+
+
 class UsuarioBanidoException(Exception, Status):
     @override
     @property

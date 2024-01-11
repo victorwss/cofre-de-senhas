@@ -61,7 +61,7 @@ class _ErrorSetLeaf(SignalingErrorSet):
 
 
 @dataclass
-# class _ErrorSetDict[SI: str | int](SignalingErrorSet, Generic[SI]): # PEP 695
+# class _ErrorSetDict[SI: str | int](SignalingErrorSet): # PEP 695
 class _ErrorSetDict(SignalingErrorSet, Generic[_SI]):
     # errors: dict[SI, SignalingErrorSet]
     errors: dict[_SI, SignalingErrorSet]

@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, TypeAlias
 from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from ..dao import (
@@ -6,7 +6,12 @@ from ..dao import (
     LoginUsuario as LoginUsuarioDAO, BuscaPermissaoPorLogin,
     CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo
 )
-from ..erro import PermissaoNegadaException, UsuarioNaoExisteException, SegredoNaoExisteException
+from ..erro import (
+    UsuarioBanidoException, PermissaoNegadaException, LoginExpiradoException,
+    UsuarioNaoExisteException,
+    SegredoNaoExisteException,
+    CategoriaNaoExisteException
+)
 from ..service import (
     TipoPermissao, TipoSegredo, ChaveUsuario,
     SegredoComChave, SegredoSemChave, CabecalhoSegredoComChave, ChaveSegredo,
@@ -14,6 +19,14 @@ from ..service import (
 )
 from ..usuario.usuario import Usuario, Permissao
 from ..categoria.categoria import Categoria
+
+
+_UBE: TypeAlias = UsuarioBanidoException
+_PNE: TypeAlias = PermissaoNegadaException
+_UNEE: TypeAlias = UsuarioNaoExisteException
+_SNEE: TypeAlias = SegredoNaoExisteException
+_CNEE: TypeAlias = CategoriaNaoExisteException
+_LEE: TypeAlias = LoginExpiradoException
 
 
 @dataclass_validate
@@ -89,9 +102,13 @@ class Segredo:
 
         return self
 
-    def _alterar(self, dados: SegredoSemChave) -> Self:
-        permissoes: dict[str, Permissao] = Segredo.__mapear_permissoes(dados.usuarios)
-        categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
+    def _alterar(self, dados: SegredoSemChave) -> Self | _UNEE | _CNEE:
+        permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
+        if isinstance(permissoes, _UNEE):
+            return permissoes
+        categorias: dict[str, Categoria] | _CNEE = Categoria.listar_por_nomes(dados.categorias)
+        if isinstance(categorias, _CNEE):
+            return categorias
         c: Segredo.Cabecalho = replace(self.cabecalho, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo)
         return replace(self, cabecalho = c, campos = dados.campos, categorias = categorias, usuarios = permissoes).__salvar()
 
@@ -116,27 +133,31 @@ class Segredo:
     def __down(self) -> DadosSegredo:
         return self.cabecalho._down
 
-    def _permitir_escrita_para(self, acesso: Usuario) -> None:
+    def _permitir_escrita_para(self, acesso: Usuario) -> None | _PNE:
         if acesso.is_admin:
-            return
+            return None
         busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(self.__pk.pk_segredo, acesso.login)
         permissao_encontrada: PermissaoDeSegredo | None = SegredoDAO.instance().buscar_permissao(busca)
         if permissao_encontrada is None:
-            raise PermissaoNegadaException()
+            return PermissaoNegadaException()
         permissao: TipoPermissao = TipoPermissao(permissao_encontrada.fk_tipo_permissao)
         if permissao not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]:
-            raise PermissaoNegadaException()
+            return PermissaoNegadaException()
+        return None
 
     # Métodos internos
 
     @staticmethod
-    def __mapear_permissoes(usuarios: dict[str, TipoPermissao]) -> dict[str, Permissao]:
-        todos_usuarios: dict[str, Usuario] = Usuario.listar_por_logins(set(usuarios.keys()))
+    def __mapear_permissoes(usuarios: dict[str, TipoPermissao]) -> dict[str, Permissao] | _UNEE:
+        todos_usuarios: dict[str, Usuario] | _UNEE = Usuario.listar_por_logins(set(usuarios.keys()))
+        if isinstance(todos_usuarios, _UNEE):
+            return todos_usuarios
+
         permissoes: dict[str, Permissao] = {}
 
         for k in usuarios:
             if k not in todos_usuarios:
-                raise UsuarioNaoExisteException()
+                return UsuarioNaoExisteException()
             permissoes[k] = Permissao(todos_usuarios[k], usuarios[k])
 
         return permissoes
@@ -156,22 +177,28 @@ class Segredo:
         return Segredo(cabecalho, usuarios, categorias, campos)
 
     @staticmethod
-    def _encontrar_existente_por_chave(chave: ChaveSegredo) -> "Segredo":
+    def _encontrar_existente_por_chave(chave: ChaveSegredo) -> "Segredo | _SNEE":
         encontrado: Segredo | None = Segredo.__encontrar_por_chave(chave)
         if encontrado is None:
-            raise SegredoNaoExisteException()
+            return SegredoNaoExisteException()
         return encontrado
 
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def _criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> "Segredo":
-        quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
-        if not quem_eh.is_admin and dados.usuarios[quem_eh.login] not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]:
-            raise PermissaoNegadaException()
+    def _criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> "Segredo | _PNE | _UNEE | _CNEE | _UBE | _LEE":
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        if not u1.is_admin and dados.usuarios[u1.login] not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]:
+            return PermissaoNegadaException()
 
-        permissoes: dict[str, Permissao] = Segredo.__mapear_permissoes(dados.usuarios)
-        categorias: dict[str, Categoria] = Categoria.listar_por_nomes(dados.categorias)
+        permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
+        if isinstance(permissoes, _UNEE):
+            return permissoes
+        categorias: dict[str, Categoria] | _CNEE = Categoria.listar_por_nomes(dados.categorias)
+        if isinstance(categorias, _CNEE):
+            return categorias
 
         rowid: SegredoPK = SegredoDAO.instance().criar(DadosSegredoSemPK(dados.nome, dados.descricao, dados.tipo.value))
         cabecalho: Segredo.Cabecalho = Segredo.Cabecalho(rowid.pk_segredo, dados.nome, dados.descricao, dados.tipo)
@@ -198,41 +225,71 @@ class Servicos:
         raise Exception()
 
     @staticmethod
-    def criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> SegredoComChave:
-        return Segredo._criar(quem_faz, dados)._up_eager
+    def criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> SegredoComChave | _PNE | _UNEE | _CNEE | _UBE | _LEE:
+        s1: Segredo | _PNE | _UNEE | _CNEE | _UBE | _LEE = Segredo._criar(quem_faz, dados)
+        if not isinstance(s1, Segredo):
+            return s1
+        return s1._up_eager
 
     @staticmethod
-    def alterar_por_chave(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None:
-        quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
-        segredo: Segredo = Segredo._encontrar_existente_por_chave(dados.chave)  # Pode lançar SegredoNaoExisteException
-        segredo._permitir_escrita_para(quem_eh)
-        segredo._alterar(dados.sem_chave)
+    def alterar_por_chave(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        s1: Segredo | _SNEE = Segredo._encontrar_existente_por_chave(dados.chave)
+        if not isinstance(s1, Segredo):
+            return s1
+        p1: None | _PNE = s1._permitir_escrita_para(u1)
+        if p1 is not None:
+            return p1
+        s2: Segredo | _UNEE | _CNEE = s1._alterar(dados.sem_chave)
+        if not isinstance(s2, Segredo):
+            return s2
+        return None
 
     @staticmethod
-    def excluir_por_chave(quem_faz: ChaveUsuario, dados: ChaveSegredo) -> None:
-        quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
-        segredo: Segredo = Segredo._encontrar_existente_por_chave(dados)  # Pode lançar SegredoNaoExisteException
-        segredo._permitir_escrita_para(quem_eh)
-        segredo.cabecalho._excluir()
+    def excluir_por_chave(quem_faz: ChaveUsuario, dados: ChaveSegredo) -> None | _LEE | _UBE | _PNE | _SNEE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        s1: Segredo | _SNEE = Segredo._encontrar_existente_por_chave(dados)
+        if not isinstance(s1, Segredo):
+            return s1
+        p1: None | _PNE = s1._permitir_escrita_para(u1)
+        if p1 is not None:
+            return p1
+        s1.cabecalho._excluir()
+        return None
 
     @staticmethod
-    def listar(quem_faz: ChaveUsuario) -> ResultadoPesquisaDeSegredos:
-        quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
-        return ResultadoPesquisaDeSegredos([x._up for x in Segredo._listar(quem_eh)])
+    def listar(quem_faz: ChaveUsuario) -> ResultadoPesquisaDeSegredos | _LEE | _UBE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        return ResultadoPesquisaDeSegredos([x._up for x in Segredo._listar(u1)])
 
     @staticmethod
-    def buscar(quem_faz: ChaveUsuario, chave: ChaveSegredo) -> SegredoComChave:
-        quem_eh: Usuario = Usuario.verificar_acesso(quem_faz)
-        segredo: Segredo = Segredo._encontrar_existente_por_chave(chave)  # Pode lançar SegredoNaoExisteException
-        if not quem_eh.is_admin and quem_eh.login not in segredo.usuarios.keys():
-            raise SegredoNaoExisteException()
-        return segredo._up_eager
+    def buscar(quem_faz: ChaveUsuario, chave: ChaveSegredo) -> SegredoComChave | _LEE | _UBE | _SNEE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        s1: Segredo | _SNEE = Segredo._encontrar_existente_por_chave(chave)
+        if not isinstance(s1, Segredo):
+            return s1
+        if not u1.is_admin and u1.login not in s1.usuarios.keys():
+            return SegredoNaoExisteException()
+        return s1._up_eager
 
     @staticmethod
-    def buscar_sem_logar(chave: ChaveSegredo) -> SegredoComChave:
-        return Segredo._encontrar_existente_por_chave(chave)._up_eager  # Pode lançar SegredoNaoExisteException
+    def buscar_sem_logar(chave: ChaveSegredo) -> SegredoComChave | _SNEE:
+        s1: Segredo | _SNEE = Segredo._encontrar_existente_por_chave(chave)
+        if not isinstance(s1, Segredo):
+            return s1
+        return s1._up_eager
 
     @staticmethod
-    def pesquisar(quem_faz: ChaveUsuario, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
-        Usuario.verificar_acesso(quem_faz)
+    def pesquisar(quem_faz: ChaveUsuario, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _LEE | _UBE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
         raise NotImplementedError()

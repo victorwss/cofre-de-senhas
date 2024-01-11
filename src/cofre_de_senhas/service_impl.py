@@ -1,4 +1,4 @@
-from typing import Callable, override, ParamSpec, TypeVar
+from typing import Callable, override, ParamSpec, TypeAlias, TypeVar
 from decorators.for_all import for_all_methods
 from connection.trans import TransactedConnection
 from .service import (
@@ -7,6 +7,13 @@ from .service import (
     TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario,
     CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
     SegredoComChave, SegredoSemChave, ChaveSegredo, PesquisaSegredos, ResultadoPesquisaDeSegredos,
+)
+from .erro import (
+    UsuarioNaoLogadoException, UsuarioBanidoException, PermissaoNegadaException, SenhaErradaException, LoginExpiradoException,
+    UsuarioNaoExisteException, UsuarioJaExisteException,
+    CategoriaNaoExisteException, CategoriaJaExisteException,
+    SegredoNaoExisteException,
+    ValorIncorretoException
 )
 from .dao import CofreDeSenhasDAO
 from .categoria.categoria import Servicos as CategoriaServico
@@ -18,6 +25,18 @@ _log: Logger = Logger.for_print_fn()
 
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
+
+_UNLE: TypeAlias = UsuarioNaoLogadoException
+_UBE: TypeAlias = UsuarioBanidoException
+_PNE: TypeAlias = PermissaoNegadaException
+_UNEE: TypeAlias = UsuarioNaoExisteException
+_UJEE: TypeAlias = UsuarioJaExisteException
+_CNEE: TypeAlias = CategoriaNaoExisteException
+_CJEE: TypeAlias = CategoriaJaExisteException
+_SNEE: TypeAlias = SegredoNaoExisteException
+_SEE: TypeAlias = SenhaErradaException
+_VIE: TypeAlias = ValorIncorretoException
+_LEE: TypeAlias = LoginExpiradoException
 
 
 class Servicos:
@@ -101,9 +120,10 @@ class _ServicoUsuarioImpl(ServicoUsuario):
 
     # Pode lançar SenhaErradaException
     @override
-    def login(self, quem_faz: LoginComSenha) -> UsuarioComChave:
-        u: UsuarioComChave = UsuarioServico.login(quem_faz)
-        self.__gl.login(u)
+    def login(self, quem_faz: LoginComSenha) -> UsuarioComChave | _UBE | _SEE:
+        u: UsuarioComChave | _UBE | _SEE = UsuarioServico.login(quem_faz)
+        if isinstance(u, UsuarioComChave):
+            self.__gl.login(u)
         return u
 
     @override
@@ -112,37 +132,58 @@ class _ServicoUsuarioImpl(ServicoUsuario):
 
     # Pode lançar PermissaoNegadaException, UsuarioJaExisteException
     @override
-    def criar(self, dados: UsuarioNovo) -> UsuarioComChave:
-        return UsuarioServico.criar(self.__gl.usuario_logado, dados)
+    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.criar(u, dados)
 
     @override
-    def trocar_senha_por_chave(self, dados: TrocaSenha) -> None:
-        UsuarioServico.trocar_senha_por_chave(self.__gl.usuario_logado, dados)
+    def trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE | _SEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.trocar_senha_por_chave(u, dados)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @override
-    def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada:
-        return UsuarioServico.resetar_senha_por_login(self.__gl.usuario_logado, dados)
+    def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.resetar_senha_por_login(u, dados)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @override
-    def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None:
-        UsuarioServico.alterar_nivel_por_login(self.__gl.usuario_logado, dados)
+    def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.alterar_nivel_por_login(u, dados)
 
     # Pode lançar UsuarioNaoExisteException
     @override
-    def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave:
-        return UsuarioServico.buscar_por_login(self.__gl.usuario_logado, dados)
+    def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.buscar_por_login(u, dados)
 
     # Pode lançar UsuarioNaoExisteException
     @override
-    def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave:
-        return UsuarioServico.buscar_por_chave(self.__gl.usuario_logado, chave)
+    def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.buscar_por_chave(u, chave)
 
     # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @override
-    def listar(self) -> ResultadoListaDeUsuarios:
-        return UsuarioServico.listar(self.__gl.usuario_logado)
+    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.listar(u)
 
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
@@ -153,37 +194,55 @@ class _ServicoSegredoImpl(ServicoSegredo):
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     @override
-    def criar(self, dados: SegredoSemChave) -> SegredoComChave:
-        return SegredoServico.criar(self.__gl.usuario_logado, dados)
+    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _PNE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return SegredoServico.criar(u, dados)
 
     # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException, PermissaoNegadaException
     @override
-    def alterar_por_chave(self, dados: SegredoComChave) -> None:
-        SegredoServico.alterar_por_chave(self.__gl.usuario_logado, dados)
+    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return SegredoServico.alterar_por_chave(u, dados)
 
     # Pode lançar SegredoNaoExisteException, PermissaoNegadaException
     @override
-    def excluir_por_chave(self, dados: ChaveSegredo) -> None:
-        SegredoServico.excluir_por_chave(self.__gl.usuario_logado, dados)
+    def excluir_por_chave(self, dados: ChaveSegredo) -> None | _UNLE | _UBE | _SNEE | _PNE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return SegredoServico.excluir_por_chave(u, dados)
 
     @override
-    def listar(self) -> ResultadoPesquisaDeSegredos:
-        return SegredoServico.listar(self.__gl.usuario_logado)
+    def listar(self) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return SegredoServico.listar(u)
 
     # Pode lançar SegredoNaoExisteException
     @override
-    def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave:
-        return SegredoServico.buscar(self.__gl.usuario_logado, chave)
+    def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return SegredoServico.buscar(u, chave)
 
     # Pode lançar SegredoNaoExisteException
     @override
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave:
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
         return SegredoServico.buscar_sem_logar(chave)
 
     # Pode lançar SegredoNaoExisteException
     @override
-    def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos:
-        return SegredoServico.pesquisar(self.__gl.usuario_logado, dados)
+    def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _SNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return SegredoServico.pesquisar(u, dados)
 
 
 # Todos os métodos podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
@@ -194,29 +253,47 @@ class _ServicoCategoriaImpl(ServicoCategoria):
 
     # Pode lançar CategoriaNaoExisteException
     @override
-    def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave:
-        return CategoriaServico.buscar_por_nome(self.__gl.usuario_logado, dados)
+    def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return CategoriaServico.buscar_por_nome(u, dados)
 
     # Pode lançar CategoriaNaoExisteException
     @override
-    def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave:
-        return CategoriaServico.buscar_por_chave(self.__gl.usuario_logado, chave)
+    def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return CategoriaServico.buscar_por_chave(u, chave)
 
     # Pode lançar CategoriaJaExisteException
     @override
-    def criar(self, dados: NomeCategoria) -> CategoriaComChave:
-        return CategoriaServico.criar(self.__gl.usuario_logado, dados)
+    def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _LEE | _UBE | _PNE | _CJEE | _VIE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return CategoriaServico.criar(u, dados)
 
     # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
     @override
-    def renomear_por_nome(self, dados: RenomeCategoria) -> None:
-        CategoriaServico.renomear_por_nome(self.__gl.usuario_logado, dados)
+    def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _LEE | _UBE | _PNE | _VIE | _CJEE | _CNEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return CategoriaServico.renomear_por_nome(u, dados)
 
     # Pode lançar CategoriaNaoExisteException
     @override
-    def excluir_por_nome(self, dados: NomeCategoria) -> None:
-        CategoriaServico.excluir_por_nome(self.__gl.usuario_logado, dados)
+    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return CategoriaServico.excluir_por_nome(u, dados)
 
     @override
-    def listar(self) -> ResultadoListaDeCategorias:
-        return CategoriaServico.listar(self.__gl.usuario_logado)
+    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _CJEE | _LEE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return CategoriaServico.listar(u)

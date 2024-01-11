@@ -9,13 +9,12 @@ from ..dao.fixtures import (
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.erro import (
+    PermissaoNegadaException, UsuarioNaoLogadoException, UsuarioBanidoException, LoginExpiradoException,
     CategoriaNaoExisteException, CategoriaJaExisteException,
-    PermissaoNegadaException, UsuarioNaoLogadoException, UsuarioNaoExisteException,
     ValorIncorretoException
 )
 from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, NomeCategoria, CategoriaComChave, ChaveCategoria, UsuarioComChave, RenomeCategoria
 from cofre_de_senhas.service_impl import Servicos
-from pytest import raises
 
 
 class GerenciadorLoginNaoLogado(GerenciadorLogin):
@@ -78,7 +77,8 @@ def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
 def test_buscar_categoria_por_nome_ok1(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: NomeCategoria = NomeCategoria(qa.nome)
-    x: CategoriaComChave = s.categoria.buscar_por_nome(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+    assert isinstance(x, CategoriaComChave)
     assert x == CategoriaComChave(ChaveCategoria(qa.pk_categoria), qa.nome)
 
 
@@ -86,7 +86,8 @@ def test_buscar_categoria_por_nome_ok1(c: TransactedConnection) -> None:
 def test_buscar_categoria_por_nome_ok2(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: NomeCategoria = NomeCategoria(desenvolvimento.nome)
-    x: CategoriaComChave = s.categoria.buscar_por_nome(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+    assert isinstance(x, CategoriaComChave)
     assert x == CategoriaComChave(ChaveCategoria(desenvolvimento.pk_categoria), desenvolvimento.nome)
 
 
@@ -95,8 +96,8 @@ def test_buscar_categoria_por_nome_nao_existe(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: NomeCategoria = NomeCategoria(lixo4)
 
-    with raises(CategoriaNaoExisteException):
-        s.categoria.buscar_por_nome(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+    assert isinstance(x, CategoriaNaoExisteException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -104,8 +105,8 @@ def test_buscar_categoria_por_nome_case_sensitive(c: TransactedConnection) -> No
     s: Servicos = servicos_normal(c)
     dados: NomeCategoria = NomeCategoria(qa.nome.lower())
 
-    with raises(CategoriaNaoExisteException):
-        s.categoria.buscar_por_nome(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+    assert isinstance(x, CategoriaNaoExisteException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -113,8 +114,8 @@ def test_buscar_categoria_por_nome_usuario_banido(c: TransactedConnection) -> No
     s: Servicos = servicos_banido(c)
     dados: NomeCategoria = NomeCategoria(qa.nome)
 
-    with raises(PermissaoNegadaException):
-        s.categoria.buscar_por_nome(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+    assert isinstance(x, UsuarioBanidoException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -122,8 +123,8 @@ def test_buscar_categoria_por_nome_usuario_nao_existe(c: TransactedConnection) -
     s: Servicos = servicos_usuario_nao_existe(c)
     dados: NomeCategoria = NomeCategoria(qa.nome)
 
-    with raises(UsuarioNaoExisteException):
-        s.categoria.buscar_por_nome(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+    assert isinstance(x, LoginExpiradoException)
 
 
 # Método buscar_por_chave
@@ -133,7 +134,8 @@ def test_buscar_categoria_por_nome_usuario_nao_existe(c: TransactedConnection) -
 def test_buscar_categoria_por_chave_ok1(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: ChaveCategoria = ChaveCategoria(qa.pk_categoria)
-    x: CategoriaComChave = s.categoria.buscar_por_chave(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_chave(dados)
+    assert isinstance(x, CategoriaComChave)
     assert x == CategoriaComChave(ChaveCategoria(qa.pk_categoria), qa.nome)
 
 
@@ -141,7 +143,8 @@ def test_buscar_categoria_por_chave_ok1(c: TransactedConnection) -> None:
 def test_buscar_categoria_por_chave_ok2(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: ChaveCategoria = ChaveCategoria(desenvolvimento.pk_categoria)
-    x: CategoriaComChave = s.categoria.buscar_por_chave(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_chave(dados)
+    assert isinstance(x, CategoriaComChave)
     assert x == CategoriaComChave(ChaveCategoria(desenvolvimento.pk_categoria), desenvolvimento.nome)
 
 
@@ -150,8 +153,8 @@ def test_buscar_categoria_por_chave_nao_existe(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: ChaveCategoria = ChaveCategoria(lixo2)
 
-    with raises(CategoriaNaoExisteException):
-        s.categoria.buscar_por_chave(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_chave(dados)
+    assert isinstance(x, CategoriaNaoExisteException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -159,8 +162,8 @@ def test_buscar_categoria_por_chave_usuario_banido(c: TransactedConnection) -> N
     s: Servicos = servicos_banido(c)
     dados: ChaveCategoria = ChaveCategoria(qa.pk_categoria)
 
-    with raises(PermissaoNegadaException):
-        s.categoria.buscar_por_chave(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_chave(dados)
+    assert isinstance(x, UsuarioBanidoException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -168,8 +171,8 @@ def test_buscar_categoria_por_chave_usuario_nao_existe(c: TransactedConnection) 
     s: Servicos = servicos_usuario_nao_existe(c)
     dados: ChaveCategoria = ChaveCategoria(qa.pk_categoria)
 
-    with raises(UsuarioNaoExisteException):
-        s.categoria.buscar_por_chave(dados)
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_chave(dados)
+    assert isinstance(x, LoginExpiradoException)
 
 
 # Método criar
@@ -179,7 +182,8 @@ def test_buscar_categoria_por_chave_usuario_nao_existe(c: TransactedConnection) 
 def test_criar_categoria_nova(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: NomeCategoria = NomeCategoria(nome_millenium_falcon.valor)
-    x: CategoriaComChave = s.categoria.criar(dados)
+    x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+    assert isinstance(x, CategoriaComChave)
     assert x == CategoriaComChave(ChaveCategoria(millenium_falcon.pk_categoria), millenium_falcon.nome)
     assert x == s.categoria.buscar_por_nome(dados)
 
@@ -189,8 +193,8 @@ def test_criar_categoria_ja_existe(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: NomeCategoria = NomeCategoria(qa.nome)
 
-    with raises(CategoriaJaExisteException):
-        s.categoria.criar(dados)
+    x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+    assert isinstance(x, CategoriaJaExisteException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -198,8 +202,8 @@ def test_criar_categoria_usuario_nao_admin(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: NomeCategoria = NomeCategoria(qa.nome)
 
-    with raises(PermissaoNegadaException):
-        s.categoria.criar(dados)
+    x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+    assert isinstance(x, PermissaoNegadaException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -207,8 +211,8 @@ def test_criar_categoria_usuario_banido(c: TransactedConnection) -> None:
     s: Servicos = servicos_banido(c)
     dados: NomeCategoria = NomeCategoria(qa.nome)
 
-    with raises(PermissaoNegadaException):
-        s.categoria.criar(dados)
+    x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+    assert isinstance(x, UsuarioBanidoException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -216,8 +220,8 @@ def test_criar_categoria_nome_curto(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: NomeCategoria = NomeCategoria(nome_em_branco.valor)
 
-    with raises(ValorIncorretoException):
-        s.categoria.criar(dados)
+    x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+    assert isinstance(x, ValorIncorretoException)
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -225,8 +229,8 @@ def test_criar_categoria_nome_longo(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: NomeCategoria = NomeCategoria(nome_longo_demais.valor)
 
-    with raises(ValorIncorretoException):
-        s.categoria.criar(dados)
+    x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+    assert isinstance(x, ValorIncorretoException)
 
 
 # Método renomear_por_nome
@@ -238,8 +242,9 @@ def test_renomear_categoria_ok(c: TransactedConnection) -> None:
     dados: RenomeCategoria = RenomeCategoria(qa.nome, nome_millenium_falcon.valor)
     s.categoria.renomear_por_nome(dados)
 
-    with raises(PermissaoNegadaException):
-        s.categoria.buscar_por_nome(NomeCategoria(qa.nome))
+    x: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(NomeCategoria(qa.nome))
+    assert isinstance(x, CategoriaNaoExisteException)
 
-    x: CategoriaComChave = s.categoria.buscar_por_nome(NomeCategoria(nome_millenium_falcon.valor))
-    assert x == CategoriaComChave(ChaveCategoria(qa.pk_categoria), millenium_falcon.nome)
+    y: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(NomeCategoria(nome_millenium_falcon.valor))
+    assert isinstance(y, CategoriaComChave)
+    assert y == CategoriaComChave(ChaveCategoria(qa.pk_categoria), millenium_falcon.nome)
