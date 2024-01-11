@@ -233,10 +233,8 @@ class ServicoBD(ABC):
         pass
 
 
-# Todos os métodos (exceto logout) podem lançar UsuarioNaoLogadoException ou UsuarioBanidoException.
 class ServicoUsuario(ABC):
 
-    # Pode lançar SenhaErradaException
     @abstractmethod
     def login(self, quem_faz: LoginComSenha) -> UsuarioComChave | _UBE | _SEE | _LEE:
         pass
@@ -245,7 +243,6 @@ class ServicoUsuario(ABC):
     def logout(self) -> None:
         pass
 
-    # Pode lançar PermissaoNegadaException, UsuarioJaExisteException
     @abstractmethod
     def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
         pass
@@ -255,26 +252,21 @@ class ServicoUsuario(ABC):
         pass
 
     @abstractmethod
-    # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         pass
 
-    # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @abstractmethod
     def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         pass
 
-    # Pode lançar UsuarioNaoExisteException
     @abstractmethod
     def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
         pass
 
-    # Pode lançar UsuarioNaoExisteException
     @abstractmethod
     def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
         pass
 
-    # Pode lançar PermissaoNegadaException, UsuarioNaoExisteException
     @abstractmethod
     def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         pass
@@ -282,17 +274,14 @@ class ServicoUsuario(ABC):
 
 class ServicoSegredo(ABC):
 
-    # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException
     @abstractmethod
     def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _PNE | _LEE:
         pass
 
-    # Pode lançar UsuarioNaoExisteException, CategoriaNaoExisteException, SegredoNaoExisteException
     @abstractmethod
     def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE:
         pass
 
-    # Pode lançar SegredoNaoExisteException
     @abstractmethod
     def excluir_por_chave(self, dados: ChaveSegredo) -> None | _UNLE | _UBE | _SNEE | _PNE | _LEE:
         pass
@@ -301,17 +290,14 @@ class ServicoSegredo(ABC):
     def listar(self) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _LEE:
         pass
 
-    # Pode lançar SegredoNaoExisteException
     @abstractmethod
     def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE | _LEE:
         pass
 
-    # Pode lançar SegredoNaoExisteException
     @abstractmethod
     def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
         pass
 
-    # Pode lançar SegredoNaoExisteException
     @abstractmethod
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _SNEE | _LEE:
         pass
@@ -319,27 +305,22 @@ class ServicoSegredo(ABC):
 
 class ServicoCategoria(ABC):
 
-    # Pode lançar CategoriaNaoExisteException
     @abstractmethod
     def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
         pass
 
-    # Pode lançar CategoriaNaoExisteException
     @abstractmethod
     def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
         pass
 
-    # Pode lançar CategoriaJaExisteException
     @abstractmethod
     def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _LEE | _UBE | _PNE | _CJEE | _VIE:
         pass
 
-    # Pode lançar CategoriaJaExisteException, CategoriaNaoExisteException
     @abstractmethod
     def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _LEE | _UBE | _PNE | _VIE | _CJEE | _CNEE:
         pass
 
-    # Pode lançar CategoriaNaoExisteException
     @abstractmethod
     def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE:
         pass
