@@ -311,6 +311,10 @@ class CategoriaDAO(DAO):
             raise BaseException()
         return u
 
+    @abstractmethod
+    def contar_segredos_por_pk(self, dados: CategoriaPK) -> int:
+        pass
+
 
 class UsuarioDAO(DAO):
 

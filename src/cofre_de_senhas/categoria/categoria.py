@@ -5,7 +5,7 @@ from ..erro import (
     UsuarioBanidoException, PermissaoNegadaException, LoginExpiradoException,
     UsuarioNaoExisteException, UsuarioJaExisteException,
     CategoriaNaoExisteException, CategoriaJaExisteException,
-    ValorIncorretoException
+    ValorIncorretoException, ExclusaoSemCascataException
 )
 from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoriaUK
 from ..service import ChaveCategoria, CategoriaComChave, NomeCategoria, ChaveUsuario, RenomeCategoria, ResultadoListaDeCategorias
@@ -20,6 +20,7 @@ _CNEE: TypeAlias = CategoriaNaoExisteException
 _CJEE: TypeAlias = CategoriaJaExisteException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
+_ESCE: TypeAlias = ExclusaoSemCascataException
 
 
 @dataclass_validate
@@ -141,6 +142,9 @@ class Categoria:
 
         return r
 
+    def _ligados(self) -> int:
+        return CategoriaDAO.instance().contar_segredos_por_pk(CategoriaPK(self.pk_categoria))
+
 
 class Servicos:
 
@@ -191,13 +195,16 @@ class Servicos:
         return None
 
     @staticmethod
-    def excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None | _UBE | _PNE | _CNEE | _LEE:
+    def excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None | _UBE | _PNE | _CNEE | _LEE | _ESCE:
         u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
         c1: Categoria | _CNEE = Categoria._encontrar_existente_por_nome(dados.nome)
         if not isinstance(c1, Categoria):
             return c1
+        ligados: int = c1._ligados()
+        if ligados > 0:
+            return ExclusaoSemCascataException()
         c1._excluir()
         return None
 

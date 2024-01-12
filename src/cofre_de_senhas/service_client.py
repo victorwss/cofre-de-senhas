@@ -19,7 +19,7 @@ from .erro import (
     UsuarioNaoExisteException, UsuarioJaExisteException,
     CategoriaNaoExisteException, CategoriaJaExisteException,
     SegredoNaoExisteException,
-    ValorIncorretoException
+    ValorIncorretoException, ExclusaoSemCascataException
 )
 from sucesso import Ok
 
@@ -38,6 +38,7 @@ _SNEE: TypeAlias = SegredoNaoExisteException
 _SEE: TypeAlias = SenhaErradaException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
+_ESCE: TypeAlias = ExclusaoSemCascataException
 
 
 class OngoingTyping(Generic[_X]):
@@ -289,8 +290,8 @@ class _ServicoCategoriaClient(ServicoCategoria):
         )
 
     @override
-    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _CNEE:
-        return self.__requester.delete(f"/categorias/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).end)
+    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _CNEE | _ESCE:
+        return self.__requester.delete(f"/categorias/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).end)
 
     @override
     def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _CJEE:

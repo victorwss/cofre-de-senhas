@@ -8,7 +8,7 @@ from .erro import (
     UsuarioNaoExisteException, UsuarioJaExisteException,
     CategoriaNaoExisteException, CategoriaJaExisteException,
     SegredoNaoExisteException,
-    ValorIncorretoException
+    ValorIncorretoException, ExclusaoSemCascataException
 )
 
 
@@ -206,6 +206,7 @@ _SNEE: TypeAlias = SegredoNaoExisteException
 _SEE: TypeAlias = SenhaErradaException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
+_ESCE: TypeAlias = ExclusaoSemCascataException
 
 
 class GerenciadorLogin(ABC):
@@ -322,7 +323,7 @@ class ServicoCategoria(ABC):
         pass
 
     @abstractmethod
-    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE:
+    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE | _ESCE:
         pass
 
     @abstractmethod

@@ -13,7 +13,7 @@ from .erro import (
     UsuarioNaoExisteException, UsuarioJaExisteException,
     CategoriaNaoExisteException, CategoriaJaExisteException,
     SegredoNaoExisteException,
-    ValorIncorretoException
+    ValorIncorretoException, ExclusaoSemCascataException
 )
 from .dao import CofreDeSenhasDAO
 from .categoria.categoria import Servicos as CategoriaServico
@@ -37,6 +37,7 @@ _SNEE: TypeAlias = SegredoNaoExisteException
 _SEE: TypeAlias = SenhaErradaException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
+_ESCE: TypeAlias = ExclusaoSemCascataException
 
 
 class Servicos:
@@ -264,7 +265,7 @@ class _ServicoCategoriaImpl(ServicoCategoria):
         return CategoriaServico.renomear_por_nome(u, dados)
 
     @override
-    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE:
+    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE | _ESCE:
         u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
         if isinstance(u, _UNLE):
             return u

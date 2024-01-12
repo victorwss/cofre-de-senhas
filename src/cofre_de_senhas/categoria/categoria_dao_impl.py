@@ -1,6 +1,12 @@
 from typing import override
+from dataclasses import dataclass
 from connection.trans import TransactedConnection
 from ..dao import CategoriaDAO, CategoriaPK, DadosCategoria, DadosCategoriaSemPK, SegredoPK, NomeCategoriaUK
+
+
+@dataclass
+class _IntHolder:
+    conta: int
 
 
 class CategoriaDAOImpl(CategoriaDAO):
@@ -68,6 +74,12 @@ class CategoriaDAOImpl(CategoriaDAO):
     def buscar_por_nome(self, nome: NomeCategoriaUK) -> DadosCategoria | None:
         sql: str = self.__buscar_por_nome_sql()
         return self._connection.execute(sql, [nome.valor]).fetchone_class(DadosCategoria)
+
+    @override
+    def contar_segredos_por_pk(self, c: CategoriaPK) -> int:
+        sql: str = f"SELECT COUNT(cs.pfk_categoria) AS conta FROM categoria_segredo cs WHERE cs.pfk_categoria = {self._placeholder}"
+        r: _IntHolder | None = self._connection.execute(sql, [c.pk_categoria]).fetchone_class(_IntHolder)
+        return 0 if r is None else r.conta
 
     # def deletar_por_nome(self, nome: NomeCategoria) -> bool:
     #     sql: str = f"DELETE categoria WHERE BINARY nome = {self._placeholder}"

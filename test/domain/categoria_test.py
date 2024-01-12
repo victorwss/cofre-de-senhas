@@ -10,13 +10,14 @@ from connection.trans import TransactedConnection
 from cofre_de_senhas.erro import (
     PermissaoNegadaException, UsuarioNaoLogadoException, UsuarioBanidoException, LoginExpiradoException,
     CategoriaNaoExisteException, CategoriaJaExisteException,
-    ValorIncorretoException
+    ValorIncorretoException, ExclusaoSemCascataException
 )
 from cofre_de_senhas.service import (
     GerenciadorLogin, ChaveUsuario, UsuarioComChave,
     NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias
 )
 from cofre_de_senhas.service_impl import Servicos
+from pytest import raises
 
 
 tudo: ResultadoListaDeCategorias = ResultadoListaDeCategorias([
@@ -83,6 +84,11 @@ def servicos_banido(c: TransactedConnection) -> Servicos:
 
 def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
     return Servicos(GerenciadorLoginChave(ChaveUsuario(lixo2)), c)
+
+
+def test_nao_instanciar_servicos() -> None:
+    with raises(Exception):
+        Servicos()
 
 
 # Método buscar_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave | _LEE | _UBE | _CNEE:
@@ -337,13 +343,31 @@ def test_renomear_categoria_CNEE_antes_de_CJEE(c: TransactedConnection) -> None:
     assert isinstance(x, CategoriaNaoExisteException)
 
 
-# Método excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None | _UBE | _PNE | _CNEE | _LEE
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_categoria_nome_curto_VIE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: RenomeCategoria = RenomeCategoria(qa.nome, nome_em_branco.valor)
+
+    x: None | BaseException = s.categoria.renomear_por_nome(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_categoria_nome_longo_VIE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: RenomeCategoria = RenomeCategoria(qa.nome, nome_longo_demais.valor)
+
+    x: None | BaseException = s.categoria.renomear_por_nome(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
+# Método excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None | _UBE | _PNE | _CNEE | _LEE | _ESCE
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_ok1(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
-    dados1: NomeCategoria = NomeCategoria(qa.nome)
+    dados1: NomeCategoria = NomeCategoria(api.nome)
 
     x: None | BaseException = s.categoria.excluir_por_nome(dados1)
     assert x is None
@@ -360,7 +384,7 @@ def test_excluir_categoria_ok1(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_UBE(c: TransactedConnection) -> None:
     s: Servicos = servicos_banido(c)
-    dados: NomeCategoria = NomeCategoria(qa.nome)
+    dados: NomeCategoria = NomeCategoria(api.nome)
 
     x: None | BaseException = s.categoria.excluir_por_nome(dados)
     assert isinstance(x, UsuarioBanidoException)
@@ -369,7 +393,7 @@ def test_excluir_categoria_UBE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_PNE(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
-    dados: NomeCategoria = NomeCategoria(qa.nome)
+    dados: NomeCategoria = NomeCategoria(api.nome)
 
     x: None | BaseException = s.categoria.excluir_por_nome(dados)
     assert isinstance(x, PermissaoNegadaException)
@@ -377,7 +401,7 @@ def test_excluir_categoria_PNE(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_CNEE(c: TransactedConnection) -> None:
-    s: Servicos = servicos_normal(c)
+    s: Servicos = servicos_admin(c)
     dados: NomeCategoria = NomeCategoria(nome_millenium_falcon.valor)
 
     x: None | BaseException = s.categoria.excluir_por_nome(dados)
@@ -387,10 +411,19 @@ def test_excluir_categoria_CNEE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_excluir_categoria_LEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_usuario_nao_existe(c)
-    dados: NomeCategoria = NomeCategoria(qa.nome)
+    dados: NomeCategoria = NomeCategoria(api.nome)
 
     x: None | BaseException = s.categoria.excluir_por_nome(dados)
     assert isinstance(x, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_excluir_categoria_ESCE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: NomeCategoria = NomeCategoria(qa.nome)
+
+    x: None | BaseException = s.categoria.excluir_por_nome(dados)
+    assert isinstance(x, ExclusaoSemCascataException)
 
 
 # Método listar(quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias | _LEE | _UBE

@@ -3,7 +3,7 @@ from .fixtures import (
     dbs, assert_db_ok, mix,
     todas_categorias, parte_categorias, nome_longo, nome_nao_existe,
     millenium_falcon, nome_millenium_falcon, dados_millenium_falcon,
-    api, qa, producao, homologacao, desenvolvimento, servidor, nome_qa, nome_producao,
+    api, qa, aplicacao, producao, homologacao, desenvolvimento, servidor, nome_qa, nome_producao,
     lixo1, lixo2, lixo3, lixo4, lixo5, lixo6
 )
 from connection.trans import TransactedConnection
@@ -312,6 +312,34 @@ def test_salvar_categoria_com_pk_nome_longo(c: TransactedConnection) -> None:
 
     lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_longo))
     assert lido2 is None
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_contar_segredos_por_pk_nao_existe(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n: CategoriaPK = CategoriaPK(lixo1)
+    assert 0 == dao.contar_segredos_por_pk(n)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_contar_segredos_por_pk_tem_0(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n: CategoriaPK = CategoriaPK(api.pk_categoria)
+    assert 0 == dao.contar_segredos_por_pk(n)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_contar_segredos_por_pk_tem_1(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n: CategoriaPK = CategoriaPK(qa.pk_categoria)
+    assert 1 == dao.contar_segredos_por_pk(n)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_contar_segredos_por_pk_tem_2(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    n: CategoriaPK = CategoriaPK(aplicacao.pk_categoria)
+    assert 2 == dao.contar_segredos_por_pk(n)
 
 
 # TODO:

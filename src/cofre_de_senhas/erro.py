@@ -77,3 +77,10 @@ class ValorIncorretoException(Exception, Status):
     @property
     def status(self) -> int:
         return 422
+
+
+class ExclusaoSemCascataException(Exception, Status):
+    @override
+    @property
+    def status(self) -> int:
+        return 409

@@ -3,7 +3,7 @@ from cofre_de_senhas.erro import (
     SenhaErradaException, UsuarioNaoLogadoException, UsuarioBanidoException, PermissaoNegadaException,
     UsuarioJaExisteException, UsuarioNaoExisteException,
     CategoriaJaExisteException, CategoriaNaoExisteException, SegredoNaoExisteException,
-    ValorIncorretoException
+    ValorIncorretoException, ExclusaoSemCascataException
 )
 from sucesso import (
     Sucesso, Erro, Status, Ok,
@@ -106,10 +106,6 @@ def test_erro_422a() -> None:
     verificar_excecao(ConteudoIncompreensivelException(), 422)
 
 
-def test_erro_422b() -> None:
-    verificar_excecao(ValorIncorretoException(), 422)
-
-
 def test_senha_errada() -> None:
     verificar_excecao(SenhaErradaException(), 401)
 
@@ -144,3 +140,11 @@ def test_categoria_nao_existe() -> None:
 
 def test_segredo_nao_existe() -> None:
     verificar_excecao(SegredoNaoExisteException(), 404)
+
+
+def test_valor_incorreto() -> None:
+    verificar_excecao(ValorIncorretoException(), 422)
+
+
+def test_exclusao_sem_cascata() -> None:
+    verificar_excecao(ExclusaoSemCascataException(), 409)
