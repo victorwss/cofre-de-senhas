@@ -1,9 +1,9 @@
 from ..db_test_util import applier, applier_trans, DbTestConfig
-from .fixtures import (
+from ..fixtures import (
     dbs, assert_db_ok, mix,
-    todas_categorias, parte_categorias, nome_longo, nome_nao_existe,
-    millenium_falcon, nome_millenium_falcon, dados_millenium_falcon,
-    api, qa, aplicacao, producao, homologacao, desenvolvimento, servidor, nome_qa, nome_producao,
+    todas_categorias, parte_categorias, nome_longo,
+    millenium_falcon, dados_millenium_falcon, nao_existe,
+    api, qa, aplicacao, producao, homologacao, desenvolvimento, servidor,
     lixo1, lixo2, lixo3, lixo4, lixo5, lixo6
 )
 from connection.trans import TransactedConnection
@@ -38,16 +38,16 @@ def test_ler_categoria_por_pk(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_nome(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    lido: DadosCategoria | None = dao.buscar_por_nome(nome_producao)
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(producao.nome))
     assert lido == producao
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_nome_case_sensitive(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_producao.valor.lower()))
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(producao.nome.lower()))
     assert lido1 is None
-    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_qa.valor.lower()))
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome.lower()))
     assert lido2 is None
 
 
@@ -59,7 +59,7 @@ def test_criar_e_ler_categoria(c: TransactedConnection) -> None:
     assert pk.pk_categoria == millenium_falcon.pk_categoria
 
     lido1: DadosCategoria | None = dao.buscar_por_pk(pk)
-    lido2: DadosCategoria | None = dao.buscar_por_nome(nome_millenium_falcon)
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(millenium_falcon.nome))
 
     assert lido1 == millenium_falcon
     assert lido2 == millenium_falcon
@@ -78,7 +78,7 @@ def test_ler_categoria_por_pk_nao_existe(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_ler_categoria_por_nome_nao_existe(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    lido: DadosCategoria | None = dao.buscar_por_nome(nome_nao_existe)
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nao_existe.nome))
     assert lido is None
 
 
@@ -241,7 +241,7 @@ def test_criar_categoria_nome_repetido(c: TransactedConnection) -> None:
     with raises(IntegrityViolationException):
         dao.criar(dados)
 
-    lido: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome))
     assert lido == qa
 
 
@@ -277,10 +277,10 @@ def test_salvar_categoria_com_pk_nome_repetido(c: TransactedConnection) -> None:
     with raises(IntegrityViolationException):
         dao.salvar_com_pk(dados)
 
-    lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome))
     assert lido1 == qa
 
-    lido2: DadosCategoria | None = dao.buscar_por_nome(nome_producao)
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(producao.nome))
     assert lido2 == producao
 
 
@@ -292,7 +292,7 @@ def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
     with raises(IntegrityViolationException):
         dao.salvar_com_pk(dados)
 
-    lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome))
     assert lido1 == qa
 
     lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(""))
@@ -307,7 +307,7 @@ def test_salvar_categoria_com_pk_nome_longo(c: TransactedConnection) -> None:
     with raises(IntegrityViolationException):
         dao.salvar_com_pk(dados)
 
-    lido1: DadosCategoria | None = dao.buscar_por_nome(nome_qa)
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome))
     assert lido1 == qa
 
     lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_longo))

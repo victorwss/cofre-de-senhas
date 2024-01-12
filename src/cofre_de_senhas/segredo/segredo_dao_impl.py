@@ -2,7 +2,7 @@ from typing import override
 from connection.trans import TransactedConnection
 from ..dao import (
     SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo,
-    LoginUsuario, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
+    LoginUsuarioUK, CategoriaDeSegredo, PermissaoDeSegredo, BuscaPermissaoPorLogin
 )
 
 
@@ -52,7 +52,7 @@ class SegredoDAOImpl(SegredoDAO):
     # Métodos auxiliares.
 
     @override
-    def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
+    def listar_visiveis(self, login: LoginUsuarioUK) -> list[DadosSegredo]:
         sql: str = " ".join([
             "SELECT s.pk_segredo, s.nome, s.descricao, s.fk_tipo_segredo",
             "FROM segredo s",

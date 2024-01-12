@@ -1,9 +1,10 @@
-from ..db_test_util import DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
-from cofre_de_senhas.dao import (
-    DadosUsuario, DadosUsuarioSemPK, LoginUsuario,
-    DadosCategoria, DadosCategoriaSemPK, NomeCategoriaUK,
-    DadosSegredo, DadosSegredoSemPK
-)
+from typing import override
+from .db_test_util import DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
+from cofre_de_senhas.dao import DadosUsuario, DadosUsuarioSemPK, DadosCategoria, DadosCategoriaSemPK, DadosSegredo, DadosSegredoSemPK
+from cofre_de_senhas.erro import UsuarioNaoLogadoException
+from connection.trans import TransactedConnection
+from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, UsuarioComChave
+from cofre_de_senhas.service_impl import Servicos
 
 
 def read_all(fn: str) -> str:
@@ -67,15 +68,6 @@ snape       : DadosUsuario = DadosUsuario(5, "Snape"       , 1, sectumsempra    
 
 snape_sem_pk: DadosUsuarioSemPK = DadosUsuarioSemPK("Snape", 1, sectumsempra)
 
-login_harry_potter = LoginUsuario("Harry Potter")  # noqa: E202,E221
-login_voldemort    = LoginUsuario("Voldemort"   )  # noqa: E202,E221
-login_dumbledore   = LoginUsuario("Dumbledore"  )  # noqa: E202,E221
-login_hermione     = LoginUsuario("Hermione"    )  # noqa: E202,E221
-login_snape        = LoginUsuario("Snape"       )  # noqa: E202,E221
-login_lixo_1       = LoginUsuario("Dollynho"    )  # noqa: E202,E221
-login_lixo_2       = LoginUsuario("Papai Noel"  )  # noqa: E202,E221
-login_lixo_3       = LoginUsuario("Faustão"     )  # noqa: E202,E221
-
 todos_usuarios: list[DadosUsuario] = [harry_potter, voldemort, dumbledore, hermione]
 parte_usuarios: list[DadosUsuario] = [harry_potter, dumbledore]
 
@@ -93,12 +85,8 @@ nao_existe      : DadosCategoria = DadosCategoria(88, "Coisas feitas com boa qua
 
 dados_millenium_falcon: DadosCategoriaSemPK = DadosCategoriaSemPK("Millenium Falcon")
 
-nome_millenium_falcon : NomeCategoriaUK = NomeCategoriaUK("Millenium Falcon"                           )  # noqa: E201,E202,E203
-nome_producao         : NomeCategoriaUK = NomeCategoriaUK("Produção"                                   )  # noqa: E201,E202,E203
-nome_qa               : NomeCategoriaUK = NomeCategoriaUK("QA"                                         )  # noqa: E201,E202,E203
-nome_nao_existe       : NomeCategoriaUK = NomeCategoriaUK("Coisas feitas com boa qualidade pela Prodam")  # noqa: E201,E202,E203
-nome_em_branco        : NomeCategoriaUK = NomeCategoriaUK(""                                           )  # noqa: E201,E202,E203
-nome_longo_demais     : NomeCategoriaUK = NomeCategoriaUK(alohomora + alohomora + alohomora + alohomora)  # noqa: E201,E202,E203
+nome_em_branco: str = ""
+nome_longo_demais: str = alohomora + alohomora + alohomora + alohomora
 
 todas_categorias: list[DadosCategoria] = [banco_de_dados, aplicacao, servidor, api, producao, homologacao, desenvolvimento, qa, integracao]
 parte_categorias: list[DadosCategoria] = [api, producao, homologacao]
@@ -134,3 +122,54 @@ def mix(nome: str) -> str:
             out += n.upper()
         a = not a
     return out
+
+
+class GerenciadorLoginNaoLogado(GerenciadorLogin):
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        assert False
+
+    @override
+    def logout(self) -> None:
+        assert False
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
+        return UsuarioNaoLogadoException()
+
+
+class GerenciadorLoginChave(GerenciadorLogin):
+
+    def __init__(self, chave: ChaveUsuario) -> None:
+        self.__chave: ChaveUsuario = chave
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        assert False
+
+    @override
+    def logout(self) -> None:
+        assert False
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
+        return self.__chave
+
+
+def servicos_normal(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario)), c)
+
+
+def servicos_admin(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginChave(ChaveUsuario(dumbledore.pk_usuario)), c)
+
+
+def servicos_banido(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginChave(ChaveUsuario(voldemort.pk_usuario)), c)
+
+
+def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginChave(ChaveUsuario(lixo2)), c)

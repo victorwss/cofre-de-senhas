@@ -3,7 +3,7 @@ from validator import dataclass_validate
 from dataclasses import dataclass, replace
 from ..dao import (
     SegredoDAO, SegredoPK, DadosSegredo, DadosSegredoSemPK,
-    LoginUsuario as LoginUsuarioDAO, BuscaPermissaoPorLogin,
+    LoginUsuarioUK, BuscaPermissaoPorLogin,
     CategoriaDeSegredo, CampoDeSegredo, PermissaoDeSegredo
 )
 from ..erro import (
@@ -210,7 +210,7 @@ class Segredo:
 
     @staticmethod
     def __listar_visiveis(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:
-        return [Segredo.Cabecalho._promote(s) for s in SegredoDAO.instance().listar_visiveis(LoginUsuarioDAO(quem_faz.login))]
+        return [Segredo.Cabecalho._promote(s) for s in SegredoDAO.instance().listar_visiveis(LoginUsuarioUK(quem_faz.login))]
 
     @staticmethod
     def _listar(quem_faz: Usuario) -> list["Segredo.Cabecalho"]:

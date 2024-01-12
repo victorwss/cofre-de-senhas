@@ -94,12 +94,12 @@ class CampoDeSegredo:
 
 @dataclass_validate
 @dataclass(frozen = True)
-class LoginUsuario:
+class LoginUsuarioUK:
     valor: str
 
     @staticmethod
-    def para_todos(logins: set[str]) -> list["LoginUsuario"]:
-        return [LoginUsuario(v) for v in logins]
+    def para_todos(logins: set[str]) -> list["LoginUsuarioUK"]:
+        return [LoginUsuarioUK(v) for v in logins]
 
 
 @dataclass_validate
@@ -209,7 +209,7 @@ class SegredoDAO(DAO):
     # Métodos auxiliares.
 
     @abstractmethod
-    def listar_visiveis(self, login: LoginUsuario) -> list[DadosSegredo]:
+    def listar_visiveis(self, login: LoginUsuarioUK) -> list[DadosSegredo]:
         pass
 
     @abstractmethod
@@ -339,7 +339,7 @@ class UsuarioDAO(DAO):
         pass
 
     @abstractmethod
-    def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
+    def listar_por_logins(self, logins: list[LoginUsuarioUK]) -> list[DadosUsuario]:
         pass
 
     @abstractmethod
@@ -357,11 +357,11 @@ class UsuarioDAO(DAO):
     #  Métodos auxiliares
 
     @abstractmethod
-    def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
+    def buscar_por_login(self, login: LoginUsuarioUK) -> DadosUsuario | None:
         pass
 
     # @abstractmethod
-    # def deletar_por_login(self, login: LoginUsuario) -> None:
+    # def deletar_por_login(self, login: LoginUsuarioUK) -> None:
     #     pass
 
     # Métodos com joins em outras tabelas

@@ -6,7 +6,7 @@ from ..erro import (
     SenhaErradaException, UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException,
     UsuarioNaoExisteException, UsuarioJaExisteException,
 )
-from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuario as LoginUsuarioDAO
+from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuarioUK
 from ..service import (
     TipoPermissao,
     UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
@@ -143,7 +143,7 @@ class Usuario:
 
     @staticmethod
     def __encontrar_por_login(login: str) -> "Usuario | None":
-        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(login))
+        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioUK(login))
         if dados is None:
             return None
         return Usuario._promote(dados)
@@ -182,7 +182,7 @@ class Usuario:
     # Exportado para a classe Segredo.
     @staticmethod
     def listar_por_logins(logins: set[str]) -> dict[str, "Usuario"] | _UNEE:
-        dl: list[LoginUsuarioDAO] = LoginUsuarioDAO.para_todos(logins)
+        dl: list[LoginUsuarioUK] = LoginUsuarioUK.para_todos(logins)
         dados: list[DadosUsuario] = UsuarioDAO.instance().listar_por_logins(dl)
         r: dict[str, Usuario] = Usuario.__mapear_todos(dados)
 
@@ -229,7 +229,7 @@ class Servicos:
 
     @staticmethod
     def login(quem_faz: LoginComSenha) -> UsuarioComChave | _UBE | _SEE:
-        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioDAO(quem_faz.login))
+        dados: DadosUsuario | None = UsuarioDAO.instance().buscar_por_login(LoginUsuarioUK(quem_faz.login))
         if dados is None:
             return SenhaErradaException()
         cadastrado: Usuario = Usuario._promote(dados)

@@ -1,8 +1,8 @@
 from ..db_test_util import applier, applier_trans, DbTestConfig
-from .fixtures import (
+from ..fixtures import (
     dbs, assert_db_ok,
     todos_segredos, parte_segredos, visiv_segredos,
-    harry_potter, hermione, login_harry_potter, login_hermione, login_dumbledore, snape, login_snape, snape_sem_pk, login_voldemort,
+    harry_potter, dumbledore, voldemort, hermione, snape, snape_sem_pk,
     dbz, lotr, star_wars, star_trek, star_trek_sem_pk,
     qa, aplicacao, integracao, producao,
     lixo1, lixo2, lixo3
@@ -12,7 +12,7 @@ from connection.conn import IntegrityViolationException
 from cofre_de_senhas.dao import (
     CategoriaDAO, UsuarioDAO, SegredoDAO,
     BuscaPermissaoPorLogin, SegredoPK, DadosSegredo, DadosSegredoSemPK, CampoDeSegredo, PermissaoDeSegredo,
-    DadosCategoria, CategoriaDeSegredo, UsuarioPK, DadosUsuarioSemPK
+    DadosCategoria, CategoriaDeSegredo, UsuarioPK, DadosUsuarioSemPK, LoginUsuarioUK
 )
 from cofre_de_senhas.categoria.categoria_dao_impl import CategoriaDAOImpl
 from cofre_de_senhas.segredo.segredo_dao_impl import SegredoDAOImpl
@@ -115,35 +115,36 @@ def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_1(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
-    lido: list[DadosSegredo] = dao.listar_visiveis(login_harry_potter)
+    lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(harry_potter.login))
     assert lido == todos_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_2(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
-    lido: list[DadosSegredo] = dao.listar_visiveis(login_voldemort)
+    lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(voldemort.login))
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_3(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
-    lido: list[DadosSegredo] = dao.listar_visiveis(login_dumbledore)  # Dumbledore é chaveiro, mas não é responsabilidade do DAO verificar isso.
+    # Dumbledore é chaveiro, mas não é responsabilidade do DAO verificar isso.
+    lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(dumbledore.login))
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_4(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
-    lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
+    lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(hermione.login))
     assert lido == visiv_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_listar_segredos_visiveis_5(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
-    lido: list[DadosSegredo] = dao.listar_visiveis(login_snape)
+    lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(snape.login))
     assert lido == visiv_segredos
 
 
@@ -260,7 +261,7 @@ def test_criar_permissao(c: TransactedConnection) -> None:
     perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
     assert dao.criar_permissao(perm1)
 
-    lido: list[DadosSegredo] = dao.listar_visiveis(login_hermione)
+    lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(hermione.login))
     assert lido == todos_segredos
 
     busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Hermione")

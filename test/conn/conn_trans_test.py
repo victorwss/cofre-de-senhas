@@ -3,7 +3,7 @@ from connection.conn import RAW_DATA, IntegrityViolationException, TransactionNo
 from connection.trans import TransactedConnection
 from pytest import raises
 from ..db_test_util import applier, DbTestConfig
-from ..dao.fixtures import dbs_f as dbs, sqlite_db_f as sqlite_db, mysql_db_f as mysql_db, mariadb_db_f as mariadb_db
+from ..fixtures import dbs_f as dbs, sqlite_db_f as sqlite_db, mysql_db_f as mysql_db, mariadb_db_f as mariadb_db
 
 
 run_on_dbs: list[DbTestConfig] = []

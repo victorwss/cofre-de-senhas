@@ -211,7 +211,6 @@ _ESCE: TypeAlias = ExclusaoSemCascataException
 
 class GerenciadorLogin(ABC):
 
-    # Pode lançar SenhaErradaException
     @abstractmethod
     def login(self, chave: UsuarioComChave) -> None:
         pass
@@ -220,7 +219,6 @@ class GerenciadorLogin(ABC):
     def logout(self) -> None:
         pass
 
-    # Pode lançar UsuarioNaoLogadoException.
     @property
     @abstractmethod
     def usuario_logado(self) -> ChaveUsuario | _UNLE:

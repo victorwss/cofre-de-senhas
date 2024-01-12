@@ -1,6 +1,6 @@
 from typing import override
 from connection.trans import TransactedConnection
-from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, DadosUsuarioComPermissao, LoginUsuario
+from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioSemPK, SegredoPK, DadosUsuarioComPermissao, LoginUsuarioUK
 
 
 class UsuarioDAOImpl(UsuarioDAO):
@@ -27,7 +27,7 @@ class UsuarioDAOImpl(UsuarioDAO):
         return self._connection.execute(sql).fetchall_class(DadosUsuario)
 
     @override
-    def listar_por_logins(self, logins: list[LoginUsuario]) -> list[DadosUsuario]:
+    def listar_por_logins(self, logins: list[LoginUsuarioUK]) -> list[DadosUsuario]:
         wildcards: str = ", ".join([self._placeholder for login in logins])
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login IN ({wildcards}) ORDER BY pk_usuario"
         return self._connection.execute(sql, [login.valor for login in logins]).fetchall_class(DadosUsuario)
@@ -60,7 +60,7 @@ class UsuarioDAOImpl(UsuarioDAO):
     # Métodos auxiliares
 
     @override
-    def buscar_por_login(self, login: LoginUsuario) -> DadosUsuario | None:
+    def buscar_por_login(self, login: LoginUsuarioUK) -> DadosUsuario | None:
         sql: str = f"SELECT pk_usuario, login, fk_nivel_acesso, hash_com_sal FROM usuario WHERE login = {self._placeholder}"
         return self._connection.execute(sql, [login.valor]).fetchone_class(DadosUsuario)
 
