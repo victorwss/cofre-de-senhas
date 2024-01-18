@@ -267,7 +267,7 @@ class ServicoUsuario(ABC):
         pass
 
     @abstractmethod
-    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _LEE:
         pass
 
 

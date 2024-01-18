@@ -198,29 +198,29 @@ class _ServicoUsuarioClient(ServicoUsuario):
         return self.__requester.put(f"/usuarios/{dados.login}", d, UsuarioComChave, typed(_UNLE).join(_UBE).join(_PNE).join(_UJEE).join(_LEE).end)
 
     @override
-    def trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE:
-        return self.__requester.post("/trocar-senha", dados, type(None), typed(_UNLE).join(_UBE).end)
+    def trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE | _LEE:
+        return self.__requester.post("/trocar-senha", dados, type(None), typed(_UNLE).join(_UBE).join(_LEE).end)
 
     @override
-    def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE:
-        return self.__requester.post(f"/usuarios/{dados.login}/resetar-senha", {}, SenhaAlterada, typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).end)
+    def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+        return self.__requester.post(f"/usuarios/{dados.login}/resetar-senha", {}, SenhaAlterada, typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end)
 
     @override
-    def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE:
+    def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         d: dict[str, Any] = {"nivel_acesso": dados.nivel_acesso}
-        return self.__requester.post(f"/usuarios/{dados.login}/alterar-nivel", d, type(None), typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).end)
+        return self.__requester.post(f"/usuarios/{dados.login}/alterar-nivel", d, type(None), typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end)
 
     @override
-    def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE:
-        return self.__requester.get(f"/usuarios/{dados.login}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).end)
+    def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
+        return self.__requester.get(f"/usuarios/{dados.login}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
 
     @override
-    def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE:
-        return self.__requester.get(f"/usuarios/{chave.valor}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).end)
+    def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
+        return self.__requester.get(f"/usuarios/{chave.valor}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
 
     @override
-    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _PNE | _UNEE:
-        return self.__requester.get("/usuarios", ResultadoListaDeUsuarios, typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).end)
+    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE:
+        return self.__requester.get("/usuarios", ResultadoListaDeUsuarios, typed(_UNLE).join(_UBE).end)
 
 
 class _ServicoSegredoClient(ServicoSegredo):
@@ -268,31 +268,31 @@ class _ServicoCategoriaClient(ServicoCategoria):
         self.__requester: _Requester = requester
 
     @override
-    def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE:
-        return self.__requester.get(f"/categorias/{dados.nome}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).end)
+    def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
+        return self.__requester.get(f"/categorias/{dados.nome}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
 
     @override
-    def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE:
-        return self.__requester.get(f"/categorias/{chave.valor}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).end)
+    def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
+        return self.__requester.get(f"/categorias/{chave.valor}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
 
     @override
-    def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CJEE:
-        return self.__requester.put(f"/categorias/{dados.nome}", {}, CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).end)
+    def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CJEE | _LEE:
+        return self.__requester.put(f"/categorias/{dados.nome}", {}, CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
 
     @override
-    def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _CJEE | _CNEE | _VIE:
+    def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _CJEE | _CNEE | _VIE | _LEE:
         return self.__requester.move(
             f"/categorias/{dados.antigo}",
             dados.novo,
             False,
             type(None),
-            typed(_UNLE).join(_UBE).join(_CJEE).join(_CNEE).join(_VIE).end
+            typed(_UNLE).join(_UBE).join(_CJEE).join(_CNEE).join(_VIE).join(_LEE).end
         )
 
     @override
-    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _CNEE | _ESCE:
-        return self.__requester.delete(f"/categorias/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).end)
+    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _CNEE | _ESCE | _LEE:
+        return self.__requester.delete(f"/categorias/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).join(_LEE).end)
 
     @override
-    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE:
-        return self.__requester.get("/categorias", ResultadoListaDeCategorias, typed(_UNLE).join(_UBE).end)
+    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:
+        return self.__requester.get("/categorias", ResultadoListaDeCategorias, typed(_UNLE).join(_UBE).join(_LEE).end)

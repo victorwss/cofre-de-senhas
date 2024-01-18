@@ -172,7 +172,7 @@ class _ServicoUsuarioImpl(ServicoUsuario):
         return UsuarioServico.buscar_por_chave(u, chave)
 
     @override
-    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _LEE:
         u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
         if isinstance(u, _UNLE):
             return u

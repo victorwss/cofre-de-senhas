@@ -1,17 +1,27 @@
 from ..db_test_util import applier_trans
 from ..fixtures import (
     dbs, assert_db_ok,
-    snape, hermione,
+    harry_potter, voldemort, dumbledore, hermione, snape,
     servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado
 )
 from connection.trans import TransactedConnection
-from cofre_de_senhas.service import ChaveUsuario, LoginUsuario, LoginComSenha, NivelAcesso, UsuarioComChave, UsuarioNovo
+from cofre_de_senhas.service import (
+    ChaveUsuario, LoginUsuario, NivelAcesso, UsuarioComChave, UsuarioNovo, ResultadoListaDeUsuarios
+)
 from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.erro import (
     UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException, UsuarioNaoLogadoException,
     UsuarioNaoExisteException, UsuarioJaExisteException
 )
 from pytest import raises
+
+
+tudo: ResultadoListaDeUsuarios = ResultadoListaDeUsuarios([
+    UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL),
+    UsuarioComChave(ChaveUsuario(voldemort   .pk_usuario), voldemort   .login, NivelAcesso.DESATIVADO),
+    UsuarioComChave(ChaveUsuario(dumbledore  .pk_usuario), dumbledore  .login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO),
+    UsuarioComChave(ChaveUsuario(hermione    .pk_usuario), hermione    .login, NivelAcesso.NORMAL)
+])
 
 
 def test_nao_instanciar_servicos() -> None:
@@ -150,4 +160,104 @@ def buscar_por_login_UNLE(c: TransactedConnection) -> None:
     dados: LoginUsuario = LoginUsuario(hermione.login)
 
     x: UsuarioComChave | BaseException = s.usuario.buscar_por_login(dados)
+    assert isinstance(x, UsuarioNaoLogadoException)
+
+
+# Método buscar_por_chave(self, dados: ChaveUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
+
+
+@applier_trans(dbs, assert_db_ok)
+def buscar_por_chave_normal(c: TransactedConnection) -> None:
+    s: Servicos = servicos_normal(c)
+    dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
+
+    x: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert x == UsuarioComChave(ChaveUsuario(hermione.pk_usuario), hermione.login, NivelAcesso.NORMAL)
+
+
+@applier_trans(dbs, assert_db_ok)
+def buscar_por_chave_admin(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
+
+    x: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert x == UsuarioComChave(ChaveUsuario(hermione.pk_usuario), hermione.login, NivelAcesso.NORMAL)
+
+
+@applier_trans(dbs, assert_db_ok)
+def buscar_por_chave_UNEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: ChaveUsuario = ChaveUsuario(snape.pk_usuario)
+
+    x: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert isinstance(x, UsuarioNaoExisteException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def buscar_por_chave_UBE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
+
+    x: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert isinstance(x, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def buscar_por_chave_LEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_usuario_nao_existe(c)
+    dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
+
+    x: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert isinstance(x, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def buscar_por_chave_UNLE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logado(c)
+    dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
+
+    x: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert isinstance(x, UsuarioNaoLogadoException)
+
+
+# Método listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _LEE
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_listar_usuarios_ok_normal(c: TransactedConnection) -> None:
+    s: Servicos = servicos_normal(c)
+
+    x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
+    assert x == tudo
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_listar_usuarios_ok_admin(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+
+    x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
+    assert x == tudo
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_listar_usuarios_LEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_usuario_nao_existe(c)
+
+    x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
+    assert isinstance(x, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_listar_usuarios_UBE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+
+    x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
+    assert isinstance(x, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_listar_usuarios_UNLE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logado(c)
+
+    x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert isinstance(x, UsuarioNaoLogadoException)

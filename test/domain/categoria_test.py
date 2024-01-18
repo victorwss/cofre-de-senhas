@@ -495,7 +495,7 @@ def test_excluir_categoria_UNLE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_listar_categoria_ok1(c: TransactedConnection) -> None:
+def test_listar_categorias_ok1(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
 
     x: ResultadoListaDeCategorias | BaseException = s.categoria.listar()
@@ -503,7 +503,7 @@ def test_listar_categoria_ok1(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_listar_categoria_ok2(c: TransactedConnection) -> None:
+def test_listar_categorias_ok2(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
 
     x: ResultadoListaDeCategorias | BaseException = s.categoria.listar()
@@ -511,7 +511,7 @@ def test_listar_categoria_ok2(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_listar_categoria_LEE(c: TransactedConnection) -> None:
+def test_listar_categorias_LEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_usuario_nao_existe(c)
 
     x: ResultadoListaDeCategorias | BaseException = s.categoria.listar()
@@ -519,7 +519,7 @@ def test_listar_categoria_LEE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_listar_categoria_UBE(c: TransactedConnection) -> None:
+def test_listar_categorias_UBE(c: TransactedConnection) -> None:
     s: Servicos = servicos_banido(c)
 
     x: ResultadoListaDeCategorias | BaseException = s.categoria.listar()
@@ -527,7 +527,7 @@ def test_listar_categoria_UBE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_listar_categoria_UNLE(c: TransactedConnection) -> None:
+def test_listar_categorias_UNLE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logado(c)
 
     x: ResultadoListaDeCategorias | BaseException = s.categoria.listar()
