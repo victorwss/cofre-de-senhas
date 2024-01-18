@@ -294,5 +294,5 @@ class _ServicoCategoriaClient(ServicoCategoria):
         return self.__requester.delete(f"/categorias/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).end)
 
     @override
-    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _CJEE:
-        return self.__requester.get("/categorias", ResultadoListaDeCategorias, typed(_UNLE).join(_UBE).join(_CJEE).end)
+    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE:
+        return self.__requester.get("/categorias", ResultadoListaDeCategorias, typed(_UNLE).join(_UBE).end)

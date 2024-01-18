@@ -272,7 +272,7 @@ class _ServicoCategoriaImpl(ServicoCategoria):
         return CategoriaServico.excluir_por_nome(u, dados)
 
     @override
-    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _CJEE | _LEE:
+    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:
         u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
         if isinstance(u, _UNLE):
             return u

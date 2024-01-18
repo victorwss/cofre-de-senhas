@@ -24,14 +24,14 @@ class _Nao(GerenciadorLogin):  # pragma: no cover
 
 def _criar_bd(cofre: TransactedConnection) -> None:
 
-    login1: str = input("Informe o login do usuário administrador : ")
+    login1: str = input("Informe  o login do usuário administrador: ")
     login2: str = input("Confirme o login do usuário administrador: ")
 
     if login1 != login2:
         print("Os logins não conferem")
         return
 
-    senha1 = input("Informe a senha do usuário administrador : ")
+    senha1 = input("Informe  a senha do usuário administrador: ")
     senha2 = input("Confirme a senha do usuário administrador: ")
 
     if senha1 != senha2:

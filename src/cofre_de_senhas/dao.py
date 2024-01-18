@@ -151,6 +151,14 @@ class DAO(ABC):
     def _database_type(self) -> str:
         return self.__con.database_type
 
+    def _executar_sql(self, sql: str) -> None:
+        if self._database_type == "MariaDB":
+            for part in sql.split(";"):
+                if part.strip() != "":
+                    self._connection.execute(part)
+        else:
+            self._connection.executescript(sql)
+
 
 class CofreDeSenhasDAO(DAO):
 

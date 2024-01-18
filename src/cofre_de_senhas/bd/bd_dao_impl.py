@@ -16,9 +16,4 @@ class CofreDeSenhasDAOImpl(CofreDeSenhasDAO):
     @override
     def criar_bd(self) -> None:
         sql: str = self.__sql_criar_bd()
-        if self._connection.database_type == "MariaDB":
-            for part in sql.split(";"):
-                if part.strip() != "":
-                    self._connection.execute(part)
-        else:
-            self._connection.executescript(sql)
+        self._executar_sql(sql)

@@ -13,6 +13,23 @@ def read_all(fn: str) -> str:
         return f.read()
 
 
+def assert_db_ok(db: DbTestConfig) -> None:
+    assert db in dbs.values(), f"Database connector failed to load. {len(dbs)}"
+
+
+def mix(nome: str) -> str:
+    out: str = ""
+    a: bool = True
+    for x in range(0, len(nome)):
+        n: str = nome[x]
+        if a:
+            out += n.lower()
+        else:
+            out += n.upper()
+        a = not a
+    return out
+
+
 mysql_clear: str = read_all("src/mariadb-create.sql").replace("$$$$", "test_cofre") + "\n" + read_all("test/test-mass.sql")
 mysql_reset: str = read_all("test/create-fruits-mysql.sql")
 sqlite_create: str = read_all("test/create-fruits-sqlite.sql")
@@ -26,7 +43,6 @@ mysql_db_x  : MysqlTestConfig   = MysqlTestConfig  (""         , "root", "root",
 mariadb_db  : MariaDbTestConfig = MariaDbTestConfig(mysql_clear, "root", "root", "mariadb", 3306, "test_cofre"      , 5)  # noqa: E202,E203,E211,E221
 mariadb_db_f: MariaDbTestConfig = MariaDbTestConfig(mysql_reset, "root", "root", "mariadb", 3306, "test_fruits"     , 5)  # noqa: E202,E203,E211,E221
 mariadb_db_x: MariaDbTestConfig = MariaDbTestConfig(""         , "root", "root", "mariadb", 3306, "test_cofre_empty", 3)  # noqa: E202,E203,E211,E221
-
 
 dbs: dict[str, DbTestConfig] = {
     "sqlite" : sqlite_db   ,  # noqa: E203
@@ -45,11 +61,6 @@ dbs_x: dict[str, DbTestConfig] = {
     "mysql"  : mysql_db_x  ,  # noqa: E203
     "mariadb": mariadb_db_x   # noqa: E203
 }
-
-
-def assert_db_ok(db: DbTestConfig) -> None:
-    assert db in dbs.values(), f"Database connector failed to load. {len(dbs)}"
-
 
 alohomora       : str = "SbhhiMEETzPiquOxabc178eb35f26c8f59981b01a11cbec48b16f6a8e2c204f4a9a1b633c9199e0b3b2a64b13e49226306bb451c57c851f3c6e872885115404cb74279db7f5372ea"  # noqa: E203,E501
 avada_kedavra   : str = "ZisNWkdEImMneIcX8ac8780d30e67df14c1afbaf256e1ee45afd1d3cf2654d154b2e9c63541a40d4132a9beed69c4a47b3f2e5612c2751cdfa3abfaed9797fe54777e2f3dfe6aaa0"  # noqa: E203,E501
@@ -111,19 +122,6 @@ lixo5: str = "Cachorro"
 lixo6: str = "Garfo"
 
 
-def mix(nome: str) -> str:
-    out: str = ""
-    a: bool = True
-    for x in range(0, len(nome)):
-        n: str = nome[x]
-        if a:
-            out += n.lower()
-        else:
-            out += n.upper()
-        a = not a
-    return out
-
-
 class GerenciadorLoginNaoLogado(GerenciadorLogin):
 
     @override
@@ -173,3 +171,7 @@ def servicos_banido(c: TransactedConnection) -> Servicos:
 
 def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
     return Servicos(GerenciadorLoginChave(ChaveUsuario(lixo2)), c)
+
+
+def servicos_nao_logado(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginNaoLogado(), c)

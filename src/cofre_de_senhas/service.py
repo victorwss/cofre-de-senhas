@@ -325,5 +325,5 @@ class ServicoCategoria(ABC):
         pass
 
     @abstractmethod
-    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _CJEE | _LEE:
+    def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:
         pass
