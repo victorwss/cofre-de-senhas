@@ -122,6 +122,22 @@ lixo5: str = "Cachorro"
 lixo6: str = "Garfo"
 
 
+class GerenciadorLoginFalha(GerenciadorLogin):
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        assert False
+
+    @override
+    def logout(self) -> None:
+        assert False
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
+        assert False
+
+
 class GerenciadorLoginNaoLogado(GerenciadorLogin):
 
     @override
@@ -157,6 +173,51 @@ class GerenciadorLoginChave(GerenciadorLogin):
         return self.__chave
 
 
+class GerenciadorLoginSimples(GerenciadorLogin):
+
+    def __init__(self) -> None:
+        self.__chave: ChaveUsuario | None = None
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        self.__chave = usuario.chave
+
+    @override
+    def logout(self) -> None:
+        self.__chave = None
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
+        if self.__chave is None:
+            return UsuarioNaoLogadoException()
+        return self.__chave
+
+
+class GerenciadorFazLogin(GerenciadorLogin):
+
+    def __init__(self, chave: ChaveUsuario) -> None:
+        self.__chave: ChaveUsuario = chave
+        self.__chamada: int = 0
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        assert usuario.chave == self.__chave
+        self.__chamada += 1
+
+    def verificar(self) -> None:
+        assert self.__chamada == 1
+
+    @override
+    def logout(self) -> None:
+        assert False
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
+        assert False
+
+
 def servicos_normal(c: TransactedConnection) -> Servicos:
     return Servicos(GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario)), c)
 
@@ -175,3 +236,7 @@ def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
 
 def servicos_nao_logado(c: TransactedConnection) -> Servicos:
     return Servicos(GerenciadorLoginNaoLogado(), c)
+
+
+def servicos_nao_logar(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginFalha(), c)

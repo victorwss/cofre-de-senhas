@@ -1,16 +1,16 @@
 from ..db_test_util import applier_trans
 from ..fixtures import (
-    dbs, assert_db_ok,
+    dbs, assert_db_ok, GerenciadorFazLogin,
     harry_potter, voldemort, dumbledore, hermione, snape,
-    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado
+    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.service import (
-    ChaveUsuario, LoginUsuario, NivelAcesso, UsuarioComChave, UsuarioNovo, ResultadoListaDeUsuarios
+    ChaveUsuario, LoginUsuario, LoginComSenha, NivelAcesso, UsuarioComChave, UsuarioNovo, ResultadoListaDeUsuarios
 )
 from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.erro import (
-    UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException, UsuarioNaoLogadoException,
+    UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException, UsuarioNaoLogadoException, SenhaErradaException,
     UsuarioNaoExisteException, UsuarioJaExisteException
 )
 from pytest import raises
@@ -261,3 +261,75 @@ def test_listar_usuarios_UNLE(c: TransactedConnection) -> None:
 
     x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert isinstance(x, UsuarioNaoLogadoException)
+
+
+# Método login(self, quem_faz: LoginComSenha) -> UsuarioComChave | _UBE | _SEE
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_ok1(c: TransactedConnection) -> None:
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(hermione.pk_usuario))
+    s: Servicos = Servicos(gl, c)
+
+    login: LoginComSenha = LoginComSenha(hermione.login, "expelliarmus")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert x == UsuarioComChave(ChaveUsuario(hermione.pk_usuario), hermione.login, NivelAcesso.NORMAL)
+    gl.verificar()
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_ok2(c: TransactedConnection) -> None:
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
+    s: Servicos = Servicos(gl, c)
+
+    login: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert x == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
+    gl.verificar()
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_ok3(c: TransactedConnection) -> None:
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
+    s: Servicos = Servicos(gl, c)
+
+    login: LoginComSenha = LoginComSenha(dumbledore.login, "expecto patronum")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert x == UsuarioComChave(ChaveUsuario(dumbledore.pk_usuario), dumbledore.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
+    gl.verificar()
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_UBE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logar(c)
+
+    login: LoginComSenha = LoginComSenha(voldemort.login, "avada kedavra")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert isinstance(x, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_SEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logar(c)
+
+    login: LoginComSenha = LoginComSenha(harry_potter.login, "xxxx")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert isinstance(x, SenhaErradaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_SEE_usuario_nao_existe(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logar(c)
+
+    login: LoginComSenha = LoginComSenha("xxx", "xxxx")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert isinstance(x, SenhaErradaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_login_UBE_antes_de_SEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logar(c)
+
+    login: LoginComSenha = LoginComSenha(voldemort.login, "xxxx")
+    x: UsuarioComChave | BaseException = s.usuario.login(login)
+    assert isinstance(x, UsuarioBanidoException)
