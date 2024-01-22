@@ -6,7 +6,7 @@ from ..fixtures import (
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.service import (
-    ChaveUsuario, LoginUsuario, LoginComSenha, NivelAcesso, UsuarioComChave, UsuarioNovo, ResultadoListaDeUsuarios
+    ChaveUsuario, LoginUsuario, LoginComSenha, NivelAcesso, TrocaSenha, UsuarioComChave, UsuarioNovo, ResultadoListaDeUsuarios
 )
 from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.erro import (
@@ -35,7 +35,7 @@ def test_nao_instanciar_servicos() -> None:
 #     from cofre_de_senhas.usuario.usuario import Servicos as UsuarioServico
 #     s: Servicos = servicos_normal(c)
 #     dados: LoginComSenha = LoginComSenha(snape.login, "sectumsempra")
-
+#
 #     x: UsuarioComChave | BaseException = UsuarioServico.criar_admin(dados)
 #     assert x == UsuarioComChave(ChaveUsuario(snape.pk_usuario), snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
 
@@ -359,3 +359,100 @@ def test_logout() -> None:
     gl.verificar()
     assert commited
     assert closed
+
+
+# Método trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE | _SEE | _LEE:
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_admin(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_admin(c)
+    t: TrocaSenha = TrocaSenha("expecto patronum", "wingardium leviosa")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert x1 is None
+
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
+    s2: Servicos = Servicos(gl, c)
+
+    login1: LoginComSenha = LoginComSenha(dumbledore.login, "wingardium leviosa")
+    x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
+    assert x2 == UsuarioComChave(ChaveUsuario(dumbledore.pk_usuario), dumbledore.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
+    gl.verificar()
+
+    login2: LoginComSenha = LoginComSenha(dumbledore.login, "expecto patronum")
+    x3: UsuarioComChave | BaseException = s1.usuario.login(login2)
+    assert isinstance(x3, SenhaErradaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_normal(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_normal(c)
+    t: TrocaSenha = TrocaSenha("alohomora", "wingardium leviosa")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert x1 is None
+
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
+    s2: Servicos = Servicos(gl, c)
+
+    login1: LoginComSenha = LoginComSenha(harry_potter.login, "wingardium leviosa")
+    x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
+    assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
+    gl.verificar()
+
+    login2: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
+    x3: UsuarioComChave | BaseException = s1.usuario.login(login2)
+    assert isinstance(x3, SenhaErradaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_SEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_normal(c)
+    t: TrocaSenha = TrocaSenha("xxxx", "wingardium leviosa")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert isinstance(x1, SenhaErradaException)
+
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
+    s2: Servicos = Servicos(gl, c)
+
+    login1: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
+    x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
+    assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_UBE_antes_de_SEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_banido(c)
+    t: TrocaSenha = TrocaSenha("xxxx", "wingardium leviosa")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert isinstance(x1, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_UBE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_banido(c)
+    t: TrocaSenha = TrocaSenha("avada kedavra", "wingardium leviosa")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert isinstance(x1, UsuarioBanidoException)
+
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(voldemort.pk_usuario))
+    s2: Servicos = Servicos(gl, c)
+
+    login1: LoginComSenha = LoginComSenha(voldemort.login, "wingardium leviosa")
+    x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
+    assert isinstance(x2, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_LEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_usuario_nao_existe(c)
+    t: TrocaSenha = TrocaSenha("blabla", "xxx xxx xxx")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert isinstance(x1, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_trocar_senha_por_chave_UNLE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_nao_logado(c)
+    t: TrocaSenha = TrocaSenha("blabla", "xxx xxx xxx")
+    x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
+    assert isinstance(x1, UsuarioNaoLogadoException)
