@@ -3,7 +3,14 @@ stages:
 
 image: python:3.12.0-slim
 
-test:
+lint-test:
+  stage: test
+  script:
+    - pip install Flake8-pyproject
+    - flake8 ./src ./test 
+  allow_failure: true
+
+unit-test:
   stage: test
   variables:
     MARIADB_ROOT_PASSWORD: "root"
