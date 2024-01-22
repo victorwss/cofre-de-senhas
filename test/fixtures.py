@@ -1,10 +1,11 @@
-from typing import override
+from typing import Callable, Literal, override, Self, Sequence
 from .db_test_util import DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
 from cofre_de_senhas.dao import DadosUsuario, DadosUsuarioSemPK, DadosCategoria, DadosCategoriaSemPK, DadosSegredo, DadosSegredoSemPK
 from cofre_de_senhas.erro import UsuarioNaoLogadoException
-from connection.trans import TransactedConnection
 from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, UsuarioComChave
 from cofre_de_senhas.service_impl import Servicos
+from connection.conn import SimpleConnection, Descriptor, RAW_DATA
+from connection.trans import TransactedConnection
 
 
 def read_all(fn: str) -> str:
@@ -205,9 +206,6 @@ class GerenciadorFazLogin(GerenciadorLogin):
         assert usuario.chave == self.__chave
         self.__chamada += 1
 
-    def verificar(self) -> None:
-        assert self.__chamada == 1
-
     @override
     def logout(self) -> None:
         assert False
@@ -216,6 +214,144 @@ class GerenciadorFazLogin(GerenciadorLogin):
     @override
     def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
         assert False
+
+    def verificar(self) -> None:
+        assert self.__chamada == 1
+
+
+class GerenciadorLogout(GerenciadorLogin):
+
+    def __init__(self) -> None:
+        self.__chamou = False
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        assert False
+
+    @override
+    def logout(self) -> None:
+        assert not self.__chamou
+        self.__chamou = True
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario | UsuarioNaoLogadoException:
+        assert False
+
+    def verificar(self) -> None:
+        assert self.__chamou
+
+
+class _NoConnection(SimpleConnection):
+
+    def __init__(self, callback: Callable[[str], None]) -> None:
+        self.__commited: bool = False
+        self.__closed: bool = False
+        self.__callback: Callable[[str], None] = callback
+
+    @property
+    def commited(self) -> bool:
+        return self.__commited
+
+    @override
+    def commit(self) -> None:
+        if self.__commited or self.__closed:
+            assert False
+        self.__commited = True
+        self.__callback("commit")
+
+    @override
+    def rollback(self) -> None:
+        assert False
+
+    @override
+    def close(self) -> None:
+        if self.__closed:
+            assert False
+        self.__closed = True
+        self.__callback("close")
+
+    @override
+    def fetchone(self) -> tuple[RAW_DATA, ...] | None:
+        assert False
+
+    @override
+    def fetchall(self) -> Sequence[tuple[RAW_DATA, ...]]:
+        assert False
+
+    @override
+    def fetchmany(self, size: int = 0) -> Sequence[tuple[RAW_DATA, ...]]:
+        assert False
+
+    @override
+    def callproc(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        assert False
+
+    @override
+    def execute(self, sql: str, parameters: Sequence[RAW_DATA] = ()) -> Self:
+        assert False
+
+    @override
+    def executemany(self, sql: str, parameters: Sequence[Sequence[RAW_DATA]] = ()) -> Self:
+        assert False
+
+    @override
+    def executescript(self, sql: str) -> Self:
+        assert False
+
+    @property
+    @override
+    def rowcount(self) -> int:
+        assert False
+
+    @property
+    @override
+    def description(self) -> Descriptor:
+        assert False
+
+    @property
+    @override
+    def lastrowid(self) -> int | None:
+        assert False
+
+    @property
+    @override
+    def raw_connection(self) -> object:
+        assert False
+
+    @property
+    @override
+    def raw_cursor(self) -> object:
+        assert False
+
+    @property
+    @override
+    def placeholder(self) -> str:
+        assert False
+
+    @property
+    @override
+    def autocommit(self) -> Literal[False]:
+        return False
+
+    @property
+    @override
+    def database_type(self) -> str:
+        assert False
+
+    @property
+    @override
+    def database_name(self) -> str:
+        assert False
+
+
+def no_transaction(callback: Callable[[str], None]) -> TransactedConnection:
+    n: _NoConnection = _NoConnection(callback)
+
+    def activate() -> _NoConnection:
+        return n
+
+    return TransactedConnection(activate, "BAD BAD BAD", "BAD BAD BAD", "BAD BAD BAD")
 
 
 def servicos_normal(c: TransactedConnection) -> Servicos:

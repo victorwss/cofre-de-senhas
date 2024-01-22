@@ -1,7 +1,6 @@
 from typing import Any, Callable, Literal, override, ParamSpec, Self, Sequence
 from typing import TypeVar  # Delete when PEP 695 is ready.
 from abc import ABC, abstractmethod
-from .inflater import ColumnNames
 from .conn import Descriptor, RAW_DATA, SimpleConnection, TransactionNotActiveException
 from types import TracebackType
 from functools import wraps
@@ -121,48 +120,6 @@ class TransactedConnection(SimpleConnection):
         self.__wrapped.executescript(sql)
         return self
 
-    @override
-    def fetchone_dict(self) -> dict[str, Any] | None:
-        return self.__wrapped.fetchone_dict()
-
-    @override
-    def fetchall_dict(self) -> list[dict[str, Any]]:
-        return self.__wrapped.fetchall_dict()
-
-    @override
-    def fetchmany_dict(self, size: int = 0) -> list[dict[str, Any]]:
-        return self.__wrapped.fetchmany_dict(size)
-
-    @override
-    # def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
-    def fetchone_class(self, klass: type[_T]) -> _T | None:
-        return self.__wrapped.fetchone_class(klass)
-
-    @override
-    # def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
-    def fetchall_class(self, klass: type[_T]) -> list[_T]:
-        return self.__wrapped.fetchall_class(klass)
-
-    @override
-    # def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
-    def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
-        return self.__wrapped.fetchmany_class(klass, size)
-
-    @override
-    # def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
-    def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
-        return self.__wrapped.fetchone_class_lambda(ctor)
-
-    @override
-    # def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
-    def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
-        return self.__wrapped.fetchall_class_lambda(ctor)
-
-    @override
-    # def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
-    def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
-        return self.__wrapped.fetchmany_class_lambda(ctor, size)
-
     @property
     @override
     def rowcount(self) -> int:
@@ -175,18 +132,8 @@ class TransactedConnection(SimpleConnection):
 
     @property
     @override
-    def column_names(self) -> ColumnNames:
-        return self.__wrapped.column_names
-
-    @property
-    @override
     def lastrowid(self) -> int | None:
         return self.__wrapped.lastrowid
-
-    @property
-    @override
-    def asserted_lastrowid(self) -> int:
-        return self.__wrapped.asserted_lastrowid
 
     @property
     @override

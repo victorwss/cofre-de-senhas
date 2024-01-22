@@ -1,6 +1,6 @@
 from ..db_test_util import applier_trans
 from ..fixtures import (
-    dbs, assert_db_ok, GerenciadorFazLogin,
+    dbs, assert_db_ok, GerenciadorFazLogin, GerenciadorLogout, no_transaction,
     harry_potter, voldemort, dumbledore, hermione, snape,
     servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar
 )
@@ -333,3 +333,29 @@ def test_login_UBE_antes_de_SEE(c: TransactedConnection) -> None:
     login: LoginComSenha = LoginComSenha(voldemort.login, "xxxx")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert isinstance(x, UsuarioBanidoException)
+
+
+# Método logout(self) -> None
+
+
+def test_logout() -> None:
+    commited: bool = False
+    closed: bool = False
+
+    def back(t: str) -> None:
+        nonlocal commited
+        nonlocal closed
+        if not commited and t == "commit":
+            commited = True
+        elif not closed and t == "close":
+            closed = True
+        else:
+            assert False
+
+    gl: GerenciadorLogout = GerenciadorLogout()
+    s: Servicos = Servicos(gl, no_transaction(back))
+
+    s.usuario.logout()
+    gl.verificar()
+    assert commited
+    assert closed

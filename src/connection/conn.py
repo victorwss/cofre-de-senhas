@@ -1,4 +1,4 @@
-from typing import Any, Callable, Iterator, Literal, override, Self, Sequence
+from typing import Any, Callable, final, Iterator, Literal, override, Self, Sequence
 from typing import TypeVar  # Delete when PEP 695 is ready.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -48,6 +48,7 @@ class NullStatus(Enum):
     DONT_KNOW = "Don't know"
 
 
+@final
 @dataclass_validate
 @dataclass(frozen = True)
 class FieldFlags:
@@ -58,6 +59,7 @@ class FieldFlags:
 EMPTY_FLAGS = FieldFlags(0, frozenset())
 
 
+@final
 @dataclass_validate
 @dataclass(frozen = True)
 class ColumnDescriptor:
@@ -106,6 +108,7 @@ class ColumnDescriptor:
         )
 
 
+@final
 class ColumnSet:
     def __init__(self, items: list[ColumnDescriptor]) -> None:
         self.__items: list[ColumnDescriptor] = items[:]
@@ -123,6 +126,7 @@ class ColumnSet:
         return self.__items[key]
 
 
+@final
 class Descriptor:
 
     def __init__(self, columns: list[ColumnDescriptor]) -> None:
@@ -164,43 +168,52 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def fetchmany(self, size: int = 0) -> Sequence[tuple[RAW_DATA, ...]]:
         pass
 
+    @final
     def fetchone_dict(self) -> dict[str, RAW_DATA] | None:
         t: tuple[RAW_DATA, ...] | None = self.fetchone()
         return self.column_names.row_to_dict_opt(t)
 
+    @final
     def fetchall_dict(self) -> list[dict[str, RAW_DATA]]:
         t: Sequence[tuple[RAW_DATA, ...]] = self.fetchall()
         return self.column_names.rows_to_dicts(t)
 
+    @final
     def fetchmany_dict(self, size: int = 0) -> list[dict[str, RAW_DATA]]:
         t: Sequence[tuple[RAW_DATA, ...]] = self.fetchmany(size)
         return self.column_names.rows_to_dicts(t)
 
+    @final
     # def fetchone_class[T](self, klass: type[T]) -> T | None: # PEP 695
     def fetchone_class(self, klass: type[_T]) -> _T | None:
         t: tuple[RAW_DATA, ...] | None = self.fetchone()
         return self.column_names.row_to_class_opt(klass, t)
 
+    @final
     # def fetchall_class[T](self, klass: type[T]) -> list[T]: # PEP 695
     def fetchall_class(self, klass: type[_T]) -> list[_T]:
         t: Sequence[tuple[RAW_DATA, ...]] = self.fetchall()
         return self.column_names.rows_to_classes(klass, t)
 
+    @final
     # def fetchmany_class[T](self, klass: type[T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class(self, klass: type[_T], size: int = 0) -> list[_T]:
         t: Sequence[tuple[RAW_DATA, ...]] = self.fetchmany(size)
         return self.column_names.rows_to_classes(klass, t)
 
+    @final
     # def fetchone_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> T | None: # PEP 695
     def fetchone_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> _T | None:
         t: tuple[RAW_DATA, ...] | None = self.fetchone()
         return self.column_names.row_to_class_lambda_opt(ctor, t)
 
+    @final
     # def fetchall_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T]) -> list[T]: # PEP 695
     def fetchall_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T]) -> list[_T]:
         t: Sequence[tuple[RAW_DATA, ...]] = self.fetchall()
         return self.column_names.rows_to_classes_lambda(ctor, t)
 
+    @final
     # def fetchmany_class_lambda[T](self, ctor: Callable[[dict[str, RAW_DATA]], T], size: int = 0) -> list[T]: # PEP 695
     def fetchmany_class_lambda(self, ctor: Callable[[dict[str, RAW_DATA]], _T], size: int = 0) -> list[_T]:
         t: Sequence[tuple[RAW_DATA, ...]] = self.fetchmany(size)
@@ -232,6 +245,7 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def description(self) -> Descriptor:
         pass
 
+    @final
     @property
     def column_names(self) -> ColumnNames:
         return self.description.column_names
@@ -241,22 +255,26 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     def lastrowid(self) -> int | None:
         pass
 
+    @final
     @property
     def asserted_lastrowid(self) -> int:
         last: int | None = self.lastrowid
         assert last is not None
         return last
 
+    @final
     def next(self) -> tuple[RAW_DATA, ...]:
         x: tuple[RAW_DATA, ...] | None = self.fetchone()
         if x is None:
             raise StopIteration
         return x
 
+    @final
     @override
     def __next__(self) -> tuple[RAW_DATA, ...]:
         return self.next()
 
+    @final
     @override
     def __iter__(self) -> Iterator[tuple[RAW_DATA, ...]]:
         return self
