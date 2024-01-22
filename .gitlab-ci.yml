@@ -10,6 +10,20 @@ lint-test:
     - flake8 ./src ./test 
   allow_failure: true
 
+type-test:
+  stage: test
+  before_script:
+    - >
+      apt update &&
+      apt install -y --no-install-recommends
+      gcc
+      libmariadb-dev
+      mariadb-client
+    - pip install --no-cache-dir -r requirements.txt
+  script:
+    - pip install mypy
+    - mypy ./src ./test
+
 unit-test:
   stage: test
   variables:
