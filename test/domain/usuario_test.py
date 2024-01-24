@@ -2,11 +2,13 @@ from ..db_test_util import applier_trans
 from ..fixtures import (
     dbs, assert_db_ok, GerenciadorFazLogin, GerenciadorLogout, no_transaction,
     harry_potter, voldemort, dumbledore, hermione, snape,
-    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar
+    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar,
+    lixo4
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.service import (
-    ChaveUsuario, LoginUsuario, LoginComSenha, NivelAcesso, TrocaSenha, UsuarioComChave, UsuarioNovo, ResultadoListaDeUsuarios
+    LoginUsuario, LoginComSenha, TrocaSenha, SenhaAlterada, ResetLoginUsuario,
+    ChaveUsuario, NivelAcesso, UsuarioComChave, UsuarioNovo, UsuarioComNivel, ResultadoListaDeUsuarios
 )
 from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.erro import (
@@ -456,3 +458,136 @@ def test_trocar_senha_por_chave_UNLE(c: TransactedConnection) -> None:
     t: TrocaSenha = TrocaSenha("blabla", "xxx xxx xxx")
     x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
     assert isinstance(x1, UsuarioNaoLogadoException)
+
+
+# Método resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_resetar_senha_por_login_ok1(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_admin(c)
+    t: ResetLoginUsuario = ResetLoginUsuario(harry_potter.login)
+    x1: SenhaAlterada | BaseException = s1.usuario.resetar_senha_por_login(t)
+    assert isinstance(x1, SenhaAlterada)
+    assert x1.chave == ChaveUsuario(harry_potter.pk_usuario)
+    assert x1.login == harry_potter.login
+    nova_senha: str = x1.nova_senha
+    assert len(nova_senha) == 20
+
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
+    s2: Servicos = Servicos(gl, c)
+
+    login1: LoginComSenha = LoginComSenha(harry_potter.login, nova_senha)
+    x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
+    assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
+
+    login2: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
+    x3: UsuarioComChave | BaseException = s2.usuario.login(login2)
+    assert isinstance(x3, SenhaErradaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_resetar_senha_por_login_PNE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_normal(c)
+    t: ResetLoginUsuario = ResetLoginUsuario(hermione.login)
+    x1: SenhaAlterada | BaseException = s1.usuario.resetar_senha_por_login(t)
+    assert isinstance(x1, PermissaoNegadaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_resetar_senha_por_login_UBE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_banido(c)
+    t: ResetLoginUsuario = ResetLoginUsuario(hermione.login)
+    x1: SenhaAlterada | BaseException = s1.usuario.resetar_senha_por_login(t)
+    assert isinstance(x1, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_resetar_senha_por_login_UNLE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_nao_logado(c)
+    t: ResetLoginUsuario = ResetLoginUsuario(hermione.login)
+    x1: SenhaAlterada | BaseException = s1.usuario.resetar_senha_por_login(t)
+    assert isinstance(x1, UsuarioNaoLogadoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_resetar_senha_por_login_LEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_usuario_nao_existe(c)
+    t: ResetLoginUsuario = ResetLoginUsuario(hermione.login)
+    x1: SenhaAlterada | BaseException = s1.usuario.resetar_senha_por_login(t)
+    assert isinstance(x1, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_resetar_senha_por_login_UNEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_admin(c)
+    t: ResetLoginUsuario = ResetLoginUsuario(lixo4)
+    x1: SenhaAlterada | BaseException = s1.usuario.resetar_senha_por_login(t)
+    assert isinstance(x1, UsuarioNaoExisteException)
+
+
+# Método alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_ok1(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_admin(c)
+    t: UsuarioComNivel = UsuarioComNivel(harry_potter.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert x1 is None
+
+    login1: LoginUsuario = LoginUsuario(harry_potter.login)
+    x2: UsuarioComChave | BaseException = s1.usuario.buscar_por_login(login1)
+    assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_ok2(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_admin(c)
+    t: UsuarioComNivel = UsuarioComNivel(hermione.login, NivelAcesso.DESATIVADO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert x1 is None
+
+    login1: LoginUsuario = LoginUsuario(hermione.login)
+    x2: UsuarioComChave | BaseException = s1.usuario.buscar_por_login(login1)
+    assert x2 == UsuarioComChave(ChaveUsuario(hermione.pk_usuario), hermione.login, NivelAcesso.DESATIVADO)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_PNE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_normal(c)
+    t: UsuarioComNivel = UsuarioComNivel(hermione.login, NivelAcesso.DESATIVADO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert isinstance(x1, PermissaoNegadaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_UBE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_banido(c)
+    t: UsuarioComNivel = UsuarioComNivel(hermione.login, NivelAcesso.DESATIVADO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert isinstance(x1, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_UNLE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_nao_logado(c)
+    t: UsuarioComNivel = UsuarioComNivel(hermione.login, NivelAcesso.DESATIVADO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert isinstance(x1, UsuarioNaoLogadoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_LEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_usuario_nao_existe(c)
+    t: UsuarioComNivel = UsuarioComNivel(hermione.login, NivelAcesso.DESATIVADO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert isinstance(x1, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_nivel_por_login_UNEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_admin(c)
+    t: UsuarioComNivel = UsuarioComNivel(lixo4, NivelAcesso.DESATIVADO)
+    x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
+    assert isinstance(x1, UsuarioNaoExisteException)
