@@ -21,7 +21,7 @@ type-test:
       mariadb-client
     - pip install --no-cache-dir -r requirements.txt
   script:
-    - pip install mypy
+    - pip install mypy pytest
     - mypy ./src ./test
 
 unit-test:
@@ -47,6 +47,12 @@ unit-test:
       -e "create database IF NOT EXISTS $MARIADB_DATABASE;
           create database IF NOT EXISTS test_cofre;
           create database IF NOT EXISTS test_cofre_empty;"
-    - python --version; pip --version
     - pip install --no-cache-dir -r requirements.txt
-  script: bash test.sh
+  script:
+    - pip install --no-cache-dir -r test-requirements.txt
+    - coverage run
+    - coverage html
+  artifacts:
+    paths:
+      - htmlcov
+    expire_in: 10 days 
