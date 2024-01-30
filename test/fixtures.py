@@ -107,13 +107,16 @@ segredo_m1: DadosSegredo = DadosSegredo(-1, "Cofre de senhas" , "Segredos acerca
 dbz       : DadosSegredo = DadosSegredo( 1, "Dragon Ball Z"   , "Segredos acerca de Dragon Ball Z."        , 3)  # noqa: E201,E203
 lotr      : DadosSegredo = DadosSegredo( 2, "Senhor dos Anéis", "Segredos acerca do Senhor dos Anéis."     , 2)  # noqa: E201,E203
 star_wars : DadosSegredo = DadosSegredo( 3, "Star Wars"       , "Guerra nas estrelas."                     , 1)  # noqa: E201,E203
-star_trek : DadosSegredo = DadosSegredo( 4, "Star Trek"       , "Jornada nas estrelas."                    , 2)  # noqa: E201,E203
+openheimer: DadosSegredo = DadosSegredo( 4, "Openheimer"      , "Bomba atômica."                           , 3)  # noqa: E201,E203
+star_trek : DadosSegredo = DadosSegredo( 5, "Star Trek"       , "Jornada nas estrelas."                    , 2)  # noqa: E201,E203
 
 star_trek_sem_pk: DadosSegredoSemPK = DadosSegredoSemPK("Star Trek", "Jornada nas estrelas.", 2)
 
-todos_segredos: list[DadosSegredo] = [segredo_m1, dbz, lotr, star_wars]
+todos_segredos: list[DadosSegredo] = [segredo_m1, dbz, lotr, star_wars, openheimer]
 parte_segredos: list[DadosSegredo] = [lotr, star_wars]
 visiv_segredos: list[DadosSegredo] = [segredo_m1, lotr, star_wars]
+harry_segredos: list[DadosSegredo] = [segredo_m1, dbz, lotr, star_wars]
+hermi_segredos: list[DadosSegredo] = [segredo_m1, lotr, star_wars, openheimer]
 
 lixo1: int = 444
 lixo2: int = 555

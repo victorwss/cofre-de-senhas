@@ -1,9 +1,9 @@
 from ..db_test_util import applier, applier_trans, DbTestConfig
 from ..fixtures import (
     dbs, assert_db_ok,
-    todos_segredos, parte_segredos, visiv_segredos,
+    todos_segredos, parte_segredos, visiv_segredos, harry_segredos, hermi_segredos,
     harry_potter, dumbledore, voldemort, hermione, snape, snape_sem_pk,
-    dbz, lotr, star_wars, star_trek, star_trek_sem_pk,
+    dbz, lotr, star_wars, openheimer, star_trek, star_trek_sem_pk,
     qa, aplicacao, integracao, producao,
     lixo1, lixo2, lixo3
 )
@@ -116,7 +116,7 @@ def test_listar_tudo_apos_insercao(c: TransactedConnection) -> None:
 def test_listar_segredos_visiveis_1(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
     lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(harry_potter.login))
-    assert lido == todos_segredos
+    assert lido == harry_segredos
 
 
 @applier_trans(dbs, assert_db_ok)
@@ -258,13 +258,13 @@ def test_criar_campo_segredo_duplicado(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_criar_permissao(c: TransactedConnection) -> None:
     dao: SegredoDAO = SegredoDAOImpl(c)
-    perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, dbz.pk_segredo, 2)
+    perm1: PermissaoDeSegredo = PermissaoDeSegredo(hermione.pk_usuario, openheimer.pk_segredo, 2)
     assert dao.criar_permissao(perm1)
 
     lido: list[DadosSegredo] = dao.listar_visiveis(LoginUsuarioUK(hermione.login))
-    assert lido == todos_segredos
+    assert lido == hermi_segredos
 
-    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(dbz.pk_segredo, "Hermione")
+    busca: BuscaPermissaoPorLogin = BuscaPermissaoPorLogin(openheimer.pk_segredo, "Hermione")
     perm2: PermissaoDeSegredo | None = dao.buscar_permissao(busca)
     assert perm1 == perm2
 
