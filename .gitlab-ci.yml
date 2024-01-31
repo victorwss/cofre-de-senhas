@@ -1,17 +1,23 @@
+---
+include:
+  - template: Code-Quality.gitlab-ci.yml
+
 stages:
   - test
 
 image: python:3.12.0-slim
 
+code_quality:
+  artifacts:
+    paths: [gl-code-quality-report.json]
+
 lint-test:
-  stage: test
   script:
     - pip install Flake8-pyproject
     - flake8 ./src ./test 
   allow_failure: true
 
 type-test:
-  stage: test
   before_script:
     - >
       apt update &&
@@ -25,7 +31,6 @@ type-test:
     - mypy ./src ./test
 
 unit-test:
-  stage: test
   variables:
     MARIADB_ROOT_PASSWORD: "root"
     MARIADB_HOST: "mariadb"
