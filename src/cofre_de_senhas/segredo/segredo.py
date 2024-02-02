@@ -10,7 +10,8 @@ from ..erro import (
     UsuarioBanidoException, PermissaoNegadaException, LoginExpiradoException,
     UsuarioNaoExisteException,
     SegredoNaoExisteException,
-    CategoriaNaoExisteException
+    CategoriaNaoExisteException,
+    ValorIncorretoException
 )
 from ..service import (
     TipoPermissao, TipoSegredo, ChaveUsuario,
@@ -27,6 +28,7 @@ _UNEE: TypeAlias = UsuarioNaoExisteException
 _SNEE: TypeAlias = SegredoNaoExisteException
 _CNEE: TypeAlias = CategoriaNaoExisteException
 _LEE: TypeAlias = LoginExpiradoException
+_VIE: TypeAlias = ValorIncorretoException
 
 
 @dataclass_validate
@@ -186,12 +188,12 @@ class Segredo:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def _criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> "Segredo | _PNE | _UNEE | _CNEE | _UBE | _LEE":
+    def _criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> "Segredo | _UNEE | _CNEE | _UBE | _LEE | _VIE":
         u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
-        if not u1.is_admin and dados.usuarios[u1.login] not in [TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO]:
-            return PermissaoNegadaException()
+        if not u1.is_admin and (u1.login not in dados.usuarios or dados.usuarios[u1.login] != TipoPermissao.PROPRIETARIO):
+            return ValorIncorretoException()
 
         permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
@@ -225,8 +227,8 @@ class Servicos:
         raise Exception()
 
     @staticmethod
-    def criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> SegredoComChave | _PNE | _UNEE | _CNEE | _UBE | _LEE:
-        s1: Segredo | _PNE | _UNEE | _CNEE | _UBE | _LEE = Segredo._criar(quem_faz, dados)
+    def criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> SegredoComChave | _UNEE | _CNEE | _UBE | _LEE | _VIE:
+        s1: Segredo | _UNEE | _CNEE | _UBE | _LEE | _VIE = Segredo._criar(quem_faz, dados)
         if not isinstance(s1, Segredo):
             return s1
         return s1._up_eager

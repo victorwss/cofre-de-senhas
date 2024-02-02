@@ -185,7 +185,7 @@ class _ServicoSegredoImpl(ServicoSegredo):
         self.__gl: GerenciadorLogin = gl
 
     @override
-    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _PNE | _LEE:
+    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _LEE | _VIE:
         u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
         if isinstance(u, _UNLE):
             return u

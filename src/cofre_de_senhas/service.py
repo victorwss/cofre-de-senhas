@@ -274,7 +274,7 @@ class ServicoUsuario(ABC):
 class ServicoSegredo(ABC):
 
     @abstractmethod
-    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _PNE | _LEE:
+    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _LEE | _VIE:
         pass
 
     @abstractmethod

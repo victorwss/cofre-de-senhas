@@ -229,8 +229,8 @@ class _ServicoSegredoClient(ServicoSegredo):
         self.__requester: _Requester = requester
 
     @override
-    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE:
-        return self.__requester.put("/segredos", dados, SegredoComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).end)
+    def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _LEE | _VIE:
+        return self.__requester.put("/segredos", dados, SegredoComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_LEE).join(_VIE).end)
 
     @override
     def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UBE | _UNEE | _CNEE | _SNEE:
