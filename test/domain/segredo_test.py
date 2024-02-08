@@ -8,6 +8,7 @@ from connection.trans import TransactedConnection
 from cofre_de_senhas.erro import (
     UsuarioBanidoException, LoginExpiradoException, UsuarioNaoLogadoException, UsuarioNaoExisteException,
     CategoriaNaoExisteException,
+    SegredoNaoExisteException,
     ValorIncorretoException
 )
 from cofre_de_senhas.service import (
@@ -104,12 +105,12 @@ def test_listar_segredos_UNLE(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_segredo_ok1(c: TransactedConnection) -> None:
-    s: Servicos = servicos_normal(c)
+    s1: Servicos = servicos_normal(c)
     dados: SegredoSemChave = star_trek_data()
     com_chave: SegredoComChave = dados.com_chave(ChaveSegredo(star_trek.pk_segredo))
 
-    x: SegredoComChave | BaseException = s.segredo.criar(dados)
-    assert x == com_chave
+    x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
+    assert x1 == com_chave
 
     s2: Servicos = servicos_admin(c)
     x2: ResultadoPesquisaDeSegredos | BaseException = s2.segredo.listar()
@@ -118,12 +119,12 @@ def test_criar_segredo_ok1(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_segredo_ok2(c: TransactedConnection) -> None:
-    s: Servicos = servicos_admin(c)
+    s1: Servicos = servicos_admin(c)
     dados: SegredoSemChave = star_trek_data()
     com_chave: SegredoComChave = dados.com_chave(ChaveSegredo(star_trek.pk_segredo))
 
-    x: SegredoComChave | BaseException = s.segredo.criar(dados)
-    assert x == com_chave
+    x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
+    assert x1 == com_chave
 
     s2: Servicos = servicos_admin(c)
     x2: ResultadoPesquisaDeSegredos | BaseException = s2.segredo.listar()
@@ -287,4 +288,62 @@ def test_criar_segredo_LEE_antes_de_VIE(c: TransactedConnection) -> None:
     assert x2 == tudo
 
 
+# Método buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE | _LEE
+
+
+# @applier_trans(dbs, assert_db_ok)
+# def test_buscar_por_chave_ok1(c: TransactedConnection) -> None:
+#     chave: ChaveSegredo = ChaveSegredo(star_wars.pk_segredo)
+#     s: Servicos = servicos_normal(c)
+#     x: SegredoComChave | BaseException = s.segredo.buscar_por_chave(chave)
+#     assert x == star_wars
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_UNLE(c: TransactedConnection) -> None:
+    chave: ChaveSegredo = ChaveSegredo(star_wars.pk_segredo)
+    s: Servicos = servicos_nao_logado(c)
+    x: SegredoComChave | BaseException = s.segredo.buscar_por_chave(chave)
+    assert isinstance(x, UsuarioNaoLogadoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_LEE(c: TransactedConnection) -> None:
+    chave: ChaveSegredo = ChaveSegredo(star_wars.pk_segredo)
+    s: Servicos = servicos_usuario_nao_existe(c)
+    x: SegredoComChave | BaseException = s.segredo.buscar_por_chave(chave)
+    assert isinstance(x, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_UBE(c: TransactedConnection) -> None:
+    chave: ChaveSegredo = ChaveSegredo(star_wars.pk_segredo)
+    s: Servicos = servicos_banido(c)
+    x: SegredoComChave | BaseException = s.segredo.buscar_por_chave(chave)
+    assert isinstance(x, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_SNEE(c: TransactedConnection) -> None:
+    chave: ChaveSegredo = ChaveSegredo(star_trek.pk_segredo)
+    s: Servicos = servicos_admin(c)
+    x: SegredoComChave | BaseException = s.segredo.buscar_por_chave(chave)
+    assert isinstance(x, SegredoNaoExisteException)
+
+
 # Método alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_por_chave_SNEE(c: TransactedConnection) -> None:
+    s1: Servicos = servicos_normal(c)
+    dados: SegredoSemChave = star_trek_data()
+    chave: ChaveSegredo = ChaveSegredo(star_trek.pk_segredo)
+    com_chave: SegredoComChave = dados.com_chave(chave)
+
+    x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)
+    assert isinstance(x1, SegredoNaoExisteException)
+
+    s2: Servicos = servicos_admin(c)
+    x2: SegredoComChave | BaseException = s2.segredo.buscar_por_chave(chave)
+    assert isinstance(x2, SegredoNaoExisteException)
