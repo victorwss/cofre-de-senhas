@@ -108,6 +108,8 @@ class Segredo:
         p1: None | _PNE = self._permitir_escrita_para(u1)
         if p1 is not None:
             return p1
+        if not Segredo.__tem_permissao(u1, dados):
+            return ValorIncorretoException()
         permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
             return permissoes

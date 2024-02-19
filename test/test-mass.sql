@@ -6,7 +6,7 @@ INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Hermione'   
 INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Dragon Ball Z', 'Segredos acerca de Dragon Ball Z.', 3);
 INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Senhor dos Anéis', 'Segredos acerca do Senhor dos Anéis.', 2);
 INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Star Wars', 'Guerra nas estrelas.', 1);
-INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Openheimer', 'Bomba atômica.', 3);
+INSERT INTO segredo (nome, descricao, fk_tipo_segredo) VALUES ('Oppenheimer', 'Bomba atômica.', 3);
 
 UPDATE campo_segredo SET valor = '0123456789ABCDEFFEDCBA9876543210' WHERE pfk_segredo = -1 AND pk_nome = 'Chave da sessão';
 INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (1, 'Nome do Goku', 'Kakaroto');
