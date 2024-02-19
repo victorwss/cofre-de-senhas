@@ -278,7 +278,7 @@ class ServicoSegredo(ABC):
         pass
 
     @abstractmethod
-    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE:
+    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE | _VIE:
         pass
 
     @abstractmethod

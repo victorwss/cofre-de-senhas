@@ -104,7 +104,10 @@ class Segredo:
 
         return self
 
-    def _alterar(self, dados: SegredoSemChave) -> Self | _UNEE | _CNEE:
+    def _alterar(self, u1: Usuario, dados: SegredoSemChave) -> Self | _PNE | _UNEE | _CNEE | _VIE:
+        p1: None | _PNE = self._permitir_escrita_para(u1)
+        if p1 is not None:
+            return p1
         permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
             return permissoes
@@ -188,11 +191,15 @@ class Segredo:
     # Métodos estáticos de fábrica.
 
     @staticmethod
+    def __tem_permissao(u1: Usuario, dados: SegredoSemChave) -> bool:
+        return u1.is_admin or (u1.login in dados.usuarios and dados.usuarios[u1.login] == TipoPermissao.PROPRIETARIO)
+
+    @staticmethod
     def _criar(quem_faz: ChaveUsuario, dados: SegredoSemChave) -> "Segredo | _UNEE | _CNEE | _UBE | _LEE | _VIE":
         u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
-        if not u1.is_admin and (u1.login not in dados.usuarios or dados.usuarios[u1.login] != TipoPermissao.PROPRIETARIO):
+        if not Segredo.__tem_permissao(u1, dados):
             return ValorIncorretoException()
 
         permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
@@ -234,17 +241,14 @@ class Servicos:
         return s1._up_eager
 
     @staticmethod
-    def alterar_por_chave(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE:
+    def alterar_por_chave(quem_faz: ChaveUsuario, dados: SegredoComChave) -> None | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE | _VIE:
         u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
         s1: Segredo | _SNEE = Segredo._encontrar_existente_por_chave(dados.chave)
         if not isinstance(s1, Segredo):
             return s1
-        p1: None | _PNE = s1._permitir_escrita_para(u1)
-        if p1 is not None:
-            return p1
-        s2: Segredo | _UNEE | _CNEE = s1._alterar(dados.sem_chave)
+        s2: Segredo | _PNE | _UNEE | _CNEE | _VIE = s1._alterar(u1, dados.sem_chave)
         if not isinstance(s2, Segredo):
             return s2
         return None

@@ -117,8 +117,12 @@ class _Requester:
         r: Response = requests.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = h)
         return self.__unwrap(r, t, x)
 
+    @staticmethod
+    def __sucesso(j: Any) -> bool:
+        return "sucesso" in j and j["sucesso"] is True and "conteudo" in j
+
     def __json_validate(self, j: Any, rt: str) -> _ErroRemoto | None:
-        if "sucesso" in j and j["sucesso"] is True and "conteudo" in j:
+        if _Requester.__sucesso(j):
             return None
         try:
             remoto: _ErroRemoto = from_dict(data_class = _ErroRemoto, data = j, config = Config(cast = [Enum]))
@@ -233,12 +237,12 @@ class _ServicoSegredoClient(ServicoSegredo):
         return self.__requester.put("/segredos", dados, SegredoComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_LEE).join(_VIE).end)
 
     @override
-    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UBE | _UNEE | _CNEE | _SNEE:
+    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UBE | _UNEE | _CNEE | _SNEE | _VIE:
         return self.__requester.put(
             f"/segredos/{dados.chave.valor}",
             dados.sem_chave,
             type(None),
-            typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_SNEE).end
+            typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_SNEE).join(_VIE).end
         )
 
     @override
