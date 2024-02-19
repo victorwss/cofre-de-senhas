@@ -1,0 +1,6 @@
+mypy
+pytest
+pytest-cov
+pytest-timeout
+radon
+Flake8-pyproject
