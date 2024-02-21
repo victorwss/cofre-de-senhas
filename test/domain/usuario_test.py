@@ -108,6 +108,15 @@ def test_criar_UJEE(c: TransactedConnection) -> None:
     assert isinstance(x, UsuarioJaExisteException)
 
 
+@applier_trans(dbs, assert_db_ok)
+def test_criar_UNLE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logado(c)
+    dados: UsuarioNovo = UsuarioNovo(hermione.login, NivelAcesso.NORMAL, "expelliarmus")
+
+    x: UsuarioComChave | BaseException = s.usuario.criar(dados)
+    assert isinstance(x, UsuarioNaoLogadoException)
+
+
 # Método buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
 
 

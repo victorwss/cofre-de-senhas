@@ -388,6 +388,67 @@ def test_buscar_por_chave_SNEE_invisivel(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_parcialmente_invisivel(c: TransactedConnection) -> None:
+    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.ENCONTRAVEL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = None)
+
+    s1: Servicos = servicos_normal(c)
+    x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
+    assert x1 == original.limpar_campos
+
+    s2: Servicos = servicos_admin(c)
+    x2: SegredoComChave | BaseException = s2.segredo.buscar_por_chave(original.chave)
+    assert x2 == original
+
+    s3: Servicos = servicos_normal2(c)
+    x3: SegredoComChave | BaseException = s3.segredo.buscar_por_chave(original.chave)
+    assert x3 == original
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_publico(c: TransactedConnection) -> None:
+    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.PUBLICO, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = None)
+
+    s1: Servicos = servicos_normal(c)
+    x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
+    assert x1 == original
+
+    s2: Servicos = servicos_admin(c)
+    x2: SegredoComChave | BaseException = s2.segredo.buscar_por_chave(original.chave)
+    assert x2 == original
+
+    s3: Servicos = servicos_normal2(c)
+    x3: SegredoComChave | BaseException = s3.segredo.buscar_por_chave(original.chave)
+    assert x3 == original
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_somente_leitura(c: TransactedConnection) -> None:
+    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.CONFIDENCIAL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = TipoPermissao.SOMENTE_LEITURA)
+
+    s1: Servicos = servicos_normal(c)
+    x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
+    assert x1 == original
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_leitura_escrita(c: TransactedConnection) -> None:
+    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.CONFIDENCIAL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = TipoPermissao.LEITURA_E_ESCRITA)
+
+    s1: Servicos = servicos_normal(c)
+    x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
+    assert x1 == original
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_buscar_por_chave_dois_proprietarios(c: TransactedConnection) -> None:
+    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.CONFIDENCIAL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = TipoPermissao.PROPRIETARIO)
+
+    s1: Servicos = servicos_normal(c)
+    x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
+    assert x1 == original
+
+
+@applier_trans(dbs, assert_db_ok)
 def test_buscar_por_chave_UNLE(c: TransactedConnection) -> None:
     original: SegredoComChave = criar_segredo_normal(c)
 
@@ -537,6 +598,20 @@ def test_alterar_por_chave_PNE_sem_acesso(c: TransactedConnection) -> None:
 
     s1: Servicos = servicos_normal2(c)
     dados: SegredoSemChave = star_trek_data(alt = 1)
+    com_chave: SegredoComChave = dados.com_chave(original.chave)
+
+    x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)
+    assert isinstance(x1, PermissaoNegadaException)
+
+    verificar_segredo(c, original)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_alterar_por_chave_PNE_alterando_permissao(c: TransactedConnection) -> None:
+    original: SegredoComChave = criar_segredo_normal(c, hermione = TipoPermissao.LEITURA_E_ESCRITA)
+
+    s1: Servicos = servicos_normal2(c)
+    dados: SegredoSemChave = star_trek_data(alt = 1, hermione = TipoPermissao.PROPRIETARIO)
     com_chave: SegredoComChave = dados.com_chave(original.chave)
 
     x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)

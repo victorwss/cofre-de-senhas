@@ -15,7 +15,7 @@ from ..service import (
 from typing import TYPE_CHECKING
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from cofre_de_senhas.segredo.segredo import Segredo
 
 
@@ -67,10 +67,6 @@ class Usuario:
     @property
     def _is_banido(self) -> bool:
         return self.nivel_acesso == NivelAcesso.DESATIVADO
-
-    @property
-    def __is_permitido(self) -> bool:
-        return not self._is_banido
 
     def __permitir_admin(self) -> Self | _UBE | _PNE:
         if self._is_banido:

@@ -119,8 +119,8 @@ class Segredo:
         up: SegredoComChave = s1._up_eager
         antes: dict[str, TipoPermissao] = up.usuarios
         depois: dict[str, TipoPermissao] = dados.usuarios
-        era_proprietario: bool = Segredo._tem_permissao(u1, up.sem_chave, TipoPermissao.PROPRIETARIO)
-        sera_proprietario: bool = Segredo._tem_permissao(u1, dados.sem_chave, TipoPermissao.PROPRIETARIO)
+        era_proprietario: bool = Segredo._tem_permissao(u1, up.sem_chave, True)
+        sera_proprietario: bool = Segredo._tem_permissao(u1, dados.sem_chave, True)
 
         if era_proprietario and not sera_proprietario:
             return ValorIncorretoException()
@@ -221,12 +221,10 @@ class Segredo:
     # Métodos estáticos de fábrica.
 
     @staticmethod
-    def _tem_permissao(u1: Usuario, dados: SegredoSemChave, tipo: TipoPermissao) -> bool:
+    def _tem_permissao(u1: Usuario, dados: SegredoSemChave, proprietario: bool) -> bool:
         possibilidades: list[TipoPermissao] = [TipoPermissao.PROPRIETARIO]
-        if tipo == TipoPermissao.LEITURA_E_ESCRITA:
+        if not proprietario:
             possibilidades.append(TipoPermissao.LEITURA_E_ESCRITA)
-            possibilidades.append(TipoPermissao.SOMENTE_LEITURA)
-        if tipo == TipoPermissao.SOMENTE_LEITURA:
             possibilidades.append(TipoPermissao.SOMENTE_LEITURA)
         return u1.is_admin or (u1.login in dados.usuarios and dados.usuarios[u1.login] in possibilidades)
 
@@ -235,7 +233,7 @@ class Segredo:
         u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
-        if not Segredo._tem_permissao(u1, dados, TipoPermissao.PROPRIETARIO):
+        if not Segredo._tem_permissao(u1, dados, True):
             return ValorIncorretoException()
 
         permissoes: dict[str, Permissao] | _UNEE = Segredo.__mapear_permissoes(dados.usuarios)
@@ -311,11 +309,11 @@ class Servicos:
             return s1
 
         com_chave: SegredoComChave = s1._up_eager
-        pode_ver: bool = Segredo._tem_permissao(u1, com_chave.sem_chave, TipoPermissao.SOMENTE_LEITURA)
+        pode_ver: bool = Segredo._tem_permissao(u1, com_chave.sem_chave, False)
 
         if com_chave.tipo == TipoSegredo.CONFIDENCIAL and not pode_ver:
             return SegredoNaoExisteException()
-        if not pode_ver:
+        if com_chave.tipo == TipoSegredo.ENCONTRAVEL and not pode_ver:
             return com_chave.limpar_campos
         return com_chave
 
