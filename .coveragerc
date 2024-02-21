@@ -1,6 +1,6 @@
 [run]
 branch = True
-command_line = -m pytest --timeout=8
+command_line = -m pytest --timeout=8 -vv
 source = src
 
 [report]
@@ -9,4 +9,3 @@ exclude_lines =
     @abc.abstractmethod
     def __repr__
     pragma: no cover
-

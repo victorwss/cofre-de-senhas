@@ -77,6 +77,11 @@ class SegredoComChave:
     def sem_chave(self) -> "SegredoSemChave":
         return SegredoSemChave(self.nome, self.descricao, self.tipo, self.campos, self.categorias, self.usuarios)
 
+    @property
+    def limpar_campos(self) -> "SegredoComChave":
+        campos: dict[str, str] = {}
+        return SegredoComChave(self.chave, self.nome, self.descricao, self.tipo, campos, self.categorias, self.usuarios)
+
 
 @dataclass_validate
 @dataclass(frozen = True)

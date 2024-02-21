@@ -361,6 +361,10 @@ def servicos_normal(c: TransactedConnection) -> Servicos:
     return Servicos(GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario)), c)
 
 
+def servicos_normal2(c: TransactedConnection) -> Servicos:
+    return Servicos(GerenciadorLoginChave(ChaveUsuario(hermione.pk_usuario)), c)
+
+
 def servicos_admin(c: TransactedConnection) -> Servicos:
     return Servicos(GerenciadorLoginChave(ChaveUsuario(dumbledore.pk_usuario)), c)
 

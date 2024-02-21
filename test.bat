@@ -11,7 +11,7 @@ IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 radon cc -nb -s --no-assert .\src
 radon mi -nb -s             .\src
 flake8 .\src .\test
-coverage run --branch --source=src -m pytest --timeout=8
+coverage run
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
