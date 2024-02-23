@@ -29,7 +29,7 @@ class Categoria:
     pk_categoria: int
     nome: str
 
-    def _renomear(self, novo_nome: str) -> Self | _VIE | _CJEE:
+    def __renomear(self, novo_nome: str) -> Self | _VIE | _CJEE:
         t: int = len(novo_nome)
         if t < 1 or t > 50:
             return ValorIncorretoException()
@@ -38,7 +38,7 @@ class Categoria:
             return c1
         return replace(self, nome = novo_nome).__salvar()
 
-    def _excluir(self) -> Self:
+    def __excluir(self) -> Self:
         CategoriaDAO.instance().deletar_por_pk(self.pk)
         return self
 
@@ -56,7 +56,7 @@ class Categoria:
         return CategoriaPK(self.pk_categoria)
 
     @property
-    def _up(self) -> CategoriaComChave:
+    def __up(self) -> CategoriaComChave:
         return CategoriaComChave(self.__chave, self.nome)
 
     @property
@@ -77,7 +77,7 @@ class Categoria:
         return Categoria.__promote(dados)
 
     @staticmethod
-    def _encontrar_existente_por_chave(chave: ChaveCategoria) -> "Categoria | _CNEE":
+    def __encontrar_existente_por_chave(chave: ChaveCategoria) -> "Categoria | _CNEE":
         encontrado: Categoria | None = Categoria.__encontrar_por_chave(chave)
         if encontrado is None:
             return CategoriaNaoExisteException()
@@ -91,7 +91,7 @@ class Categoria:
         return Categoria.__promote(dados)
 
     @staticmethod
-    def _encontrar_existente_por_nome(nome: str) -> "Categoria | _CNEE":
+    def __encontrar_existente_por_nome(nome: str) -> "Categoria | _CNEE":
         encontrado: Categoria | None = Categoria.__encontrar_por_nome(nome)
         if encontrado is None:
             return CategoriaNaoExisteException()
@@ -105,18 +105,7 @@ class Categoria:
         return None
 
     @staticmethod
-    def _criar(nome: str) -> "Categoria | _CJEE | _VIE":
-        t: int = len(nome)
-        if t < 1 or t > 50:
-            return ValorIncorretoException()
-        c1: None | _CJEE = Categoria.__nao_existente_por_nome(nome)
-        if c1 is not None:
-            return c1
-        pk: CategoriaPK = CategoriaDAO.instance().criar(DadosCategoriaSemPK(nome))
-        return Categoria(pk.pk_categoria, nome)
-
-    @staticmethod
-    def _listar() -> list["Categoria"]:
+    def __listar_interno() -> list["Categoria"]:
         return [Categoria.__promote(c) for c in CategoriaDAO.instance().listar()]
 
     # Exportado para a classe Segredo.
@@ -142,8 +131,77 @@ class Categoria:
 
         return r
 
-    def _ligados(self) -> int:
+    def __ligados(self) -> int:
         return CategoriaDAO.instance().contar_segredos_por_pk(CategoriaPK(self.pk_categoria))
+
+    @staticmethod
+    def _buscar_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave | _LEE | _UBE | _CNEE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        c1: Categoria | _CNEE = Categoria.__encontrar_existente_por_nome(dados.nome)
+        if not isinstance(c1, Categoria):
+            return c1
+        return c1.__up
+
+    @staticmethod
+    def _buscar_por_chave(quem_faz: ChaveUsuario, chave: ChaveCategoria) -> CategoriaComChave | _LEE | _UBE | _CNEE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        c1: Categoria | _CNEE = Categoria.__encontrar_existente_por_chave(chave)
+        if not isinstance(c1, Categoria):
+            return c1
+        return c1.__up
+
+    @staticmethod
+    def _criar(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave | _LEE | _UBE | _PNE | _CJEE | _VIE:
+        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        nome: str = dados.nome
+        t: int = len(nome)
+        if t < 1 or t > 50:
+            return ValorIncorretoException()
+        c1: None | _CJEE = Categoria.__nao_existente_por_nome(nome)
+        if c1 is not None:
+            return c1
+        pk: CategoriaPK = CategoriaDAO.instance().criar(DadosCategoriaSemPK(nome))
+        return Categoria(pk.pk_categoria, nome).__up
+
+    @staticmethod
+    def _renomear_por_nome(quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None | _LEE | _UBE | _PNE | _VIE | _CJEE | _CNEE:
+        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        c1: Categoria | _CNEE = Categoria.__encontrar_existente_por_nome(dados.antigo)
+        if not isinstance(c1, Categoria):
+            return c1
+        c2: Categoria | _VIE | _CJEE = c1.__renomear(dados.novo)
+        if not isinstance(c2, Categoria):
+            return c2
+        return None
+
+    @staticmethod
+    def _excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None | _UBE | _PNE | _CNEE | _LEE | _ESCE:
+        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        c1: Categoria | _CNEE = Categoria.__encontrar_existente_por_nome(dados.nome)
+        if not isinstance(c1, Categoria):
+            return c1
+        ligados: int = c1.__ligados()
+        if ligados > 0:
+            return ExclusaoSemCascataException()
+        c1.__excluir()
+        return None
+
+    @staticmethod
+    def _listar(quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias | _LEE | _UBE:
+        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        return ResultadoListaDeCategorias([x.__up for x in Categoria.__listar_interno()])
 
 
 class Servicos:
@@ -153,64 +211,24 @@ class Servicos:
 
     @staticmethod
     def buscar_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave | _LEE | _UBE | _CNEE:
-        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
-        if not isinstance(u1, Usuario):
-            return u1
-        c1: Categoria | _CNEE = Categoria._encontrar_existente_por_nome(dados.nome)
-        if not isinstance(c1, Categoria):
-            return c1
-        return c1._up
+        return Categoria._buscar_por_nome(quem_faz, dados)
 
     @staticmethod
     def buscar_por_chave(quem_faz: ChaveUsuario, chave: ChaveCategoria) -> CategoriaComChave | _LEE | _UBE | _CNEE:
-        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
-        if not isinstance(u1, Usuario):
-            return u1
-        c1: Categoria | _CNEE = Categoria._encontrar_existente_por_chave(chave)
-        if not isinstance(c1, Categoria):
-            return c1
-        return c1._up
+        return Categoria._buscar_por_chave(quem_faz, chave)
 
     @staticmethod
     def criar(quem_faz: ChaveUsuario, dados: NomeCategoria) -> CategoriaComChave | _LEE | _UBE | _PNE | _CJEE | _VIE:
-        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
-        if not isinstance(u1, Usuario):
-            return u1
-        c1: Categoria | _CJEE | _VIE = Categoria._criar(dados.nome)
-        if not isinstance(c1, Categoria):
-            return c1
-        return c1._up
+        return Categoria._criar(quem_faz, dados)
 
     @staticmethod
     def renomear_por_nome(quem_faz: ChaveUsuario, dados: RenomeCategoria) -> None | _LEE | _UBE | _PNE | _VIE | _CJEE | _CNEE:
-        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
-        if not isinstance(u1, Usuario):
-            return u1
-        c1: Categoria | _CNEE = Categoria._encontrar_existente_por_nome(dados.antigo)
-        if not isinstance(c1, Categoria):
-            return c1
-        c2: Categoria | _VIE | _CJEE = c1._renomear(dados.novo)
-        if not isinstance(c2, Categoria):
-            return c2
-        return None
+        return Categoria._renomear_por_nome(quem_faz, dados)
 
     @staticmethod
     def excluir_por_nome(quem_faz: ChaveUsuario, dados: NomeCategoria) -> None | _UBE | _PNE | _CNEE | _LEE | _ESCE:
-        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
-        if not isinstance(u1, Usuario):
-            return u1
-        c1: Categoria | _CNEE = Categoria._encontrar_existente_por_nome(dados.nome)
-        if not isinstance(c1, Categoria):
-            return c1
-        ligados: int = c1._ligados()
-        if ligados > 0:
-            return ExclusaoSemCascataException()
-        c1._excluir()
-        return None
+        return Categoria._excluir_por_nome(quem_faz, dados)
 
     @staticmethod
     def listar(quem_faz: ChaveUsuario) -> ResultadoListaDeCategorias | _LEE | _UBE:
-        u1: Usuario | _LEE | _UBE = Usuario.verificar_acesso(quem_faz)
-        if not isinstance(u1, Usuario):
-            return u1
-        return ResultadoListaDeCategorias([x._up for x in Categoria._listar()])
+        return Categoria._listar(quem_faz)

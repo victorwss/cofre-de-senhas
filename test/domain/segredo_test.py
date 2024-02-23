@@ -423,7 +423,13 @@ def test_buscar_por_chave_publico(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_por_chave_somente_leitura(c: TransactedConnection) -> None:
-    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.CONFIDENCIAL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = TipoPermissao.SOMENTE_LEITURA)
+    original: SegredoComChave = criar_segredo_normal(
+        c,
+        tipo = TipoSegredo.CONFIDENCIAL,
+        quem = 2,
+        hermione = TipoPermissao.PROPRIETARIO,
+        harry_potter = TipoPermissao.SOMENTE_LEITURA
+    )
 
     s1: Servicos = servicos_normal(c)
     x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
@@ -432,7 +438,13 @@ def test_buscar_por_chave_somente_leitura(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_por_chave_leitura_escrita(c: TransactedConnection) -> None:
-    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.CONFIDENCIAL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = TipoPermissao.LEITURA_E_ESCRITA)
+    original: SegredoComChave = criar_segredo_normal(
+        c,
+        tipo = TipoSegredo.CONFIDENCIAL,
+        quem = 2,
+        hermione = TipoPermissao.PROPRIETARIO,
+        harry_potter = TipoPermissao.LEITURA_E_ESCRITA
+    )
 
     s1: Servicos = servicos_normal(c)
     x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
@@ -441,7 +453,13 @@ def test_buscar_por_chave_leitura_escrita(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_buscar_por_chave_dois_proprietarios(c: TransactedConnection) -> None:
-    original: SegredoComChave = criar_segredo_normal(c, tipo = TipoSegredo.CONFIDENCIAL, quem = 2, hermione = TipoPermissao.PROPRIETARIO, harry_potter = TipoPermissao.PROPRIETARIO)
+    original: SegredoComChave = criar_segredo_normal(
+        c,
+        tipo = TipoSegredo.CONFIDENCIAL,
+        quem = 2,
+        hermione = TipoPermissao.PROPRIETARIO,
+        harry_potter = TipoPermissao.PROPRIETARIO
+    )
 
     s1: Servicos = servicos_normal(c)
     x1: SegredoComChave | BaseException = s1.segredo.buscar_por_chave(original.chave)
