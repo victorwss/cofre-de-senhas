@@ -5,6 +5,7 @@ from httpwrap import empty_json, bodyless, jsoner, read_body, move
 from sucesso import PrecondicaoFalhouException, ConteudoIncompreensivelException
 from webrpc import WebParam, WebSuite, from_body_typed, from_path, from_path_int
 from .service import (
+    Servicos,
     GerenciadorLogin, UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
     UsuarioNovo, RenomeUsuario, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
     NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias,
@@ -17,7 +18,7 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException
 )
-from .service_impl import Servicos
+from .service_impl import ServicosImpl
 from validator import dataclass_validate
 from dataclasses import dataclass
 from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
@@ -101,7 +102,7 @@ def servir() -> None:
     CofreDeSenhasDAOImpl(cofre)
     SegredoDAOImpl(cofre)
     UsuarioDAOImpl(cofre)
-    sx: Servicos = Servicos(gl, cofre)
+    sx: Servicos = ServicosImpl(gl, cofre)
 
     segredo_chave: SegredoComChave | _SNEE = sx.bd.buscar_por_chave_sem_logar(ChaveSegredo(-1))
     if not isinstance(segredo_chave, SegredoComChave):

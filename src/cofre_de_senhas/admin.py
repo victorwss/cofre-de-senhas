@@ -1,10 +1,15 @@
-from typing import override
-from .service import LoginComSenha, GerenciadorLogin, UsuarioComChave, ChaveUsuario
-from .service_impl import Servicos
+from typing import override, TypeAlias
+from .service import Servicos, LoginComSenha, GerenciadorLogin, UsuarioComChave, ChaveUsuario
+from .service_impl import ServicosImpl
+from .erro import UsuarioJaExisteException, ValorIncorretoException
 from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from connection.trans import TransactedConnection
 from .conn_factory import connect
 import getpass
+
+
+_UJEE: TypeAlias = UsuarioJaExisteException
+_VIE: TypeAlias = ValorIncorretoException
 
 
 class _Nao(GerenciadorLogin):
@@ -27,7 +32,7 @@ class _Menu:
 
     def __init__(self, cofre: TransactedConnection) -> None:
         self.__cofre: TransactedConnection = cofre
-        self.__servicos: Servicos = Servicos(_Nao(), self.__cofre)
+        self.__servicos: Servicos = ServicosImpl(_Nao(), self.__cofre)
 
     def __mostrar_menu(self) -> None:
         print("Escolha uma das opções:")
@@ -65,9 +70,9 @@ class _Menu:
 
         resultado: UsuarioComChave | _VIE | _UJEE = self.__servicos.bd.criar_admin(LoginComSenha(login1, senha1))
         if isinstance(resultado, UsuarioJaExisteException):
-            print(f"Esse usuário já existe.")
+            print("Esse usuário já existe.")
         elif isinstance(resultado, ValorIncorretoException):
-            print(f"Esse nome de usuário não é válido.")
+            print("Esse nome de usuário não é válido.")
         else:
             print(f"O usuário foi criado com a chave {resultado.chave.valor}.")
 

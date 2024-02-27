@@ -3,7 +3,7 @@ from ..fixtures import (
     dbs, assert_db_ok,
     banco_de_dados, aplicacao, servidor, api, producao, homologacao, desenvolvimento, qa, integracao,
     millenium_falcon, lixo2, lixo4, nome_em_branco, nome_longo_demais, nao_existe,
-    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado
+    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.erro import (
@@ -11,8 +11,7 @@ from cofre_de_senhas.erro import (
     CategoriaNaoExisteException, CategoriaJaExisteException,
     ValorIncorretoException, ExclusaoSemCascataException
 )
-from cofre_de_senhas.service import NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias
-from cofre_de_senhas.service_impl import Servicos
+from cofre_de_senhas.service import Servicos, NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias
 from pytest import raises
 
 
@@ -550,7 +549,7 @@ def test_criar_bd_ok(c: TransactedConnection) -> None:
         z.execute("DROP TABLE enum_tipo_permissao")
         z.execute("DROP TABLE enum_tipo_segredo")
 
-    s0: Servicos = servicos_banido(c)
+    s0: Servicos = servicos_nao_logar(c)
     s0.bd.criar_bd()
 
     hash: str = \

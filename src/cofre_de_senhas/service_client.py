@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from requests.models import Response
 # from requests.cookies import RequestsCookieJar
 from .service import (
-    ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo,
+    ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo, Servicos,
     UsuarioComChave, ChaveUsuario, LoginUsuario, LoginComSenha, ResultadoListaDeUsuarios,
     TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario, RenomeUsuario,
     CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
@@ -151,24 +151,28 @@ class _Requester:
         return from_dict(data_class = t, data = j["conteudo"], config = Config(cast = [Enum]))
 
 
-class Servicos:
+class ServicosClient(Servicos):
 
     def __init__(self, requester: _Requester) -> None:
         self.__requester: _Requester = requester
 
     @property
+    @override
     def bd(self) -> ServicoBD:
         return _ServicoBDClient(self.__requester)
 
     @property
+    @override
     def usuario(self) -> ServicoUsuario:
         return _ServicoUsuarioClient(self.__requester)
 
     @property
+    @override
     def categoria(self) -> ServicoCategoria:
         return _ServicoCategoriaClient(self.__requester)
 
     @property
+    @override
     def segredo(self) -> ServicoSegredo:
         return _ServicoSegredoClient(self.__requester)
 

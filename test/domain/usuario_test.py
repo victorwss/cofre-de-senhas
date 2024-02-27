@@ -1,16 +1,18 @@
 from ..db_test_util import applier_trans
 from ..fixtures import (
-    dbs, assert_db_ok, GerenciadorFazLogin, GerenciadorLogout, no_transaction,
+    dbs, assert_db_ok, ServicosLogout, ServicosDecorator,
     harry_potter, voldemort, dumbledore, hermione, snape,
-    servicos_normal, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar,
+    servicos_normal, servicos_admin,
+    servicos_normal_login, servicos_normal2_login, servicos_admin_login,
+    servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar,
     lixo4
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.service import (
+    Servicos,
     LoginUsuario, LoginComSenha, TrocaSenha, SenhaAlterada, ResetLoginUsuario, RenomeUsuario,
     ChaveUsuario, NivelAcesso, UsuarioComChave, UsuarioNovo, UsuarioComNivel, ResultadoListaDeUsuarios
 )
-from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.erro import (
     UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException, UsuarioNaoLogadoException, SenhaErradaException,
     UsuarioNaoExisteException, UsuarioJaExisteException,
@@ -31,16 +33,6 @@ def test_nao_instanciar_servicos() -> None:
     from cofre_de_senhas.usuario.usuario import Servicos as UsuarioServico
     with raises(Exception):
         UsuarioServico()
-
-
-# @applier_trans(dbs, assert_db_ok)
-# def test_criar_admin_ok(c: TransactedConnection) -> None:
-#     from cofre_de_senhas.usuario.usuario import Servicos as UsuarioServico
-#     s: Servicos = servicos_normal(c)
-#     dados: LoginComSenha = LoginComSenha(snape.login, "sectumsempra")
-#
-#     x: UsuarioComChave | BaseException = UsuarioServico.criar_admin(dados)
-#     assert x == UsuarioComChave(ChaveUsuario(snape.pk_usuario), snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
 
 
 # Método criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
@@ -265,7 +257,6 @@ def test_buscar_por_chave_UNLE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_ok_normal(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
-
     x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert x == tudo
 
@@ -273,7 +264,6 @@ def test_listar_usuarios_ok_normal(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_ok_admin(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
-
     x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert x == tudo
 
@@ -281,7 +271,6 @@ def test_listar_usuarios_ok_admin(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_LEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_usuario_nao_existe(c)
-
     x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert isinstance(x, LoginExpiradoException)
 
@@ -289,7 +278,6 @@ def test_listar_usuarios_LEE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_UBE(c: TransactedConnection) -> None:
     s: Servicos = servicos_banido(c)
-
     x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert isinstance(x, UsuarioBanidoException)
 
@@ -297,7 +285,6 @@ def test_listar_usuarios_UBE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_listar_usuarios_UNLE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logado(c)
-
     x: ResultadoListaDeUsuarios | BaseException = s.usuario.listar()
     assert isinstance(x, UsuarioNaoLogadoException)
 
@@ -307,41 +294,34 @@ def test_listar_usuarios_UNLE(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_login_ok1(c: TransactedConnection) -> None:
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(hermione.pk_usuario))
-    s: Servicos = Servicos(gl, c)
-
+    s: ServicosDecorator = servicos_normal2_login(c)
     login: LoginComSenha = LoginComSenha(hermione.login, "expelliarmus")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert x == UsuarioComChave(ChaveUsuario(hermione.pk_usuario), hermione.login, NivelAcesso.NORMAL)
-    gl.verificar()
+    s.gl.verificar()
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_login_ok2(c: TransactedConnection) -> None:
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
-    s: Servicos = Servicos(gl, c)
-
+    s: ServicosDecorator = servicos_normal_login(c)
     login: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert x == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
-    gl.verificar()
+    s.gl.verificar()
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_login_ok3(c: TransactedConnection) -> None:
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
-    s: Servicos = Servicos(gl, c)
-
+    s: ServicosDecorator = servicos_admin_login(c)
     login: LoginComSenha = LoginComSenha(dumbledore.login, "expecto patronum")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert x == UsuarioComChave(ChaveUsuario(dumbledore.pk_usuario), dumbledore.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
-    gl.verificar()
+    s.gl.verificar()
 
 
 @applier_trans(dbs, assert_db_ok)
 def test_login_UBE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logar(c)
-
     login: LoginComSenha = LoginComSenha(voldemort.login, "avada kedavra")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert isinstance(x, UsuarioBanidoException)
@@ -350,7 +330,6 @@ def test_login_UBE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_login_SEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logar(c)
-
     login: LoginComSenha = LoginComSenha(harry_potter.login, "xxxx")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert isinstance(x, SenhaErradaException)
@@ -359,7 +338,6 @@ def test_login_SEE(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_login_SEE_usuario_nao_existe(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logar(c)
-
     login: LoginComSenha = LoginComSenha("xxx", "xxxx")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert isinstance(x, SenhaErradaException)
@@ -368,7 +346,6 @@ def test_login_SEE_usuario_nao_existe(c: TransactedConnection) -> None:
 @applier_trans(dbs, assert_db_ok)
 def test_login_UBE_antes_de_SEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logar(c)
-
     login: LoginComSenha = LoginComSenha(voldemort.login, "xxxx")
     x: UsuarioComChave | BaseException = s.usuario.login(login)
     assert isinstance(x, UsuarioBanidoException)
@@ -378,26 +355,12 @@ def test_login_UBE_antes_de_SEE(c: TransactedConnection) -> None:
 
 
 def test_logout() -> None:
-    commited: bool = False
-    closed: bool = False
-
-    def back(t: str) -> None:
-        nonlocal commited
-        nonlocal closed
-        if not commited and t == "commit":
-            commited = True
-        elif not closed and t == "close":
-            closed = True
-        else:
-            assert False
-
-    gl: GerenciadorLogout = GerenciadorLogout()
-    s: Servicos = Servicos(gl, no_transaction(back))
-
+    sl: ServicosLogout = ServicosLogout()
+    s: ServicosDecorator = sl.criar()
     s.usuario.logout()
-    gl.verificar()
-    assert commited
-    assert closed
+    s.gl.verificar()
+    assert sl.commited
+    assert sl.closed
 
 
 # Método renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
@@ -497,13 +460,11 @@ def test_trocar_senha_por_chave_admin(c: TransactedConnection) -> None:
     x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
     assert x1 is None
 
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
-    s2: Servicos = Servicos(gl, c)
-
+    s2: ServicosDecorator = servicos_admin_login(c)
     login1: LoginComSenha = LoginComSenha(dumbledore.login, "wingardium leviosa")
     x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
     assert x2 == UsuarioComChave(ChaveUsuario(dumbledore.pk_usuario), dumbledore.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
-    gl.verificar()
+    s2.gl.verificar()
 
     login2: LoginComSenha = LoginComSenha(dumbledore.login, "expecto patronum")
     x3: UsuarioComChave | BaseException = s1.usuario.login(login2)
@@ -517,13 +478,11 @@ def test_trocar_senha_por_chave_normal(c: TransactedConnection) -> None:
     x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
     assert x1 is None
 
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
-    s2: Servicos = Servicos(gl, c)
-
+    s2: ServicosDecorator = servicos_normal_login(c)
     login1: LoginComSenha = LoginComSenha(harry_potter.login, "wingardium leviosa")
     x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
     assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
-    gl.verificar()
+    s2.gl.verificar()
 
     login2: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
     x3: UsuarioComChave | BaseException = s1.usuario.login(login2)
@@ -537,9 +496,7 @@ def test_trocar_senha_por_chave_SEE(c: TransactedConnection) -> None:
     x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
     assert isinstance(x1, SenhaErradaException)
 
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
-    s2: Servicos = Servicos(gl, c)
-
+    s2: ServicosDecorator = servicos_normal_login(c)
     login1: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
     x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
     assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
@@ -560,11 +517,8 @@ def test_trocar_senha_por_chave_UBE(c: TransactedConnection) -> None:
     x1: None | BaseException = s1.usuario.trocar_senha_por_chave(t)
     assert isinstance(x1, UsuarioBanidoException)
 
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(voldemort.pk_usuario))
-    s2: Servicos = Servicos(gl, c)
-
     login1: LoginComSenha = LoginComSenha(voldemort.login, "wingardium leviosa")
-    x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
+    x2: UsuarioComChave | BaseException = s1.usuario.login(login1)
     assert isinstance(x2, UsuarioBanidoException)
 
 
@@ -598,12 +552,11 @@ def test_resetar_senha_por_login_ok1(c: TransactedConnection) -> None:
     nova_senha: str = x1.nova_senha
     assert len(nova_senha) == 20
 
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
-    s2: Servicos = Servicos(gl, c)
-
+    s2: ServicosDecorator = servicos_normal_login(c)
     login1: LoginComSenha = LoginComSenha(harry_potter.login, nova_senha)
     x2: UsuarioComChave | BaseException = s2.usuario.login(login1)
     assert x2 == UsuarioComChave(ChaveUsuario(harry_potter.pk_usuario), harry_potter.login, NivelAcesso.NORMAL)
+    s2.gl.verificar()
 
     login2: LoginComSenha = LoginComSenha(harry_potter.login, "alohomora")
     x3: UsuarioComChave | BaseException = s2.usuario.login(login2)
@@ -722,7 +675,7 @@ def test_alterar_nivel_por_login_UNEE(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_admin_ok(c: TransactedConnection) -> None:
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     dados: LoginComSenha = LoginComSenha(snape.login, "sectumsempra")
 
     x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
@@ -731,7 +684,7 @@ def test_criar_admin_ok(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_admin_UJEE(c: TransactedConnection) -> None:
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     dados: LoginComSenha = LoginComSenha(dumbledore.login, "xxx")
 
     x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
@@ -740,7 +693,7 @@ def test_criar_admin_UJEE(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_admin_VIE_vazio(c: TransactedConnection) -> None:
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     dados: LoginComSenha = LoginComSenha("", "xxx")
 
     x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
@@ -749,7 +702,7 @@ def test_criar_admin_VIE_vazio(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_admin_VIE_curto(c: TransactedConnection) -> None:
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     dados: LoginComSenha = LoginComSenha("abc", "xxx")
 
     x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
@@ -758,7 +711,7 @@ def test_criar_admin_VIE_curto(c: TransactedConnection) -> None:
 
 @applier_trans(dbs, assert_db_ok)
 def test_criar_admin_VIE_longo(c: TransactedConnection) -> None:
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     dados: LoginComSenha = LoginComSenha("1234567890" * 5 + "1", "xxx")
 
     x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)

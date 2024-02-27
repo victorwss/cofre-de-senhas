@@ -2,8 +2,8 @@ from typing import Callable, Literal, override, Self, Sequence
 from .db_test_util import DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
 from cofre_de_senhas.dao import DadosUsuario, DadosUsuarioSemPK, DadosCategoria, DadosCategoriaSemPK, DadosSegredo, DadosSegredoSemPK
 from cofre_de_senhas.erro import UsuarioNaoLogadoException
-from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, UsuarioComChave
-from cofre_de_senhas.service_impl import Servicos
+from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, UsuarioComChave, Servicos, ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo
+from cofre_de_senhas.service_impl import ServicosImpl
 from connection.conn import SimpleConnection, Descriptor, RAW_DATA
 from connection.trans import TransactedConnection
 
@@ -357,29 +357,102 @@ def no_transaction(callback: Callable[[str], None]) -> TransactedConnection:
     return TransactedConnection(activate, "BAD BAD BAD", "BAD BAD BAD", "BAD BAD BAD")
 
 
+class ServicosDecorator(Servicos):
+
+    def __init__(self, inner: Servicos, gl: GerenciadorFazLogin | GerenciadorLogout) -> None:
+        self.__inner: Servicos = inner
+        self.__gl: GerenciadorFazLogin | GerenciadorLogout = gl
+
+    @property
+    @override
+    def bd(self) -> ServicoBD:
+        return self.__inner.bd
+
+    @property
+    @override
+    def usuario(self) -> ServicoUsuario:
+        return self.__inner.usuario
+
+    @property
+    @override
+    def categoria(self) -> ServicoCategoria:
+        return self.__inner.categoria
+
+    @property
+    @override
+    def segredo(self) -> ServicoSegredo:
+        return self.__inner.segredo
+
+    @property
+    def gl(self) -> GerenciadorFazLogin | GerenciadorLogout:
+        return self.__gl
+
+
 def servicos_normal(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario)), c)
+    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario)), c)
+
+
+def servicos_normal_login(c: TransactedConnection) -> ServicosDecorator:
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
+    return ServicosDecorator(ServicosImpl(gl, c), gl)
 
 
 def servicos_normal2(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginChave(ChaveUsuario(hermione.pk_usuario)), c)
+    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(hermione.pk_usuario)), c)
+
+
+def servicos_normal2_login(c: TransactedConnection) -> ServicosDecorator:
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(hermione.pk_usuario))
+    return ServicosDecorator(ServicosImpl(gl, c), gl)
 
 
 def servicos_admin(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginChave(ChaveUsuario(dumbledore.pk_usuario)), c)
+    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(dumbledore.pk_usuario)), c)
+
+
+def servicos_admin_login(c: TransactedConnection) -> ServicosDecorator:
+    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
+    return ServicosDecorator(ServicosImpl(gl, c), gl)
 
 
 def servicos_banido(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginChave(ChaveUsuario(voldemort.pk_usuario)), c)
+    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(voldemort.pk_usuario)), c)
 
 
 def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginChave(ChaveUsuario(lixo2)), c)
+    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(lixo2)), c)
 
 
 def servicos_nao_logado(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginNaoLogado(), c)
+    return ServicosImpl(GerenciadorLoginNaoLogado(), c)
 
 
 def servicos_nao_logar(c: TransactedConnection) -> Servicos:
-    return Servicos(GerenciadorLoginFalha(), c)
+    return ServicosImpl(GerenciadorLoginFalha(), c)
+
+
+class ServicosLogout:
+
+    def __init__(self) -> None:
+        self.__commited: bool = False
+        self.__closed: bool = False
+
+    def criar(self) -> ServicosDecorator:
+        def back(t: str) -> None:
+            if not self.__commited and t == "commit":
+                self.__commited = True
+            elif not self.__closed and t == "close":
+                self.__closed = True
+            else:
+                assert False
+
+        gl: GerenciadorLogout = GerenciadorLogout()
+        return ServicosDecorator(ServicosImpl(gl, no_transaction(back)), gl)
+
+    @property
+    def commited(self) -> bool:
+        return self.__commited
+
+    @property
+    def closed(self) -> bool:
+        return self.__closed

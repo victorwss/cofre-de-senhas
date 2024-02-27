@@ -347,3 +347,26 @@ class ServicoCategoria(ABC):
     @abstractmethod
     def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:
         pass
+
+
+class Servicos(ABC):
+
+    @property
+    @abstractmethod
+    def bd(self) -> ServicoBD:
+        pass
+
+    @property
+    @abstractmethod
+    def usuario(self) -> ServicoUsuario:
+        pass
+
+    @property
+    @abstractmethod
+    def categoria(self) -> ServicoCategoria:
+        pass
+
+    @property
+    @abstractmethod
+    def segredo(self) -> ServicoSegredo:
+        pass

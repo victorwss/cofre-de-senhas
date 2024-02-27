@@ -2,7 +2,7 @@ from typing import Callable, override, ParamSpec, TypeAlias, TypeVar
 from decorators.for_all import for_all_methods
 from connection.trans import TransactedConnection
 from .service import (
-    GerenciadorLogin, ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo,
+    GerenciadorLogin, ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo, Servicos,
     UsuarioComChave, ChaveUsuario, LoginUsuario, LoginComSenha, ResultadoListaDeUsuarios,
     TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario, RenomeUsuario,
     CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
@@ -40,13 +40,14 @@ _LEE: TypeAlias = LoginExpiradoException
 _ESCE: TypeAlias = ExclusaoSemCascataException
 
 
-class Servicos:
+class ServicosImpl(Servicos):
 
     def __init__(self, gl: GerenciadorLogin, trans: TransactedConnection) -> None:
         self.__gl: GerenciadorLogin = gl
         self.__trans: TransactedConnection = trans
 
     @property
+    @override
     def bd(self) -> ServicoBD:
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
@@ -56,6 +57,7 @@ class Servicos:
         return Interna()
 
     @property
+    @override
     def usuario(self) -> ServicoUsuario:
         gl: GerenciadorLogin = self.__gl
 
@@ -63,11 +65,12 @@ class Servicos:
         @for_all_methods(self.__trans.transact)
         @for_all_methods(self.__inject)
         class Interna(_ServicoUsuarioImpl):
-            def __init__(self2) -> None:
+            def __init__(self) -> None:
                 super().__init__(gl)
         return Interna()
 
     @property
+    @override
     def categoria(self) -> ServicoCategoria:
         gl: GerenciadorLogin = self.__gl
 
@@ -75,11 +78,12 @@ class Servicos:
         @for_all_methods(self.__trans.transact)
         @for_all_methods(self.__inject)
         class Interna(_ServicoCategoriaImpl):
-            def __init__(self2) -> None:
+            def __init__(self) -> None:
                 super().__init__(gl)
         return Interna()
 
     @property
+    @override
     def segredo(self) -> ServicoSegredo:
         gl: GerenciadorLogin = self.__gl
 
@@ -87,7 +91,7 @@ class Servicos:
         @for_all_methods(self.__trans.transact)
         @for_all_methods(self.__inject)
         class Interna(_ServicoSegredoImpl):
-            def __init__(self2) -> None:
+            def __init__(self) -> None:
                 super().__init__(gl)
         return Interna()
 

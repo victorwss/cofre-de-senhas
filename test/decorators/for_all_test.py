@@ -156,6 +156,29 @@ def test_wrapped_property_set() -> None:
     assert which == ["test5"]
 
 
+def test_wrapped_property_set_no_get() -> None:
+
+    @for_all_methods(the_wrapper)
+    class Foo:
+
+        def __init__(self) -> None:
+            pass
+
+        def test5(self, x: str) -> None:
+            pass
+
+        test5 = property().setter(test5)  # type: ignore
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == []
+
+    f.test5 = "z"  # type: ignore
+    assert which == ["test5"]
+
+
 def test_wrapped_property_del() -> None:
 
     @for_all_methods(the_wrapper)
@@ -171,6 +194,29 @@ def test_wrapped_property_del() -> None:
         @test5.deleter
         def test5(self) -> None:
             pass
+
+    global which
+    which = []
+
+    f: Foo = Foo()
+    assert which == []
+
+    del f.test5
+    assert which == ["test5"]
+
+
+def test_wrapped_property_del_no_get() -> None:
+
+    @for_all_methods(the_wrapper)
+    class Foo:
+
+        def __init__(self) -> None:
+            pass
+
+        def test5(self) -> None:
+            pass
+
+        test5 = property().deleter(test5)  # type: ignore
 
     global which
     which = []

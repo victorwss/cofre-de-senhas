@@ -2,7 +2,7 @@ from ..db_test_util import applier_trans
 from ..fixtures import (
     dbs, assert_db_ok,
     segredo_m1, dbz, lotr, star_wars, oppenheimer, star_trek,
-    servicos_normal, servicos_normal2, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado
+    servicos_normal, servicos_normal2, servicos_admin, servicos_banido, servicos_usuario_nao_existe, servicos_nao_logado, servicos_nao_logar
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.erro import (
@@ -12,11 +12,11 @@ from cofre_de_senhas.erro import (
     PermissaoNegadaException, ValorIncorretoException
 )
 from cofre_de_senhas.service import (
+    Servicos,
     ChaveSegredo, SegredoSemChave, SegredoComChave,
     ResultadoPesquisaDeSegredos, CabecalhoSegredoComChave,
     TipoSegredo, TipoPermissao
 )
-from cofre_de_senhas.service_impl import Servicos
 from pytest import raises
 
 
@@ -509,7 +509,7 @@ def test_buscar_por_chave_SNEE(c: TransactedConnection) -> None:
 def test_buscar_por_chave_sem_logar_ok(c: TransactedConnection) -> None:
     original: SegredoComChave = criar_segredo_normal(c)
 
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(original.chave)
     assert x == original
 
@@ -518,7 +518,7 @@ def test_buscar_por_chave_sem_logar_ok(c: TransactedConnection) -> None:
 def test_buscar_por_chave_sem_logar_SNEE(c: TransactedConnection) -> None:
     chave: ChaveSegredo = ChaveSegredo(9999)
 
-    s: Servicos = servicos_banido(c)
+    s: Servicos = servicos_nao_logar(c)
     x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(chave)
     assert isinstance(x, SegredoNaoExisteException)
 
