@@ -16,7 +16,7 @@ from typing import (
 )
 from typing import Generic, TypeVar  # Delete when PEP 695 is ready.
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from _typeshed import DataclassInstance
     _D = TypeVar("_D", bound = DataclassInstance)
 else:

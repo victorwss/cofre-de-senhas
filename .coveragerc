@@ -9,3 +9,5 @@ exclude_lines =
     @abc.abstractmethod
     def __repr__
     pragma: no cover
+    assert False
+    if TYPE_CHECKING:

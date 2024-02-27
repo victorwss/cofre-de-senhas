@@ -10,7 +10,7 @@ from requests.models import Response
 from .service import (
     ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo,
     UsuarioComChave, ChaveUsuario, LoginUsuario, LoginComSenha, ResultadoListaDeUsuarios,
-    TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario,
+    TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario, RenomeUsuario,
     CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
     SegredoComChave, SegredoSemChave, ChaveSegredo, PesquisaSegredos, ResultadoPesquisaDeSegredos,
 )
@@ -179,8 +179,16 @@ class _ServicoBDClient(ServicoBD):
         self.__requester: _Requester = requester
 
     @override
-    def criar_bd(self, dados: LoginComSenha) -> None:
-        raise Exception("Não implementado")
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
+        raise NotImplementedError("Não implementado")
+
+    @override
+    def criar_bd(self) -> None:
+        raise NotImplementedError("Não implementado")
+
+    @override
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
+        raise NotImplementedError("Não implementado")
 
 
 class _ServicoUsuarioClient(ServicoUsuario):
@@ -197,9 +205,9 @@ class _ServicoUsuarioClient(ServicoUsuario):
         self.__requester.post("/logout", {}, type(None), typed(str).end)
 
     @override
-    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
+    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE | _VIE:
         d: dict[str, Any] = {"senha": dados.senha, "nivel_acesso": dados.nivel_acesso}
-        return self.__requester.put(f"/usuarios/{dados.login}", d, UsuarioComChave, typed(_UNLE).join(_UBE).join(_PNE).join(_UJEE).join(_LEE).end)
+        return self.__requester.put(f"/usuarios/{dados.login}", d, UsuarioComChave, typed(_UNLE).join(_UBE).join(_PNE).join(_UJEE).join(_LEE).join(_VIE).end)
 
     @override
     def trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE | _LEE:
@@ -213,6 +221,16 @@ class _ServicoUsuarioClient(ServicoUsuario):
     def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         d: dict[str, Any] = {"nivel_acesso": dados.nivel_acesso}
         return self.__requester.post(f"/usuarios/{dados.login}/alterar-nivel", d, type(None), typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end)
+
+    @override
+    def renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
+        return self.__requester.move(
+            f"/usuarios/{dados.antigo}/renomear",
+            dados.novo,
+            False,
+            type(None),
+            typed(_UNLE).join(_UNEE).join(_UJEE).join(_UBE).join(_PNE).join(_LEE).join(_VIE).end
+        )
 
     @override
     def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
@@ -258,12 +276,8 @@ class _ServicoSegredoClient(ServicoSegredo):
         return self.__requester.get(f"/segredos/{chave.valor}", SegredoComChave, typed(_UNLE).join(_UBE).join(_SNEE).end)
 
     @override
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
-        raise Exception("Não implementado")
-
-    @override
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _SNEE:
-        raise Exception("Não implementado")
+        raise NotImplementedError("Não implementado")
 
 
 class _ServicoCategoriaClient(ServicoCategoria):

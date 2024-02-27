@@ -7,13 +7,14 @@ from ..fixtures import (
 )
 from connection.trans import TransactedConnection
 from cofre_de_senhas.service import (
-    LoginUsuario, LoginComSenha, TrocaSenha, SenhaAlterada, ResetLoginUsuario,
+    LoginUsuario, LoginComSenha, TrocaSenha, SenhaAlterada, ResetLoginUsuario, RenomeUsuario,
     ChaveUsuario, NivelAcesso, UsuarioComChave, UsuarioNovo, UsuarioComNivel, ResultadoListaDeUsuarios
 )
 from cofre_de_senhas.service_impl import Servicos
 from cofre_de_senhas.erro import (
     UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException, UsuarioNaoLogadoException, SenhaErradaException,
-    UsuarioNaoExisteException, UsuarioJaExisteException
+    UsuarioNaoExisteException, UsuarioJaExisteException,
+    ValorIncorretoException
 )
 from pytest import raises
 
@@ -117,11 +118,38 @@ def test_criar_UNLE(c: TransactedConnection) -> None:
     assert isinstance(x, UsuarioNaoLogadoException)
 
 
+@applier_trans(dbs, assert_db_ok)
+def test_criar_VIE_vazio(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: UsuarioNovo = UsuarioNovo("", NivelAcesso.DESATIVADO, "xxx")
+
+    x: UsuarioComChave | BaseException = s.usuario.criar(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_VIE_curto(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: UsuarioNovo = UsuarioNovo("abc", NivelAcesso.DESATIVADO, "xxx")
+
+    x: UsuarioComChave | BaseException = s.usuario.criar(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_VIE_longo(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    dados: UsuarioNovo = UsuarioNovo("1234567890" * 5 + "1", NivelAcesso.DESATIVADO, "xxx")
+
+    x: UsuarioComChave | BaseException = s.usuario.criar(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
 # Método buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_login_normal(c: TransactedConnection) -> None:
+def test_buscar_por_login_normal(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: LoginUsuario = LoginUsuario(hermione.login)
 
@@ -130,7 +158,7 @@ def buscar_por_login_normal(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_login_admin(c: TransactedConnection) -> None:
+def test_buscar_por_login_admin(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: LoginUsuario = LoginUsuario(hermione.login)
 
@@ -139,7 +167,7 @@ def buscar_por_login_admin(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_login_UNEE(c: TransactedConnection) -> None:
+def test_buscar_por_login_UNEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: LoginUsuario = LoginUsuario(snape.login)
 
@@ -148,7 +176,7 @@ def buscar_por_login_UNEE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_login_UBE(c: TransactedConnection) -> None:
+def test_buscar_por_login_UBE(c: TransactedConnection) -> None:
     s: Servicos = servicos_banido(c)
     dados: LoginUsuario = LoginUsuario(hermione.login)
 
@@ -157,7 +185,7 @@ def buscar_por_login_UBE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_login_LEE(c: TransactedConnection) -> None:
+def test_buscar_por_login_LEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_usuario_nao_existe(c)
     dados: LoginUsuario = LoginUsuario(hermione.login)
 
@@ -166,7 +194,7 @@ def buscar_por_login_LEE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_login_UNLE(c: TransactedConnection) -> None:
+def test_buscar_por_login_UNLE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logado(c)
     dados: LoginUsuario = LoginUsuario(hermione.login)
 
@@ -178,7 +206,7 @@ def buscar_por_login_UNLE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_chave_normal(c: TransactedConnection) -> None:
+def test_buscar_por_chave_normal(c: TransactedConnection) -> None:
     s: Servicos = servicos_normal(c)
     dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
 
@@ -187,7 +215,7 @@ def buscar_por_chave_normal(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_chave_admin(c: TransactedConnection) -> None:
+def test_buscar_por_chave_admin(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
 
@@ -196,7 +224,7 @@ def buscar_por_chave_admin(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_chave_UNEE(c: TransactedConnection) -> None:
+def test_buscar_por_chave_UNEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_admin(c)
     dados: ChaveUsuario = ChaveUsuario(snape.pk_usuario)
 
@@ -205,7 +233,7 @@ def buscar_por_chave_UNEE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_chave_UBE(c: TransactedConnection) -> None:
+def test_buscar_por_chave_UBE(c: TransactedConnection) -> None:
     s: Servicos = servicos_banido(c)
     dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
 
@@ -214,7 +242,7 @@ def buscar_por_chave_UBE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_chave_LEE(c: TransactedConnection) -> None:
+def test_buscar_por_chave_LEE(c: TransactedConnection) -> None:
     s: Servicos = servicos_usuario_nao_existe(c)
     dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
 
@@ -223,7 +251,7 @@ def buscar_por_chave_LEE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def buscar_por_chave_UNLE(c: TransactedConnection) -> None:
+def test_buscar_por_chave_UNLE(c: TransactedConnection) -> None:
     s: Servicos = servicos_nao_logado(c)
     dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
 
@@ -370,6 +398,93 @@ def test_logout() -> None:
     gl.verificar()
     assert commited
     assert closed
+
+
+# Método renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_ok(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, hermione.login + "XXX")
+    x1: None | BaseException = s.usuario.renomear_por_login(t)
+    assert x1 is None
+
+    dados: ChaveUsuario = ChaveUsuario(hermione.pk_usuario)
+    x2: UsuarioComChave | BaseException = s.usuario.buscar_por_chave(dados)
+    assert x2 == UsuarioComChave(ChaveUsuario(hermione.pk_usuario), hermione.login + "XXX", NivelAcesso.NORMAL)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_UNLE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_nao_logado(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, hermione.login + "XXX")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, UsuarioNaoLogadoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_LEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_usuario_nao_existe(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, hermione.login + "XXX")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, LoginExpiradoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_UBE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, hermione.login + "XXX")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, UsuarioBanidoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_PNE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_normal(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, hermione.login + "XXX")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, PermissaoNegadaException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_UNEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login + "YYY", hermione.login + "XXX")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, UsuarioNaoExisteException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_UJEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, harry_potter.login)
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, UsuarioJaExisteException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_VIE_vazio(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, "")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_VIE_curto(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, "xxx")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_renomear_VIE_longo(c: TransactedConnection) -> None:
+    s: Servicos = servicos_admin(c)
+    t: RenomeUsuario = RenomeUsuario(hermione.login, "0123456789" * 5 + "1")
+    x: None | BaseException = s.usuario.renomear_por_login(t)
+    assert isinstance(x, ValorIncorretoException)
 
 
 # Método trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE | _SEE | _LEE:
@@ -600,3 +715,51 @@ def test_alterar_nivel_por_login_UNEE(c: TransactedConnection) -> None:
     t: UsuarioComNivel = UsuarioComNivel(lixo4, NivelAcesso.DESATIVADO)
     x1: None | BaseException = s1.usuario.alterar_nivel_por_login(t)
     assert isinstance(x1, UsuarioNaoExisteException)
+
+
+# Método criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_admin_ok(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    dados: LoginComSenha = LoginComSenha(snape.login, "sectumsempra")
+
+    x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
+    assert x == UsuarioComChave(ChaveUsuario(snape.pk_usuario), snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_admin_UJEE(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    dados: LoginComSenha = LoginComSenha(dumbledore.login, "xxx")
+
+    x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
+    assert isinstance(x, UsuarioJaExisteException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_admin_VIE_vazio(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    dados: LoginComSenha = LoginComSenha("", "xxx")
+
+    x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_admin_VIE_curto(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    dados: LoginComSenha = LoginComSenha("abc", "xxx")
+
+    x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
+    assert isinstance(x, ValorIncorretoException)
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_admin_VIE_longo(c: TransactedConnection) -> None:
+    s: Servicos = servicos_banido(c)
+    dados: LoginComSenha = LoginComSenha("1234567890" * 5 + "1", "xxx")
+
+    x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
+    assert isinstance(x, ValorIncorretoException)

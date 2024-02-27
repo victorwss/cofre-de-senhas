@@ -532,3 +532,34 @@ def test_listar_categorias_UNLE(c: TransactedConnection) -> None:
 
     x: ResultadoListaDeCategorias | BaseException = s.categoria.listar()
     assert isinstance(x, UsuarioNaoLogadoException)
+
+
+# Método criar_bd(self) -> None
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_bd_ok(c: TransactedConnection) -> None:
+    with c as z:
+        z.execute("DROP TABLE permissao")
+        z.execute("DROP TABLE categoria_segredo")
+        z.execute("DROP TABLE campo_segredo")
+        z.execute("DROP TABLE segredo")
+        z.execute("DROP TABLE categoria")
+        z.execute("DROP TABLE usuario")
+        z.execute("DROP TABLE enum_nivel_acesso")
+        z.execute("DROP TABLE enum_tipo_permissao")
+        z.execute("DROP TABLE enum_tipo_segredo")
+
+    s0: Servicos = servicos_banido(c)
+    s0.bd.criar_bd()
+
+    hash: str = \
+        "SbhhiMEETzPiquOxabc178eb35f26c8f59981b01a11cbec48b16f6a8e2c204f4a9a1b633c9199e0b3b2a64b13e49226306bb451c57c851f3c6e872885115404cb74279db7f5372ea"
+    sql_insert: str = f"INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('Harry Potter', 1, '{hash}');"
+
+    with c as z:
+        c.execute(sql_insert)
+
+    s1: Servicos = servicos_normal(c)
+    x: ResultadoListaDeCategorias | BaseException = s1.categoria.listar()
+    assert x == tudo

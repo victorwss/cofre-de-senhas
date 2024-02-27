@@ -6,7 +6,7 @@ from sucesso import PrecondicaoFalhouException, ConteudoIncompreensivelException
 from webrpc import WebParam, WebSuite, from_body_typed, from_path, from_path_int
 from .service import (
     GerenciadorLogin, UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
-    UsuarioNovo, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
+    UsuarioNovo, RenomeUsuario, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
     NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias,
     SegredoComChave, SegredoSemChave, ChaveSegredo, ResultadoPesquisaDeSegredos
 )
@@ -51,7 +51,6 @@ class GerenciadorLoginImpl(GerenciadorLogin):
     def logout(self) -> None:
         session.pop("chave", None)
 
-    # Pode lançar UsuarioNaoLogadoException.
     @property
     @override
     def usuario_logado(self) -> ChaveUsuario | _UNLE:
@@ -104,7 +103,7 @@ def servir() -> None:
     UsuarioDAOImpl(cofre)
     sx: Servicos = Servicos(gl, cofre)
 
-    segredo_chave: SegredoComChave | _SNEE = sx.segredo.buscar_por_chave_sem_logar(ChaveSegredo(-1))
+    segredo_chave: SegredoComChave | _SNEE = sx.bd.buscar_por_chave_sem_logar(ChaveSegredo(-1))
     if not isinstance(segredo_chave, SegredoComChave):
         raise segredo_chave
     app.secret_key = segredo_chave.campos["Chave da sessão"]
@@ -165,6 +164,16 @@ def servir() -> None:
         except BaseException as e:  # noqa: F841
             raise ConteudoIncompreensivelException()
         check(sx.usuario.alterar_nivel_por_login(UsuarioComNivel(nome, p)))
+
+    @ws.route("MOVE", "/usuarios/<nome>", WebParam("nome", from_path("nome")))
+    @jsoner
+    def renomear_usuario(nome: str) -> None:
+        bodyless()
+        dest, overwrite = move()
+        z: None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE = sx.usuario.renomear_por_login(RenomeUsuario(nome, dest))
+        if isinstance(z, UsuarioJaExisteException) and not overwrite:
+            raise PrecondicaoFalhouException()
+        check(z)
 
     @ws.route("POST", "/usuarios/<nome>/resetar-senha", WebParam("nome", from_path("nome")))
     @jsoner

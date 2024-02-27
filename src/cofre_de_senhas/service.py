@@ -98,6 +98,13 @@ class RenomeCategoria:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class RenomeUsuario:
+    antigo: str
+    novo: str
+
+
+@dataclass_validate
+@dataclass(frozen = True)
 class LoginComSenha:
     login: str
     senha: str
@@ -233,7 +240,15 @@ class GerenciadorLogin(ABC):
 class ServicoBD(ABC):
 
     @abstractmethod
-    def criar_bd(self, dados: LoginComSenha) -> None:
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
+        pass
+
+    @abstractmethod
+    def criar_bd(self) -> None:
+        pass
+
+    @abstractmethod
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
         pass
 
 
@@ -248,7 +263,7 @@ class ServicoUsuario(ABC):
         pass
 
     @abstractmethod
-    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
+    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE | _VIE:
         pass
 
     @abstractmethod
@@ -261,6 +276,10 @@ class ServicoUsuario(ABC):
 
     @abstractmethod
     def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
+        pass
+
+    @abstractmethod
+    def renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
         pass
 
     @abstractmethod
@@ -296,10 +315,6 @@ class ServicoSegredo(ABC):
 
     @abstractmethod
     def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE | _LEE:
-        pass
-
-    @abstractmethod
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
         pass
 
     @abstractmethod

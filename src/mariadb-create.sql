@@ -1,6 +1,16 @@
-DROP DATABASE IF EXISTS $$$$;
-CREATE DATABASE $$$$ /*!40100 COLLATE 'utf8mb4_general_ci' */;
-USE $$$$;
+DROP TABLE IF EXISTS permissao;
+DROP TABLE IF EXISTS categoria_segredo;
+DROP TABLE IF EXISTS campo_segredo;
+DROP TABLE IF EXISTS segredo;
+DROP TABLE IF EXISTS categoria;
+DROP TABLE IF EXISTS usuario;
+DROP TABLE IF EXISTS enum_nivel_acesso;
+DROP TABLE IF EXISTS enum_tipo_permissao;
+DROP TABLE IF EXISTS enum_tipo_segredo;
+
+-- DROP DATABASE IF EXISTS $$$$;
+-- CREATE DATABASE $$$$ /*!40100 COLLATE 'utf8mb4_general_ci' */;
+-- USE $$$$;
 
 CREATE TABLE IF NOT EXISTS enum_nivel_acesso (
     pk_nivel_acesso INTEGER     NOT NULL PRIMARY KEY,

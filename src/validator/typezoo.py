@@ -1,7 +1,7 @@
 from typing import Any, Callable, ForwardRef, List, Literal, Optional, ParamSpecArgs, ParamSpecKwargs, TypeAlias, TypeVar, TypedDict, TYPE_CHECKING
 
 
-def _just_some_func_dont_call() -> None:  # pragma: no cover
+def _just_some_func_dont_call() -> None:
     assert False
 
 
@@ -9,7 +9,7 @@ CallableTypeRealUserDefined = type(_just_some_func_dont_call)
 CallableTypeRealBuiltIn = type(print)
 
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
 
     class UnionType(type):
         @property

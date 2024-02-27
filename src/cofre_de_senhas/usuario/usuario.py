@@ -5,17 +5,18 @@ from dataclasses import dataclass, replace
 from ..erro import (
     SenhaErradaException, UsuarioBanidoException, LoginExpiradoException, PermissaoNegadaException,
     UsuarioNaoExisteException, UsuarioJaExisteException,
+    ValorIncorretoException
 )
 from ..dao import UsuarioDAO, UsuarioPK, DadosUsuario, DadosUsuarioComPermissao, DadosUsuarioSemPK, LoginUsuarioUK
 from ..service import (
     TipoPermissao,
     UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
-    UsuarioNovo, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
+    UsuarioNovo, RenomeUsuario, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios
 )
 from typing import TYPE_CHECKING
 
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from cofre_de_senhas.segredo.segredo import Segredo
 
 
@@ -25,6 +26,7 @@ _UNEE: TypeAlias = UsuarioNaoExisteException
 _UJEE: TypeAlias = UsuarioJaExisteException
 _SEE: TypeAlias = SenhaErradaException
 _LEE: TypeAlias = LoginExpiradoException
+_VIE: TypeAlias = ValorIncorretoException
 
 
 @dataclass_validate
@@ -42,6 +44,9 @@ class Usuario:
 
     def __redefinir_senha(self, nova_senha: str) -> "Usuario":
         return replace(self, hash_com_sal = hasher.criar_hash(nova_senha)).__salvar()
+
+    def __renomear(self, novo_login: str) -> "Usuario":
+        return replace(self, login = novo_login).__salvar()
 
     def __trocar_senha(self, dados: TrocaSenha) -> "Usuario | _SEE":
         if not self.__validar_senha(dados.antiga):
@@ -167,10 +172,14 @@ class Usuario:
         return {u.login: Usuario.__promote(u) for u in dados}
 
     @staticmethod
-    def __criar_interno(dados: UsuarioNovo) -> UsuarioComChave | _UJEE:
+    def __criar_interno(dados: UsuarioNovo) -> UsuarioComChave | _UJEE | _VIE:
         u1: None | _UJEE = Usuario.__nao_existente_por_login(dados.login)
         if u1 is not None:
             return u1
+        login: str = dados.login
+        t: int = len(login)
+        if t < 4 or t > 50:
+            return ValorIncorretoException()
         hash_com_sal: str = hasher.criar_hash(dados.senha)
         pk: UsuarioPK = UsuarioDAO.instance().criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
         return Usuario(pk.pk_usuario, dados.login, dados.nivel_acesso, hash_com_sal)._up
@@ -186,6 +195,7 @@ class Usuario:
             for login in logins:
                 if login not in r:
                     return UsuarioNaoExisteException(login)
+            assert False
 
         return r
 
@@ -215,6 +225,23 @@ class Usuario:
         if not isinstance(u2, Usuario):
             return u2
         u2.__alterar_nivel_de_acesso(dados.nivel_acesso)
+        return None
+
+    @staticmethod
+    def _renomear_por_login(quem_faz: ChaveUsuario, dados: RenomeUsuario) -> None | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
+        u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
+        if not isinstance(u1, Usuario):
+            return u1
+        u2: Usuario | _UNEE = Usuario.__encontrar_existente_por_login(dados.antigo)
+        if not isinstance(u2, Usuario):
+            return u2
+        t: int = len(dados.novo)
+        if t < 4 or t > 50:
+            return ValorIncorretoException()
+        u3: None | _UJEE = Usuario.__nao_existente_por_login(dados.novo)
+        if u3 is not None:
+            return u3
+        u2.__renomear(dados.novo)
         return None
 
     @staticmethod
@@ -261,11 +288,11 @@ class Usuario:
         return u2._up
 
     @staticmethod
-    def _criar_admin(dados: LoginComSenha) -> UsuarioComChave | _UJEE:
+    def _criar_admin(dados: LoginComSenha) -> UsuarioComChave | _UJEE | _VIE:
         return Usuario.__criar_interno(dados.com_nivel(NivelAcesso.CHAVEIRO_DEUS_SUPREMO))
 
     @staticmethod
-    def _criar(quem_faz: ChaveUsuario, dados: UsuarioNovo) -> UsuarioComChave | _LEE | _UBE | _PNE | _UJEE:
+    def _criar(quem_faz: ChaveUsuario, dados: UsuarioNovo) -> UsuarioComChave | _LEE | _UBE | _PNE | _UJEE | _VIE:
         u1: Usuario | _LEE | _UBE | _PNE = Usuario.verificar_acesso_admin(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
@@ -289,6 +316,10 @@ class Servicos:
         return Usuario._trocar_senha_por_chave(quem_faz, dados)
 
     @staticmethod
+    def renomear(quem_faz: ChaveUsuario, dados: RenomeUsuario) -> None | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
+        return Usuario._renomear_por_login(quem_faz, dados)
+
+    @staticmethod
     def alterar_nivel_por_login(quem_faz: ChaveUsuario, dados: UsuarioComNivel) -> None | _UNEE | _UBE | _PNE | _LEE:
         return Usuario._alterar_nivel_por_login(quem_faz, dados)
 
@@ -309,11 +340,11 @@ class Servicos:
         return Usuario._buscar_por_login(quem_faz, dados)
 
     @staticmethod
-    def criar_admin(dados: LoginComSenha) -> UsuarioComChave | _UJEE:
+    def criar_admin(dados: LoginComSenha) -> UsuarioComChave | _UJEE | _VIE:
         return Usuario._criar_admin(dados)
 
     @staticmethod
-    def criar(quem_faz: ChaveUsuario, dados: UsuarioNovo) -> UsuarioComChave | _LEE | _UBE | _PNE | _UJEE:
+    def criar(quem_faz: ChaveUsuario, dados: UsuarioNovo) -> UsuarioComChave | _LEE | _UBE | _PNE | _UJEE | _VIE:
         return Usuario._criar(quem_faz, dados)
 
     @staticmethod

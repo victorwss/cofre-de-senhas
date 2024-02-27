@@ -128,6 +128,7 @@ class Categoria:
             for nome in nomes:
                 if nome not in r:
                     return CategoriaNaoExisteException(nome)
+            assert False
 
         return r
 

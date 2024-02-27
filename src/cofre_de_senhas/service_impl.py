@@ -4,7 +4,7 @@ from connection.trans import TransactedConnection
 from .service import (
     GerenciadorLogin, ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo,
     UsuarioComChave, ChaveUsuario, LoginUsuario, LoginComSenha, ResultadoListaDeUsuarios,
-    TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario,
+    TrocaSenha, SenhaAlterada, UsuarioComNivel, UsuarioNovo, ResetLoginUsuario, RenomeUsuario,
     CategoriaComChave, ChaveCategoria, NomeCategoria, RenomeCategoria, ResultadoListaDeCategorias,
     SegredoComChave, SegredoSemChave, ChaveSegredo, PesquisaSegredos, ResultadoPesquisaDeSegredos,
 )
@@ -108,9 +108,16 @@ class Servicos:
 class _ServicoBDImpl(ServicoBD):
 
     @override
-    def criar_bd(self, dados: LoginComSenha) -> None:
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
+        return SegredoServico.buscar_sem_logar(chave)
+
+    @override
+    def criar_bd(self) -> None:
         CofreDeSenhasDAO.instance().criar_bd()
-        UsuarioServico.criar_admin(dados)
+
+    @override
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
+        return UsuarioServico.criar_admin(dados)
 
 
 class _ServicoUsuarioImpl(ServicoUsuario):
@@ -130,7 +137,7 @@ class _ServicoUsuarioImpl(ServicoUsuario):
         self.__gl.logout()
 
     @override
-    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
+    def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE | _VIE:
         u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
         if isinstance(u, _UNLE):
             return u
@@ -156,6 +163,13 @@ class _ServicoUsuarioImpl(ServicoUsuario):
         if isinstance(u, _UNLE):
             return u
         return UsuarioServico.alterar_nivel_por_login(u, dados)
+
+    @override
+    def renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
+        u: ChaveUsuario | _UNLE = self.__gl.usuario_logado
+        if isinstance(u, _UNLE):
+            return u
+        return UsuarioServico.renomear(u, dados)
 
     @override
     def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
@@ -218,10 +232,6 @@ class _ServicoSegredoImpl(ServicoSegredo):
         if isinstance(u, _UNLE):
             return u
         return SegredoServico.buscar(u, chave)
-
-    @override
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
-        return SegredoServico.buscar_sem_logar(chave)
 
     @override
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _SNEE | _LEE:

@@ -510,7 +510,7 @@ def test_buscar_por_chave_sem_logar_ok(c: TransactedConnection) -> None:
     original: SegredoComChave = criar_segredo_normal(c)
 
     s: Servicos = servicos_banido(c)
-    x: SegredoComChave | BaseException = s.segredo.buscar_por_chave_sem_logar(original.chave)
+    x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(original.chave)
     assert x == original
 
 
@@ -519,7 +519,7 @@ def test_buscar_por_chave_sem_logar_SNEE(c: TransactedConnection) -> None:
     chave: ChaveSegredo = ChaveSegredo(9999)
 
     s: Servicos = servicos_banido(c)
-    x: SegredoComChave | BaseException = s.segredo.buscar_por_chave_sem_logar(chave)
+    x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(chave)
     assert isinstance(x, SegredoNaoExisteException)
 
 
