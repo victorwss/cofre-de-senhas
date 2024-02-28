@@ -22,8 +22,7 @@ from pytest import raises
 
 @applier(dbs, assert_db_ok)
 def test_instanciar(db: DbTestConfig) -> None:
-    s: SegredoDAO = SegredoDAOImpl(db.conn)
-    assert s == SegredoDAO.instance()
+    SegredoDAOImpl(db.conn)
 
 
 @applier_trans(dbs, assert_db_ok)

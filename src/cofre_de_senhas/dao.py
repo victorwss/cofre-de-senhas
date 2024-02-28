@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
 from connection.trans import TransactedConnection
-from threadlocal import ThreadLocal
 
 
 @dataclass_validate
@@ -162,31 +161,12 @@ class DAO(ABC):
 
 class CofreDeSenhasDAO(DAO):
 
-    __instance: ThreadLocal["CofreDeSenhasDAO | None"] = ThreadLocal(None)
-
-    def __init__(self, con: TransactedConnection) -> None:
-        super().__init__(con)
-        CofreDeSenhasDAO.__instance.value = self
-
     @abstractmethod
     def criar_bd(self) -> None:
         pass
 
-    @staticmethod
-    def instance() -> "CofreDeSenhasDAO":
-        u: CofreDeSenhasDAO | None = CofreDeSenhasDAO.__instance.value
-        if u is None:
-            raise BaseException()
-        return u
-
 
 class SegredoDAO(DAO):
-
-    __instance: ThreadLocal["SegredoDAO | None"] = ThreadLocal(None)
-
-    def __init__(self, con: TransactedConnection) -> None:
-        super().__init__(con)
-        SegredoDAO.__instance.value = self
 
     # CRUD básico.
 
@@ -250,21 +230,8 @@ class SegredoDAO(DAO):
     def buscar_permissao(self, busca: BuscaPermissaoPorLogin) -> PermissaoDeSegredo | None:
         pass
 
-    @staticmethod
-    def instance() -> "SegredoDAO":
-        u: SegredoDAO | None = SegredoDAO.__instance.value
-        if u is None:
-            raise BaseException()
-        return u
-
 
 class CategoriaDAO(DAO):
-
-    __instance: ThreadLocal["CategoriaDAO | None"] = ThreadLocal(None)
-
-    def __init__(self, con: TransactedConnection) -> None:
-        super().__init__(con)
-        CategoriaDAO.__instance.value = self
 
     # CRUD básico
 
@@ -312,25 +279,12 @@ class CategoriaDAO(DAO):
     def listar_por_segredo(self, pk_segredo: SegredoPK) -> list[DadosCategoria]:
         pass
 
-    @staticmethod
-    def instance() -> "CategoriaDAO":
-        u: CategoriaDAO | None = CategoriaDAO.__instance.value
-        if u is None:
-            raise BaseException()
-        return u
-
     @abstractmethod
     def contar_segredos_por_pk(self, dados: CategoriaPK) -> int:
         pass
 
 
 class UsuarioDAO(DAO):
-
-    __instance: ThreadLocal["UsuarioDAO | None"] = ThreadLocal(None)
-
-    def __init__(self, con: TransactedConnection) -> None:
-        super().__init__(con)
-        UsuarioDAO.__instance.value = self
 
     # CRUD básico
 
@@ -377,10 +331,3 @@ class UsuarioDAO(DAO):
     @abstractmethod
     def listar_por_permissao(self, pk: SegredoPK) -> list[DadosUsuarioComPermissao]:
         pass
-
-    @staticmethod
-    def instance() -> "UsuarioDAO":
-        u: UsuarioDAO | None = UsuarioDAO.__instance.value
-        if u is None:
-            raise BaseException()
-        return u

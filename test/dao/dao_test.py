@@ -3,21 +3,18 @@ from ..fixtures import (
     dbs, dbs_x, mariadb_db_x, assert_db_ok, read_all,
     todas_categorias, todos_usuarios, todos_segredos
 )
+from cofre_de_senhas.dao import CofreDeSenhasDAO
+from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from cofre_de_senhas.dao import DadosUsuario, DadosCategoria, DadosSegredo
 
 
 @applier(dbs, assert_db_ok)
 def test_instanciar(db: DbTestConfig) -> None:
-    from cofre_de_senhas.dao import CofreDeSenhasDAO
-    from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
-    f: CofreDeSenhasDAO = CofreDeSenhasDAOImpl(db.conn)
-    assert f == CofreDeSenhasDAO.instance()
+    CofreDeSenhasDAOImpl(db.conn)
 
 
 @applier(dbs_x)
 def test_criar_bd(db: DbTestConfig) -> None:
-    from cofre_de_senhas.dao import CofreDeSenhasDAO
-    from cofre_de_senhas.bd.bd_dao_impl import CofreDeSenhasDAOImpl
     dao: CofreDeSenhasDAO = CofreDeSenhasDAOImpl(db.conn)
 
     with db.conn as c:

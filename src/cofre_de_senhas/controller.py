@@ -146,7 +146,7 @@ def servir() -> None:
         dados: DadosNovoUsuario = read_body(DadosNovoUsuario)
         try:
             p: NivelAcesso = NivelAcesso[dados.nivel_acesso]
-        except BaseException as e:  # noqa: F841
+        except BaseException:
             raise ConteudoIncompreensivelException()
         return thrower(UsuarioComChave, sx.usuario.criar(UsuarioNovo(nome, p, dados.senha)))
 
@@ -162,7 +162,7 @@ def servir() -> None:
         dados: DadosNovoUsuario = read_body(DadosNovoUsuario)
         try:
             p: NivelAcesso = NivelAcesso[dados.nivel_acesso]
-        except BaseException as e:  # noqa: F841
+        except BaseException:
             raise ConteudoIncompreensivelException()
         check(sx.usuario.alterar_nivel_por_login(UsuarioComNivel(nome, p)))
 

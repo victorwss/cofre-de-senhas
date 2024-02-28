@@ -240,7 +240,7 @@ class GerenciadorLogin(ABC):
 class ServicoBD(ABC):
 
     @abstractmethod
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
         pass
 
     @abstractmethod
@@ -248,7 +248,7 @@ class ServicoBD(ABC):
         pass
 
     @abstractmethod
-    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
+    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
         pass
 
 

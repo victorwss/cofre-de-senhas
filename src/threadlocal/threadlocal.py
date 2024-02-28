@@ -19,7 +19,7 @@ class ThreadLocal(Generic[_T]):
     def value(self) -> _T:
         try:
             return cast(_T, self.__local.v)
-        except AttributeError as x:  # noqa: F841
+        except AttributeError:
             return self.__empty
 
     @value.setter

@@ -18,7 +18,6 @@ from cofre_de_senhas.erro import (
     UsuarioNaoExisteException, UsuarioJaExisteException,
     ValorIncorretoException
 )
-from pytest import raises
 
 
 tudo: ResultadoListaDeUsuarios = ResultadoListaDeUsuarios([
@@ -27,12 +26,6 @@ tudo: ResultadoListaDeUsuarios = ResultadoListaDeUsuarios([
     UsuarioComChave(ChaveUsuario(dumbledore  .pk_usuario), dumbledore  .login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO),
     UsuarioComChave(ChaveUsuario(hermione    .pk_usuario), hermione    .login, NivelAcesso.NORMAL)
 ])
-
-
-def test_nao_instanciar_servicos() -> None:
-    from cofre_de_senhas.usuario.usuario import Servicos as UsuarioServico
-    with raises(Exception):
-        UsuarioServico()
 
 
 # Método criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:

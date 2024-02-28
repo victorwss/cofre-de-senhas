@@ -73,7 +73,7 @@ class TransactedConnection(SimpleConnection):
     def transact(self, operation: Callable[_P, _R]) -> Callable[_P, _R]:
         @wraps(operation)
         def transacted_operation(*args: _P.args, **kwargs: _P.kwargs) -> Any:
-            with self as xxx:  # noqa: F841
+            with self:
                 return operation(*args, **kwargs)
         return transacted_operation
 

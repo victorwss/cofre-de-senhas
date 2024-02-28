@@ -17,7 +17,6 @@ from cofre_de_senhas.service import (
     ResultadoPesquisaDeSegredos, CabecalhoSegredoComChave,
     TipoSegredo, TipoPermissao
 )
-from pytest import raises
 
 
 c_m1         : CabecalhoSegredoComChave = CabecalhoSegredoComChave(ChaveSegredo(segredo_m1 .pk_segredo), segredo_m1 .nome, segredo_m1 .descricao, TipoSegredo.ENCONTRAVEL )  # noqa: E201,E202,E203,E501
@@ -62,12 +61,6 @@ def star_trek_data(
     if alt == 1:
         props["Nave"] = "USS Enterprise"
     return SegredoSemChave(star_trek.nome, star_trek.descricao, tipo, props, categorias, usuarios)
-
-
-def test_nao_instanciar_servicos() -> None:
-    from cofre_de_senhas.segredo.segredo import Servicos as SegredoServico
-    with raises(Exception):
-        SegredoServico()
 
 
 def criar_segredo_normal(
@@ -792,7 +785,7 @@ def test_excluir_por_chave_UBE(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_exlcuir_por_chave_LEE(c: TransactedConnection) -> None:
+def test_excluir_por_chave_LEE(c: TransactedConnection) -> None:
     original: SegredoComChave = criar_segredo_normal(c)
 
     s1: Servicos = servicos_usuario_nao_existe(c)

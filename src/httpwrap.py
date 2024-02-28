@@ -47,7 +47,7 @@ def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, i
         try:
             decorate(*args, **kwargs)
             return jsonify(Sucesso.ok()), 200
-        except BaseException as e:  # noqa: F841
+        except BaseException as e:
             erro: Erro = Erro.criar(e)
             return jsonify(erro), erro.status
     return decorator
@@ -73,7 +73,7 @@ def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart:
     if _is_json(content_type, json):
         try:
             return request.json
-        except BaseException as e:  # noqa: F841
+        except BaseException:
             raise RequisicaoMalFormadaException()
 
     raise ConteudoNaoReconhecidoException()
@@ -105,7 +105,7 @@ def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, m
 
     try:
         return from_dict(data_class = target, data = body, config = Config(cast = [Enum]))
-    except BaseException as e:  # noqa: F841
+    except BaseException:
         raise ConteudoIncompreensivelException()
 
 

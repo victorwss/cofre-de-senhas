@@ -31,14 +31,14 @@ def or_throw(data: _X | None) -> _X:
 def parse_int(data: str) -> int:
     try:
         return int(data)
-    except BaseException as e:  # noqa: F841
+    except BaseException:
         raise RequisicaoMalFormadaException()
 
 
 def parse_float(data: str) -> float:
     try:
         return float(data)
-    except BaseException as e:  # noqa: F841
+    except BaseException:
         raise RequisicaoMalFormadaException()
 
 

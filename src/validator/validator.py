@@ -566,7 +566,7 @@ def _evaluate_forward_reference(ref_type: ForwardRef | str, globalns: NS_T) -> S
         if isinstance(ref_type, str):
             ref_type = ForwardRef(ref_type)
         return cast(type[Any], ref_type._evaluate(globalns, None, frozenset()))
-    except BaseException as x:  # noqa: F841
+    except BaseException:
         return make_error(f'Could not evaluate "{ref_type}" as a valid type')
 
 

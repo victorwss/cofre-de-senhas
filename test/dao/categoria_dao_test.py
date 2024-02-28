@@ -15,8 +15,7 @@ from pytest import raises
 
 @applier(dbs, assert_db_ok)
 def test_instanciar(db: DbTestConfig) -> None:
-    s: CategoriaDAO = CategoriaDAOImpl(db.conn)
-    assert s == CategoriaDAO.instance()
+    CategoriaDAOImpl(db.conn)
 
 
 @applier_trans(dbs, assert_db_ok)

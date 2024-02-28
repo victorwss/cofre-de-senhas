@@ -12,7 +12,6 @@ from cofre_de_senhas.erro import (
     ValorIncorretoException, ExclusaoSemCascataException
 )
 from cofre_de_senhas.service import Servicos, NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias
-from pytest import raises
 
 
 tudo: ResultadoListaDeCategorias = ResultadoListaDeCategorias([
@@ -26,12 +25,6 @@ tudo: ResultadoListaDeCategorias = ResultadoListaDeCategorias([
     CategoriaComChave(ChaveCategoria(qa             .pk_categoria), qa             .nome),
     CategoriaComChave(ChaveCategoria(integracao     .pk_categoria), integracao     .nome)
 ])
-
-
-def test_nao_instanciar_servicos() -> None:
-    from cofre_de_senhas.categoria.categoria import Servicos as CategoriaServico
-    with raises(Exception):
-        CategoriaServico()
 
 
 # Método buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE

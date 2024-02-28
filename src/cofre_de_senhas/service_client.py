@@ -75,7 +75,7 @@ class _ErroRemoto:
     def raise_it(self, x: type[_X]) -> _X:
         try:
             z = eval(self.tipo)()
-        except BaseException as e:  # noqa: F841
+        except BaseException:
             raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
         if isinstance(z, x):
             return z
@@ -129,13 +129,13 @@ class _Requester:
             if remoto.interno:
                 raise _ErroDesconhecido(f"[{remoto.tipo}] {remoto.mensagem}")
             return remoto
-        except BaseException as e:  # noqa: F841
+        except BaseException:
             raise _ErroDesconhecido(rt)
 
     def __json_it(self, r: Response) -> Any:
         try:
             return r.json()
-        except BaseException as e:  # noqa: F841
+        except BaseException:
             raise _ErroDesconhecido(r.text)
 
     # def __unwrap[T, X](self, r: Response, t: type[T] | None, x: type[X]]) -> T | X: # PEP 695
