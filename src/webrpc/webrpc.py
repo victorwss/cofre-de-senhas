@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from flask import Flask, make_response, request, Response
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, cast, Callable, Generic, TypeVar
 from inspect import signature, Signature, Parameter
 from werkzeug.datastructures.file_storage import FileStorage
 from sucesso import RequisicaoMalFormadaException
@@ -195,66 +195,69 @@ class WebMethod:
         return [p.handle() for p in self.params]
 
 
-_first_skeleton: str = """
-const RPC = (() => {
-    const __NO_RESPONSE   = 0, __JSON_RESPONSE = 1, __BLOB_RESPONSE = 2;
-    const __EMPTY_REQUEST = 0, __JSON_REQUEST  = 1, __PLAIN_REQUEST = 2;
+_first_skeleton: str = "\n".join([
+    'const RPC = (() => {',
+    '    const __NO_RESPONSE   = 0, __JSON_RESPONSE = 1, __BLOB_RESPONSE = 2;',
+    '    const __EMPTY_REQUEST = 0, __JSON_REQUEST  = 1, __PLAIN_REQUEST = 2;',
+    '',
+    '    async function __call(url, method, data, headers, has_response_body) {',
+    '        if (!("Content-Type" in headers)) {',
+    '            headers["Content-Type"] = "application/json";',
+    '        }',
+    '',
+    '        let options = {',
+    '            method: method,',
+    '            mode: "cors",',
+    '            cache: "no-cache",',
+    '            credentials: "same-origin",',
+    '            headers,',
+    '            redirect: "follow",',
+    '            referrerPolicy: "no-referrer"',
+    '        };',
+    '',
+    '        if (data.type === __EMPTY_REQUEST) {',
+    '            // Do nothing.',
+    '        } else if (data.type === __JSON_REQUEST) {',
+    '            options["body"] = JSON.stringify(data.body);',
+    '        } else if (data.type === __PLAIN_REQUEST) {',
+    '            options["body"] = `${data.body}`;',
+    '        } else {',
+    '            throw new Error("Ops");',
+    '        }',
+    '',
+    '        const response = await fetch(url, options);',
+    '        if (!response.ok) {',
+    '            throw new Error(`Ops, status was ${response.status}`);',
+    '        }',
+    '',
+    '        switch (has_response_body) {',
+    '            case __NO_RESPONSE  : return;',
+    '            case __JSON_RESPONSE: return response.json();',
+    '            case __BLOB_RESPONSE: return response.blob();',
+    '            default: throw new Error("Ops");',
+    '        }',
+    '    }',
+    '',
+    '    const _client = {',
+    ''
+])
 
-    async function __call(url, method, data, headers, has_response_body) {
-        if (!("Content-Type" in headers)) {
-            headers["Content-Type"] = "application/json";
-        }
-
-        let options = {
-            method: method,
-            mode: "cors",
-            cache: "no-cache",
-            credentials: "same-origin",
-            headers,
-            redirect: "follow",
-            referrerPolicy: "no-referrer"
-        };
-
-        if (data.type === __EMPTY_REQUEST) {
-            // Do nothing.
-        } else if (data.type === __JSON_REQUEST) {
-            options["body"] = JSON.stringify(data.body);
-        } else if (data.type === __PLAIN_REQUEST) {
-            options["body"] = `${data.body}`;
-        } else {
-            throw new Error("Ops");
-        }
-
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            throw new Error(`Ops, status was ${response.status}`);
-        }
-
-        switch (has_response_body) {
-            case __NO_RESPONSE  : return;
-            case __JSON_RESPONSE: return response.json();
-            case __BLOB_RESPONSE: return response.blob();
-            default: throw new Error("Ops");
-        }
-    }
-
-    const _client = {
-"""[1:]
+_func_skeleton: str = "\n".join([
+    '',
+    '        FUNC_NAME: async function FUNC_NAME(PARAMS) {',
+    '            return await __call(`URL`, "METHOD", BODY, {}, HRB);',
+    '        },',
+    '',
+])
 
 
-_func_skeleton: str = """
-        FUNC_NAME: async function FUNC_NAME(PARAMS) {
-            return await __call(`URL`, "METHOD", BODY, {}, HRB);
-        },
-"""
-
-
-_last_skeleton: str = """
-    };
-
-    return Object.freeze(_client);
-})();
-"""
+_last_skeleton: str = "\n".join([
+    '',
+    '    };',
+    '',
+    '    return Object.freeze(_client);',
+    '})();'
+])
 
 
 def _make_js_stub(
@@ -312,7 +315,6 @@ class WebSuite:
             js_stub: str = _make_js_stub(what.__name__, s.parameters, wm.params, wm.url_template, wm.http_method, False, True)
             self.__js_stubs.append(js_stub)
 
-            @self.__flask.route(wm.url_template, methods = [wm.http_method])
             @wraps(what)
             def inner() -> tuple[_RS, int]:
                 request.get_data()  # Ensure caching
@@ -324,6 +326,14 @@ class WebSuite:
                     return f, 200
                 return f
 
+            # print(t)
+            t: str = "\n".join([
+                f"@app.route('{wm.url_template}', methods = ['{wm.http_method}'])",
+                f"def {what.__name__}({', '.join(s.parameters)}):",
+                f"\n    return inner()",
+            ])
+            app: Flask = self.__flask
+            exec(t, {"inner": inner, "app": app})
             return inner
 
         self.__methods.append(wm)

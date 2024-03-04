@@ -2,7 +2,7 @@ from typing import TypeAlias
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from validator import dataclass_validate
-from enum import Enum
+from enum import IntEnum
 from .erro import (
     UsuarioNaoLogadoException, UsuarioBanidoException, PermissaoNegadaException, SenhaErradaException, LoginExpiradoException,
     UsuarioNaoExisteException, UsuarioJaExisteException,
@@ -12,19 +12,19 @@ from .erro import (
 )
 
 
-class NivelAcesso(Enum):
+class NivelAcesso(IntEnum):
     DESATIVADO = 0
     NORMAL = 1
     CHAVEIRO_DEUS_SUPREMO = 2
 
 
-class TipoPermissao(Enum):
+class TipoPermissao(IntEnum):
     SOMENTE_LEITURA = 1
     LEITURA_E_ESCRITA = 2
     PROPRIETARIO = 3
 
 
-class TipoSegredo(Enum):
+class TipoSegredo(IntEnum):
     PUBLICO = 1
     ENCONTRAVEL = 2
     CONFIDENCIAL = 3

@@ -60,7 +60,7 @@ def typed(x: type[_X]) -> OngoingTyping[_X]:
 
 class _ErroDesconhecido(Exception):
     def __init__(self, dados: Any):
-        super.__init__(dados)
+        super(_ErroDesconhecido, self).__init__(dados)
 
 
 @dataclass_validate
@@ -84,28 +84,30 @@ class _ErroRemoto:
 
 class _Requester:
 
-    def __init__(self) -> None:
-        self.__base_url: str = "http://127.0.0.1:5000"
+    def __init__(self, url: str) -> None:
+        self.__base_url: str = url
+        self.__session: requests.Session = requests.Session()
         self.__cookies: dict[str, str] = {}
+        self.__session.trust_env = False
 
     # def get[T, X](self, path: str, t: type[T], x: type[X]) -> T | X: # PEP 695
     def get(self, path: str, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = requests.get(self.__base_url + path, cookies = self.__cookies)
+        r: Response = self.__session.get(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
     # def post[T, X](self, path: str, json: Any, t: type[T], x: type[X]) -> T | X: # PEP 695
     def post(self, path: str, json: Any, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = requests.post(self.__base_url + path, json = json, cookies = self.__cookies)
+        r: Response = self.__session.post(self.__base_url + path, json = json, cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
     # def put[T, X](self, path: str, json: Any, t: type[T], x: type[X]) -> T | X: # PEP 695
     def put(self, path: str, json: Any, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = requests.put(self.__base_url + path, json = json, cookies = self.__cookies)
+        r: Response = self.__session.put(self.__base_url + path, json = json, cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
     # def delete[T, X](self, path: str, t: type[T], x: type[X]) -> T | X: # PEP 695
     def delete(self, path: str, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = requests.delete(self.__base_url + path, cookies = self.__cookies)
+        r: Response = self.__session.delete(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
     # def move[T, X](self, path: str, to: str, overwrite: bool, t: type[T], x: type[X]) -> T | X: # PEP 695
@@ -114,7 +116,7 @@ class _Requester:
             "Destination": to,
             "Overwrite": "T" if overwrite else "F"
         }
-        r: Response = requests.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = h)
+        r: Response = self.__session.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = h)
         return self.__unwrap(r, t, x)
 
     @staticmethod
@@ -153,8 +155,8 @@ class _Requester:
 
 class ServicosClient(Servicos):
 
-    def __init__(self, requester: _Requester) -> None:
-        self.__requester: _Requester = requester
+    def __init__(self, url: str) -> None:
+        self.__requester: _Requester = _Requester(url)
 
     @property
     @override
