@@ -2,22 +2,23 @@
 
 :TEST
 @echo ON
-mypy .\src .\test
+python -m venv pyenv
+.\pyenv\Scripts\mypy .\src .\test
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
 :RADON_FLAKE_COVERAGE
 @echo ON
-radon cc -nb -s --no-assert .\src
-radon mi -nb -s             .\src
-flake8 .\src .\test
-coverage run
+.\pyenv\Scripts\radon cc -nb -s --no-assert .\src
+.\pyenv\Scripts\radon mi -nb -s             .\src
+.\pyenv\Scripts\flake8 .\src .\test
+.\pyenv\Scripts\coverage run
 @echo OFF
 IF NOT %ERRORLEVEL% == 0 GOTO EXIT
 
 :REPORT
 @echo ON
-coverage report -m
+.\pyenv\Scripts\coverage report -m
 @echo OFF
 
 :EXIT
