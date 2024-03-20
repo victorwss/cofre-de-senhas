@@ -28,7 +28,7 @@ def for_all_methods(decorator: _DEC, *, even_dunders: bool = False, even_private
         for name, fn in inspect.getmembers(cls, lambda x: isinstance(x, property)):
             prop: property = cast(property, fn)
             prop_name: str | None = prop.fget.__name__ if prop.fget else prop.fset.__name__ if prop.fset else prop.fdel.__name__ if prop.fdel else None
-            assert prop_name is not None
+            assert prop_name is not None, "It isn't a getter, neither a setter, nor deleter, so what it is afterall?"
             dunder_prop: bool = prop_name.startswith("__") and prop_name.endswith("__")
             private_prop: bool = prop_name != name
             if (even_dunders and dunder_prop) or (even_privates and private_prop) or (not dunder_prop and not private_prop):

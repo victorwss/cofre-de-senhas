@@ -17,17 +17,35 @@ class NivelAcesso(IntEnum):
     NORMAL = 1
     CHAVEIRO_DEUS_SUPREMO = 2
 
+    @staticmethod
+    def valued(value: int) -> "NivelAcesso":
+        if value < 0 or value > 2:
+            raise KeyError(value)
+        return [NivelAcesso.DESATIVADO, NivelAcesso.NORMAL, NivelAcesso.CHAVEIRO_DEUS_SUPREMO][value]
+
 
 class TipoPermissao(IntEnum):
     SOMENTE_LEITURA = 1
     LEITURA_E_ESCRITA = 2
     PROPRIETARIO = 3
 
+    @staticmethod
+    def valued(value: int) -> "TipoPermissao":
+        if value < 1 or value > 3:
+            raise KeyError(value)
+        return [TipoPermissao.SOMENTE_LEITURA, TipoPermissao.LEITURA_E_ESCRITA, TipoPermissao.PROPRIETARIO][value - 1]
+
 
 class TipoSegredo(IntEnum):
     PUBLICO = 1
     ENCONTRAVEL = 2
     CONFIDENCIAL = 3
+
+    @staticmethod
+    def valued(value: int) -> "TipoSegredo":
+        if value < 1 or value > 3:
+            raise KeyError(value)
+        return [TipoSegredo.PUBLICO, TipoSegredo.ENCONTRAVEL, TipoSegredo.CONFIDENCIAL][value - 1]
 
 
 @dataclass_validate
@@ -55,7 +73,7 @@ class SegredoSemChave:
     descricao: str
     tipo: TipoSegredo
     campos: dict[str, str]
-    categorias: set[str]
+    categorias: frozenset[str]
     usuarios: dict[str, TipoPermissao]
 
     def com_chave(self, chave: ChaveSegredo) -> "SegredoComChave":
@@ -70,7 +88,7 @@ class SegredoComChave:
     descricao: str
     tipo: TipoSegredo
     campos: dict[str, str]
-    categorias: set[str]
+    categorias: frozenset[str]
     usuarios: dict[str, TipoPermissao]
 
     @property
@@ -121,10 +139,29 @@ class LoginUsuario:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class DadosNovoUsuario:
+    senha: str
+    nivel_acesso: int
+
+    def __post_type_validate__(self) -> "DadosNovoUsuario":
+        self.nivel
+        return self
+
+    @property
+    def nivel(self) -> NivelAcesso:
+        return NivelAcesso.valued(self.nivel_acesso)
+
+
+@dataclass_validate
+@dataclass(frozen = True)
 class UsuarioNovo:
     login: str
     nivel_acesso: NivelAcesso
     senha: str
+
+    @property
+    def internos(self) -> DadosNovoUsuario:
+        return DadosNovoUsuario(self.senha, int(self.nivel_acesso))
 
 
 @dataclass_validate
@@ -144,9 +181,19 @@ class SenhaAlterada:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class DadosNovoNivel:
+    nivel_acesso: int
+
+
+@dataclass_validate
+@dataclass(frozen = True)
 class UsuarioComNivel:
     login: str
     nivel_acesso: NivelAcesso
+
+    @property
+    def internos(self) -> DadosNovoNivel:
+        return DadosNovoNivel(int(self.nivel_acesso))
 
 
 @dataclass_validate
@@ -171,7 +218,7 @@ class CabecalhoSegredoComChave:
     descricao: str
     tipo: TipoSegredo
 
-    def com_corpo(self, campos: dict[str, str], categorias: set[str], usuarios: dict[str, TipoPermissao]) -> SegredoComChave:
+    def com_corpo(self, campos: dict[str, str], categorias: frozenset[str], usuarios: dict[str, TipoPermissao]) -> SegredoComChave:
         return SegredoComChave(self.chave, self.nome, self.descricao, self.tipo, campos, categorias, usuarios)
 
 

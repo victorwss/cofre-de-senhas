@@ -1,5 +1,4 @@
 from .webrpc import (
-    Converter,
     WebMethod,
     WebParam,
     WebSuite,
@@ -13,7 +12,6 @@ from .webrpc import (
 )
 
 __all__: tuple[str, ...] = (
-    "Converter",
     "WebMethod",
     "WebParam",
     "WebSuite",

@@ -13,6 +13,7 @@ disallow_untyped_globals    = true
 disallow_redefinition       = true
 disallow_untyped_decorators = true
 check_untyped_defs          = true
+local_partial_types         = true
 no_implicit_optional        = true
 no_implicit_reexport        = true
 no_silence_site_packages    = false

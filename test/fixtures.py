@@ -1,21 +1,247 @@
-from typing import Callable, Literal, override, Self, Sequence
-from .db_test_util import DbTestConfig, SqliteTestConfig, MariaDbTestConfig, MysqlTestConfig
+from typing import Callable, Literal, override, ParamSpec, Self, Sequence, TypeVar, TypeAlias
+from abc import ABC, abstractmethod
+from types import TracebackType
+from functools import wraps
 from cofre_de_senhas.dao import DadosUsuario, DadosUsuarioSemPK, DadosCategoria, DadosCategoriaSemPK, DadosSegredo, DadosSegredoSemPK
 from cofre_de_senhas.erro import UsuarioNaoLogadoException
-from cofre_de_senhas.service import GerenciadorLogin, ChaveUsuario, UsuarioComChave, Servicos, ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo
+from cofre_de_senhas.service import (
+    GerenciadorLogin, Servicos,
+    ChaveUsuario, UsuarioComChave, LoginComSenha
+)
 from cofre_de_senhas.service_impl import ServicosImpl
+from cofre_de_senhas.service_client import ServicosClient
+from cofre_de_senhas.controller import servir
 from connection.conn import SimpleConnection, Descriptor, RAW_DATA
 from connection.trans import TransactedConnection
+from connection.load import DatabaseConfig
+import os
+import shutil
+import pytest
+
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+class DbTestConfig(ABC):
+
+    def __init__(self, placeholder: str, database_type: str, database_name: str, maker: Callable[[], TransactedConnection]) -> None:
+        self.__maker: Callable[[], TransactedConnection] = maker
+        self.__conn: TransactedConnection | None = None
+        self.__placeholder: str = placeholder
+        self.__database_name: str = database_name
+        self.__database_type: str = database_type
+
+    def _poor_execute_script(self, script: str) -> None:
+        with self._maker() as conn:
+            for part in script.split(";"):
+                if part.strip() != "":
+                    conn.execute(part)
+            conn.commit()
+
+    @property
+    @abstractmethod
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        pass
+
+    @property
+    @abstractmethod
+    def remote_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        pass
+
+    @property
+    @abstractmethod
+    def config(self) -> DatabaseConfig:
+        pass
+
+    @property
+    def transacted(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
+            @wraps(call_this)
+            @self.decorator
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                @self.conn.transact
+                def innermost() -> _R:
+                    return call_this(*args, **kwargs)
+                return innermost()
+            return inner
+        return middle
+
+    @property
+    def _maker(self) -> Callable[[], TransactedConnection]:
+        return self.__maker
+
+    def _set_conn(self, conn: TransactedConnection) -> TransactedConnection:
+        self.__conn = conn
+        return conn
+
+    def _del_conn(self) -> None:
+        if self.__conn is not None:
+            self.__conn.close()
+        self.__conn = None
+
+    @property
+    def conn(self) -> TransactedConnection:
+        assert self.__conn is not None
+        return self.__conn
+
+    @property
+    def placeholder(self) -> str:
+        return self.__placeholder
+
+    @property
+    def database_type(self) -> str:
+        return self.__database_type
+
+    @property
+    def database_name(self) -> str:
+        return self.__database_name
+
+
+class SqliteTestConfig(DbTestConfig):
+
+    def __init__(self, pristine: str, sandbox: str) -> None:
+        def inner() -> TransactedConnection:
+            from connection.sqlite3conn import connect
+            return connect(sandbox)
+
+        super().__init__("?", "Sqlite", sandbox, inner)
+        self.__pristine: str = pristine
+        self.__sandbox: str = sandbox
+        self.__cfg: DatabaseConfig = DatabaseConfig("sqlite", {"file_name": sandbox})
+
+    @property
+    @override
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
+            @wraps(call_this)
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                try:
+                    os.remove(self.__sandbox)
+                except FileNotFoundError:
+                    pass
+
+                shutil.copy2(self.__pristine, self.__sandbox)
+
+                self._set_conn(self._maker())
+                try:
+                    return call_this(*args, **kwargs)
+                finally:
+                    self._del_conn()
+                    os.remove(self.__sandbox)
+
+            return inner
+        return middle
+
+    @property
+    @override
+    def remote_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
+            @wraps(call_this)
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                try:
+                    os.remove(self.__sandbox)
+                except FileNotFoundError:
+                    pass
+
+                shutil.copy2(self.__pristine, self.__sandbox)
+
+                try:
+                    return call_this(*args, **kwargs)
+                finally:
+                    os.remove(self.__sandbox)
+
+            return inner
+        return middle
+
+    @property
+    @override
+    def config(self) -> DatabaseConfig:
+        return self.__cfg
+
+
+class MariaDbTestConfig(DbTestConfig):
+
+    def __init__(self, reset_script: str, user: str, password: str, host: str, port: int, database: str, connect_timeout: int) -> None:
+        def inner() -> TransactedConnection:
+            from connection.mariadbconn import connect
+            return connect(user = user, password = password, host = host, port = port, database = database, connect_timeout = connect_timeout)
+
+        super().__init__("%s", "MariaDB", database, inner)
+        self.__reset_script: str = reset_script
+
+    @property
+    @override
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
+            @wraps(call_this)
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                self._poor_execute_script(self.__reset_script)
+
+                self._set_conn(self._maker())
+                try:
+                    return call_this(*args, **kwargs)
+                finally:
+                    self._del_conn()
+                    self._poor_execute_script(self.__reset_script)
+
+            return inner
+        return middle
+
+    @property
+    @override
+    def remote_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        assert False
+
+    @property
+    @override
+    def config(self) -> DatabaseConfig:
+        assert False
+
+
+class MysqlTestConfig(DbTestConfig):
+
+    def __init__(self, reset_script: str, user: str, password: str, host: str, port: int, database: str) -> None:
+        def inner() -> TransactedConnection:
+            from connection.mysqlconn import connect
+            return connect(user = user, password = password, host = host, port = port, database = database)
+
+        super().__init__("%s", "MySQL", database, inner)
+        self.__reset_script: str = reset_script
+
+    @property
+    @override
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
+            @wraps(call_this)
+            def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+                self._poor_execute_script(self.__reset_script)
+
+                self._set_conn(self._maker())
+                try:
+                    return call_this(*args, **kwargs)
+                finally:
+                    self._del_conn()
+                    self._poor_execute_script(self.__reset_script)
+
+            return inner
+        return middle
+
+    @property
+    @override
+    def remote_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        assert False
+
+    @property
+    @override
+    def config(self) -> DatabaseConfig:
+        assert False
 
 
 def read_all(fn: str) -> str:
     import os
     with open(os.getcwd() + "/" + fn, "r", encoding = "utf-8") as f:
         return f.read()
-
-
-def assert_db_ok(db: DbTestConfig) -> None:
-    assert db in dbs.values(), f"Database connector failed to load. {len(dbs)}"
 
 
 def mix(nome: str) -> str:
@@ -30,38 +256,6 @@ def mix(nome: str) -> str:
         a = not a
     return out
 
-
-mysql_clear: str = read_all("src/mariadb-create.sql").replace("$$$$", "test_cofre") + "\n" + read_all("test/test-mass.sql")
-mysql_reset: str = read_all("test/create-fruits-mysql.sql")
-sqlite_create: str = read_all("test/create-fruits-sqlite.sql")
-
-sqlite_db   : SqliteTestConfig  = SqliteTestConfig ("test/cofre-teste.db", "test/cofre-teste-run.db"                   )  # noqa: E202,E203,E211,E221
-sqlite_db_f : SqliteTestConfig  = SqliteTestConfig ("test/fruits-ok.db"  , "test/fruits.db"                            )  # noqa: E202,E203,E211,E221
-sqlite_db_x : SqliteTestConfig  = SqliteTestConfig ("test/empty.db"      , "test/cofre-teste-create-run.db"            )  # noqa: E202,E203,E211,E221
-mysql_db    : MysqlTestConfig   = MysqlTestConfig  (mysql_clear, "root", "root", "mariadb", 3306, "test_cofre"         )  # noqa: E202,E203,E211,E221
-mysql_db_f  : MysqlTestConfig   = MysqlTestConfig  (mysql_reset, "root", "root", "mariadb", 3306, "test_fruits"        )  # noqa: E202,E203,E211,E221
-mysql_db_x  : MysqlTestConfig   = MysqlTestConfig  (""         , "root", "root", "mariadb", 3306, "test_cofre_empty"   )  # noqa: E202,E203,E211,E221
-mariadb_db  : MariaDbTestConfig = MariaDbTestConfig(mysql_clear, "root", "root", "mariadb", 3306, "test_cofre"      , 5)  # noqa: E202,E203,E211,E221
-mariadb_db_f: MariaDbTestConfig = MariaDbTestConfig(mysql_reset, "root", "root", "mariadb", 3306, "test_fruits"     , 5)  # noqa: E202,E203,E211,E221
-mariadb_db_x: MariaDbTestConfig = MariaDbTestConfig(""         , "root", "root", "mariadb", 3306, "test_cofre_empty", 3)  # noqa: E202,E203,E211,E221
-
-dbs: dict[str, DbTestConfig] = {
-    "sqlite" : sqlite_db   ,  # noqa: E203
-    "mysql"  : mysql_db    ,  # noqa: E203
-    "mariadb": mariadb_db     # noqa: E203
-}
-
-dbs_f: dict[str, DbTestConfig] = {
-    "sqlite" : sqlite_db_f ,  # noqa: E203
-    "mysql"  : mysql_db_f  ,  # noqa: E203
-    "mariadb": mariadb_db_f   # noqa: E203
-}
-
-dbs_x: dict[str, DbTestConfig] = {
-    "sqlite" : sqlite_db_x ,  # noqa: E203
-    "mysql"  : mysql_db_x  ,  # noqa: E203
-    "mariadb": mariadb_db_x   # noqa: E203
-}
 
 alohomora       : str = "SbhhiMEETzPiquOxabc178eb35f26c8f59981b01a11cbec48b16f6a8e2c204f4a9a1b633c9199e0b3b2a64b13e49226306bb451c57c851f3c6e872885115404cb74279db7f5372ea"  # noqa: E203,E501
 avada_kedavra   : str = "ZisNWkdEImMneIcX8ac8780d30e67df14c1afbaf256e1ee45afd1d3cf2654d154b2e9c63541a40d4132a9beed69c4a47b3f2e5612c2751cdfa3abfaed9797fe54777e2f3dfe6aaa0"  # noqa: E203,E501
@@ -357,102 +551,360 @@ def no_transaction(callback: Callable[[str], None]) -> TransactedConnection:
     return TransactedConnection(activate, "BAD BAD BAD", "BAD BAD BAD", "BAD BAD BAD")
 
 
-class ServicosDecorator(Servicos):
+class ContextoServico:
 
-    def __init__(self, inner: Servicos, gl: GerenciadorFazLogin | GerenciadorLogout) -> None:
-        self.__inner: Servicos = inner
-        self.__gl: GerenciadorFazLogin | GerenciadorLogout = gl
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+            self,
+            exc_type: type[BaseException] | None,  # noqa: E203,E221
+            exc_val : BaseException       | None,  # noqa: E203,E221
+            exc_tb  : TracebackType       | None   # noqa: E203,E221
+    ) -> Literal[False]:
+        return False
+
+    @property
+    @abstractmethod
+    def servicos(self) -> Servicos:
+        pass
+
+
+class ContextoServicoLocal(ContextoServico):
+
+    def __init__(self, serv: Servicos) -> None:
+        self.__serv: Servicos = serv
+
+    @property
+    def servicos(self) -> Servicos:
+        return self.__serv
+
+
+class ContextoOperacao(ABC):
+
+    @abstractmethod
+    def servicos_normal(self) -> ContextoServico:
+        pass
+
+    @abstractmethod
+    def servicos_normal2(self) -> ContextoServico:
+        pass
+
+    @abstractmethod
+    def servicos_admin(self) -> ContextoServico:
+        pass
+
+    @abstractmethod
+    def servicos_banido(self) -> ContextoServico:
+        pass
+
+    @abstractmethod
+    def servicos_usuario_nao_existe(self) -> ContextoServico:
+        pass
+
+    @abstractmethod
+    def servicos_nao_logar(self) -> ContextoServico:
+        pass
+
+    @property
+    @abstractmethod
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        pass
+
+
+class ContextoOperacaoLocal(ContextoOperacao):
+
+    def __init__(self, db: DbTestConfig) -> None:
+        self.__db: DbTestConfig = db
+        self.__gl: GerenciadorLogin | None = None
+
+    @property
+    def db(self) -> DbTestConfig:
+        return self.__db
+
+    @property
+    def conn(self) -> TransactedConnection:
+        return self.__db.conn
+
+    @override
+    def servicos_normal(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario))
+        return self.__make
+
+    def servicos_normal_login(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
+        return self.__make
+
+    @override
+    def servicos_normal2(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorLoginChave(ChaveUsuario(hermione.pk_usuario))
+        return self.__make
+
+    def servicos_normal2_login(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorFazLogin(ChaveUsuario(hermione.pk_usuario))
+        return self.__make
+
+    @override
+    def servicos_admin(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorLoginChave(ChaveUsuario(dumbledore.pk_usuario))
+        return self.__make
+
+    def servicos_admin_login(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
+        return self.__make
+
+    @override
+    def servicos_banido(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorLoginChave(ChaveUsuario(voldemort.pk_usuario))
+        return self.__make
+
+    def servicos_banido_login(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorFazLogin(ChaveUsuario(voldemort.pk_usuario))
+        return self.__make
+
+    @override
+    def servicos_usuario_nao_existe(self) -> ContextoServico:
+        self.__gl = GerenciadorLoginChave(ChaveUsuario(lixo2))
+        return self.__make
+
+    def servicos_usuario_nao_existe_login(self) -> ContextoServicoLocal:
+        self.__gl = GerenciadorFazLogin(ChaveUsuario(lixo2))
+        return self.__make
+
+    @override
+    def servicos_nao_logar(self) -> ContextoServico:
+        self.__gl = GerenciadorLoginNaoLogado()
+        return self.__make
+
+    @property
+    def __make(self) -> ContextoServicoLocal:
+        assert self.__gl is not None
+        return ContextoServicoLocal(ServicosImpl(self.__gl, self.conn))
+
+    def verificar(self) -> None:
+        assert isinstance(self.__gl, GerenciadorFazLogin) or isinstance(self.__gl, GerenciadorLogout)
+        self.__gl.verificar()
 
     @property
     @override
-    def bd(self) -> ServicoBD:
-        return self.__inner.bd
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        return self.__db.decorator
+
+
+class ContextoServicoRemoto(ContextoServico):
+
+    def __init__(self, db: DatabaseConfig, login: str | None, senha: str | None) -> None:
+        self.__db: DatabaseConfig = db
+        self.__sair: Callable[[], None] | None = None
+        self.__inner: Servicos | None = None
+        self.__login: str | None = login
+        self.__senha: str | None = senha
+
+    def __enter__(self) -> Self:
+        try:
+            self.__sair = servir(5000, self.__db)
+            self.__inner = ServicosClient("http://127.0.0.1:5000")
+            if self.__login is not None and self.__senha is not None:
+                x: UsuarioComChave | BaseException = self.__inner.usuario.login(LoginComSenha(self.__login, self.__senha))
+                if isinstance(x, BaseException):
+                    raise x
+            return self
+        except BaseException as e:
+            if self.__sair is not None:
+                self.__sair()
+            self.__sair = None
+            self.__inner = None
+            raise e
+
+    def __exit__(
+            self,
+            exc_type: type[BaseException] | None,  # noqa: E203,E221
+            exc_val : BaseException       | None,  # noqa: E203,E221
+            exc_tb  : TracebackType       | None   # noqa: E203,E221
+    ) -> Literal[False]:
+        if self.__sair is not None:
+            self.__sair()
+        return False
+
+    @override
+    @property
+    def servicos(self) -> Servicos:
+        assert self.__inner is not None
+        return self.__inner
+
+
+class ContextoOperacaoRemoto(ContextoOperacao):
+
+    def __init__(self, db: DbTestConfig) -> None:
+        self.__db: DbTestConfig = db
+        self.__cfg: DatabaseConfig = db.config
+
+    @override
+    def servicos_normal(self) -> ContextoServico:
+        return ContextoServicoRemoto(self.__cfg, "Harry Potter", "alohomora")
+
+    @override
+    def servicos_normal2(self) -> ContextoServico:
+        return ContextoServicoRemoto(self.__cfg, "Hermione", "expelliarmus")
+
+    @override
+    def servicos_admin(self) -> ContextoServico:
+        return ContextoServicoRemoto(self.__cfg, "Dumbledore", "expecto patronum")
+
+    @override
+    def servicos_banido(self) -> ContextoServico:
+        return ContextoServicoRemoto(self.__cfg, "Voldemort", "avada kedavra")
+
+    @override
+    def servicos_usuario_nao_existe(self) -> ContextoServico:
+        return ContextoServicoRemoto(self.__cfg, lixo4, lixo4)
+
+    @override
+    def servicos_nao_logar(self) -> ContextoServico:
+        return ContextoServicoRemoto(self.__cfg, None, None)
 
     @property
     @override
-    def usuario(self) -> ServicoUsuario:
-        return self.__inner.usuario
-
-    @property
-    @override
-    def categoria(self) -> ServicoCategoria:
-        return self.__inner.categoria
-
-    @property
-    @override
-    def segredo(self) -> ServicoSegredo:
-        return self.__inner.segredo
-
-    @property
-    def gl(self) -> GerenciadorFazLogin | GerenciadorLogout:
-        return self.__gl
+    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+        return self.__db.remote_decorator
 
 
-def servicos_normal(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(harry_potter.pk_usuario)), c)
+mysql_clear: str = read_all("src/mariadb-create.sql").replace("$$$$", "test_cofre") + "\n" + read_all("test/test-mass.sql")
+mysql_reset: str = read_all("test/create-fruits-mysql.sql")
+sqlite_create: str = read_all("test/create-fruits-sqlite.sql")
+
+sqlite_db   : SqliteTestConfig  = SqliteTestConfig ("test/cofre-teste.db", "test/cofre-teste-run.db"                   )  # noqa: E202,E203,E211,E221
+sqlite_db_f : SqliteTestConfig  = SqliteTestConfig ("test/fruits-ok.db"  , "test/fruits.db"                            )  # noqa: E202,E203,E211,E221
+sqlite_db_x : SqliteTestConfig  = SqliteTestConfig ("test/empty.db"      , "test/cofre-teste-create-run.db"            )  # noqa: E202,E203,E211,E221
+mysql_db    : MysqlTestConfig   = MysqlTestConfig  (mysql_clear, "root", "root", "mariadb", 3306, "test_cofre"         )  # noqa: E202,E203,E211,E221
+mysql_db_f  : MysqlTestConfig   = MysqlTestConfig  (mysql_reset, "root", "root", "mariadb", 3306, "test_fruits"        )  # noqa: E202,E203,E211,E221
+mysql_db_x  : MysqlTestConfig   = MysqlTestConfig  (""         , "root", "root", "mariadb", 3306, "test_cofre_empty"   )  # noqa: E202,E203,E211,E221
+mariadb_db  : MariaDbTestConfig = MariaDbTestConfig(mysql_clear, "root", "root", "mariadb", 3306, "test_cofre"      , 5)  # noqa: E202,E203,E211,E221
+mariadb_db_f: MariaDbTestConfig = MariaDbTestConfig(mysql_reset, "root", "root", "mariadb", 3306, "test_fruits"     , 5)  # noqa: E202,E203,E211,E221
+mariadb_db_x: MariaDbTestConfig = MariaDbTestConfig(""         , "root", "root", "mariadb", 3306, "test_cofre_empty", 3)  # noqa: E202,E203,E211,E221
+
+dbs: dict[str, DbTestConfig] = {
+    "sqlite" : sqlite_db   ,  # noqa: E203
+    "mysql"  : mysql_db    ,  # noqa: E203
+    "mariadb": mariadb_db     # noqa: E203
+}
+
+dbs_f: dict[str, DbTestConfig] = {
+    "sqlite" : sqlite_db_f ,  # noqa: E203
+    "mysql"  : mysql_db_f  ,  # noqa: E203
+    "mariadb": mariadb_db_f   # noqa: E203
+}
+
+dbs_x: dict[str, DbTestConfig] = {
+    "sqlite" : sqlite_db_x ,  # noqa: E203
+    "mysql"  : mysql_db_x  ,  # noqa: E203
+    "mariadb": mariadb_db_x   # noqa: E203
+}
+
+ctxs_local: dict[str, ContextoOperacaoLocal] = {
+    "sqlite" : ContextoOperacaoLocal(sqlite_db ),  # noqa: E202,E203,E211
+    "mysql"  : ContextoOperacaoLocal(mysql_db  ),  # noqa: E202,E203,E211
+    "mariadb": ContextoOperacaoLocal(mariadb_db)   # noqa: E202,E203,E211
+}
+
+ctxs_remoto: dict[str, ContextoOperacaoRemoto] = {
+    # "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
+}
+
+ctxs: dict[str, ContextoOperacao] = {
+    "sqlite" : ContextoOperacaoLocal (sqlite_db ),  # noqa: E203
+    "mysql"  : ContextoOperacaoLocal (mysql_db  ),  # noqa: E203
+    "mariadb": ContextoOperacaoLocal (mariadb_db),  # noqa: E203
+    # "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
+}
 
 
-def servicos_normal_login(c: TransactedConnection) -> ServicosDecorator:
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(harry_potter.pk_usuario))
-    return ServicosDecorator(ServicosImpl(gl, c), gl)
+def assert_db_ok(db: DbTestConfig) -> None:
+    assert db in dbs.values(), f"Database connector failed to load. {len(dbs)}"
 
 
-def servicos_normal2(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(hermione.pk_usuario)), c)
+def _do_nothing(which: DbTestConfig) -> None:
+    pass
 
 
-def servicos_normal2_login(c: TransactedConnection) -> ServicosDecorator:
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(hermione.pk_usuario))
-    return ServicosDecorator(ServicosImpl(gl, c), gl)
+_CO = TypeVar("_CO", bound = ContextoOperacao)
+_A: TypeAlias = Callable[[DbTestConfig], None]
+_B: TypeAlias = Callable[[TransactedConnection], None]
+_C: TypeAlias = Callable[[TransactedConnection, DbTestConfig], None]
+_D: TypeAlias = Callable[[str], None]
+_E: TypeAlias = dict[str, DbTestConfig]
 
 
-def servicos_admin(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(dumbledore.pk_usuario)), c)
+def applier(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_A], _D]:
+    def outer(applied: _A) -> _D:
+        @pytest.mark.parametrize("db", appliances.keys())
+        @wraps(applied)
+        def middle(db: str) -> None:
+            dbc: DbTestConfig = appliances[db]
+            pretest(dbc)
+
+            @wraps(applied)
+            @dbc.decorator
+            def call() -> None:
+                applied(dbc)
+
+            call()
+
+        return middle
+    return outer
 
 
-def servicos_admin_login(c: TransactedConnection) -> ServicosDecorator:
-    gl: GerenciadorFazLogin = GerenciadorFazLogin(ChaveUsuario(dumbledore.pk_usuario))
-    return ServicosDecorator(ServicosImpl(gl, c), gl)
+def applier_trans(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_B], _D]:
+    def outer(applied: _B) -> _D:
+        @applier(appliances, pretest)
+        def inner(db: DbTestConfig) -> None:
+            conn: TransactedConnection = db.conn
+            with conn as c:
+                applied(c)
+
+        return inner
+    return outer
 
 
-def servicos_banido(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(voldemort.pk_usuario)), c)
+def applier_trans2(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_C], _D]:
+    def outer(applied: _C) -> _D:
+        @applier(appliances, pretest)
+        def inner(db: DbTestConfig) -> None:
+            conn: TransactedConnection = db.conn
+            with conn as c:
+                applied(c, db)
+
+        return inner
+    return outer
 
 
-def servicos_usuario_nao_existe(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginChave(ChaveUsuario(lixo2)), c)
+def applier_ctx_tipo(t: dict[str, _CO], applied: Callable[[_CO], None]) -> _D:
+    @pytest.mark.parametrize("co", t.keys())
+    def inner(co: str) -> None:
+        op: _CO = t[co]
 
-
-def servicos_nao_logado(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginNaoLogado(), c)
-
-
-def servicos_nao_logar(c: TransactedConnection) -> Servicos:
-    return ServicosImpl(GerenciadorLoginFalha(), c)
-
-
-class ServicosLogout:
-
-    def __init__(self) -> None:
-        self.__commited: bool = False
-        self.__closed: bool = False
-
-    def criar(self) -> ServicosDecorator:
-        def back(t: str) -> None:
-            if not self.__commited and t == "commit":
-                self.__commited = True
-            elif not self.__closed and t == "close":
-                self.__closed = True
+        @wraps(applied)
+        @op.decorator
+        def call() -> None:
+            opx: _CO = op
+            if isinstance(op, ContextoOperacaoLocal):
+                with op.conn:
+                    applied(opx)
             else:
-                assert False
+                applied(op)
 
-        gl: GerenciadorLogout = GerenciadorLogout()
-        return ServicosDecorator(ServicosImpl(gl, no_transaction(back)), gl)
+        call()
 
-    @property
-    def commited(self) -> bool:
-        return self.__commited
+    return inner
 
-    @property
-    def closed(self) -> bool:
-        return self.__closed
+
+def applier_ctx(applied: Callable[[ContextoOperacao], None]) -> _D:
+    return applier_ctx_tipo(ctxs, applied)
+
+
+def applier_ctx_local(applied: Callable[[ContextoOperacaoLocal], None]) -> _D:
+    return applier_ctx_tipo(ctxs_local, applied)
+
+
+def applier_ctx_remoto(applied: Callable[[ContextoOperacaoRemoto], None]) -> _D:
+    return applier_ctx_tipo(ctxs_remoto, applied)

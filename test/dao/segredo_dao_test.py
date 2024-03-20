@@ -1,5 +1,5 @@
-from ..db_test_util import applier, applier_trans, DbTestConfig
 from ..fixtures import (
+    applier, applier_trans, DbTestConfig,
     dbs, assert_db_ok,
     todos_segredos, parte_segredos, visiv_segredos, harry_segredos, hermi_segredos,
     harry_potter, dumbledore, voldemort, hermione, snape, snape_sem_pk,

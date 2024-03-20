@@ -1,8 +1,8 @@
 import requests
-from typing import Any, Literal, override, TypeAlias
+from typing import Any, Literal, override, TypeAlias, TYPE_CHECKING
 from typing import Generic, TypeVar  # Delete when PEP 695 is ready.
 from dacite import Config, from_dict
-from enum import Enum
+from enum import Enum, IntEnum
 from validator import dataclass_validate
 from dataclasses import asdict, dataclass
 from requests.models import Response
@@ -21,8 +21,17 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException, ExclusaoSemCascataException
 )
-from sucesso import Ok
+from sucesso import (
+    Ok, Status,
+    RequisicaoMalFormadaException, PrecondicaoFalhouException, ConteudoNaoReconhecidoException, ConteudoIncompreensivelException  # noqa: F401
+)
 
+
+if TYPE_CHECKING:
+    from _typeshed import DataclassInstance
+    _D = TypeVar("_D", bound = DataclassInstance)
+else:
+    _D = TypeVar("_D")
 
 _T = TypeVar("_T")  # Delete when PEP 695 is ready.
 _X = TypeVar("_X")  # Delete when PEP 695 is ready.
@@ -65,6 +74,12 @@ class _ErroDesconhecido(Exception):
 
 @dataclass_validate
 @dataclass(frozen = True)
+class _Empty:
+    pass
+
+
+@dataclass_validate
+@dataclass(frozen = True)
 class _ErroRemoto:
     sucesso: Literal[False]
     interno: bool
@@ -73,14 +88,33 @@ class _ErroRemoto:
 
     # def __raise_it[X](self, j: Any, x: type[X]) -> X:  # PEP 695
     def raise_it(self, x: type[_X]) -> _X:
+        z: Any
         try:
             z = eval(self.tipo)()
         except BaseException:
             raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
         if isinstance(z, x):
             return z
+        if isinstance(z, Status) and isinstance(z, BaseException):
+            raise z
         raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
 
+
+def dictfix(x: dict[Any, Any], recurse_guard: list[Any] | None = None) -> dict[Any, Any]:
+    if recurse_guard is None:
+        recurse_guard = []
+    for k in recurse_guard:
+        if x is k:
+            return x
+    for i in list(x.keys()):
+        e: Any = x[i]
+        if isinstance(e, set) or isinstance(e, frozenset) or isinstance(e, tuple):
+            x[i] = list(e)
+        elif isinstance(e, dict):
+            recurse_guard.append(x)
+            x[i] = dictfix(e, recurse_guard)
+            recurse_guard.pop()
+    return x
 
 class _Requester:
 
@@ -95,14 +129,14 @@ class _Requester:
         r: Response = self.__session.get(self.__base_url + path, cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
-    # def post[T, X](self, path: str, json: Any, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def post(self, path: str, json: Any, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = self.__session.post(self.__base_url + path, json = json, cookies = self.__cookies)
+    # def post[T, X](self, path: str, data: _D, t: type[T], x: type[X]) -> T | X: # PEP 695
+    def post(self, path: str, data: _D, t: type[_T], x: type[_X]) -> _T | _X:
+        r: Response = self.__session.post(self.__base_url + path, json = dictfix(asdict(data)), cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
-    # def put[T, X](self, path: str, json: Any, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def put(self, path: str, json: Any, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = self.__session.put(self.__base_url + path, json = json, cookies = self.__cookies)
+    # def put[T, X](self, path: str, data: _D, t: type[T], x: type[X]) -> T | X: # PEP 695
+    def put(self, path: str, data: _D, t: type[_T], x: type[_X]) -> _T | _X:
+        r: Response = self.__session.put(self.__base_url + path, json = dictfix(asdict(data)), cookies = self.__cookies)
         return self.__unwrap(r, t, x)
 
     # def delete[T, X](self, path: str, t: type[T], x: type[X]) -> T | X: # PEP 695
@@ -127,7 +161,7 @@ class _Requester:
         if _Requester.__sucesso(j):
             return None
         try:
-            remoto: _ErroRemoto = from_dict(data_class = _ErroRemoto, data = j, config = Config(cast = [Enum]))
+            remoto: _ErroRemoto = from_dict(data_class = _ErroRemoto, data = j, config = Config(cast = [Enum, IntEnum]))
             if remoto.interno:
                 raise _ErroDesconhecido(f"[{remoto.tipo}] {remoto.mensagem}")
             return remoto
@@ -148,9 +182,9 @@ class _Requester:
         if erro is not None:
             return erro.raise_it(x)
         if t is type(None):
-            from_dict(data_class = Ok, data = j["conteudo"], config = Config(cast = [Enum]))
+            from_dict(data_class = Ok, data = j["conteudo"], config = Config(cast = [Enum, IntEnum]))
             return None  # type: ignore
-        return from_dict(data_class = t, data = j["conteudo"], config = Config(cast = [Enum]))
+        return from_dict(data_class = t, data = j["conteudo"], config = Config(cast = [Enum, IntEnum]))
 
 
 class ServicosClient(Servicos):
@@ -204,16 +238,20 @@ class _ServicoUsuarioClient(ServicoUsuario):
 
     @override
     def login(self, quem_faz: LoginComSenha) -> UsuarioComChave | _UBE | _SEE:
-        return self.__requester.post("/login", asdict(quem_faz), UsuarioComChave, typed(_UBE).join(_SEE).end)
+        return self.__requester.post("/login", quem_faz, UsuarioComChave, typed(_UBE).join(_SEE).end)
 
     @override
     def logout(self) -> None:
-        self.__requester.post("/logout", {}, type(None), typed(str).end)
+        self.__requester.post("/logout", _Empty(), type(None), typed(str).end)
 
     @override
     def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE | _VIE:
-        d: dict[str, Any] = {"senha": dados.senha, "nivel_acesso": dados.nivel_acesso}
-        return self.__requester.put(f"/usuarios/{dados.login}", d, UsuarioComChave, typed(_UNLE).join(_UBE).join(_PNE).join(_UJEE).join(_LEE).join(_VIE).end)
+        return self.__requester.put(
+            f"/usuarios/{dados.login}",
+            dados.internos,
+            UsuarioComChave,
+            typed(_UNLE).join(_UBE).join(_PNE).join(_UJEE).join(_LEE).join(_VIE).end
+        )
 
     @override
     def trocar_senha_por_chave(self, dados: TrocaSenha) -> None | _UNLE | _UBE | _LEE:
@@ -221,12 +259,21 @@ class _ServicoUsuarioClient(ServicoUsuario):
 
     @override
     def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE | _LEE:
-        return self.__requester.post(f"/usuarios/{dados.login}/resetar-senha", {}, SenhaAlterada, typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end)
+        return self.__requester.post(
+            f"/usuarios/{dados.login}/resetar-senha",
+            _Empty(),
+            SenhaAlterada,
+            typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end
+        )
 
     @override
     def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
-        d: dict[str, Any] = {"nivel_acesso": dados.nivel_acesso}
-        return self.__requester.post(f"/usuarios/{dados.login}/alterar-nivel", d, type(None), typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end)
+        return self.__requester.post(
+            f"/usuarios/{dados.login}/alterar-nivel",
+            dados.internos,
+            type(None),
+            typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end
+        )
 
     @override
     def renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
@@ -301,7 +348,7 @@ class _ServicoCategoriaClient(ServicoCategoria):
 
     @override
     def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CJEE | _LEE:
-        return self.__requester.put(f"/categorias/{dados.nome}", {}, CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
+        return self.__requester.put(f"/categorias/{dados.nome}", _Empty(), CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
 
     @override
     def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _CJEE | _CNEE | _VIE | _LEE:

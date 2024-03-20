@@ -1,5 +1,5 @@
-from ..db_test_util import applier, applier_trans, DbTestConfig
 from ..fixtures import (
+    applier, applier_trans, DbTestConfig,
     dbs, assert_db_ok,
     todos_usuarios, parte_usuarios, nome_curto, nome_longo,
     harry_potter, dumbledore,

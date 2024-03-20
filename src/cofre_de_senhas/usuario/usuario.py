@@ -190,7 +190,7 @@ class ServicosImpl:
 
     # Exportado para a classe Segredo.
     def listar_por_logins(self, logins: set[str]) -> dict[str, Usuario] | _UNEE:
-        dl: list[LoginUsuarioUK] = LoginUsuarioUK.para_todos(logins)
+        dl: list[LoginUsuarioUK] = LoginUsuarioUK.para_todos(list(logins))
         dados: list[DadosUsuario] = self.__dao.listar_por_logins(dl)
         r: dict[str, Usuario] = Usuario._mapear_todos(dados)
 
@@ -198,7 +198,7 @@ class ServicosImpl:
             for login in logins:
                 if login not in r:
                     return UsuarioNaoExisteException(login)
-            assert False
+            assert False, "A exceção UsuarioNaoExisteException deveria ter sido lançada."
 
         return r
 

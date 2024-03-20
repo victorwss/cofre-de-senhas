@@ -1,25 +1,19 @@
 from dataclasses import dataclass
 from flask import Flask, make_response, request, Response
-from typing import Any, cast, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 from inspect import signature, Signature, Parameter
 from werkzeug.datastructures.file_storage import FileStorage
 from sucesso import RequisicaoMalFormadaException
-from httpwrap import read_body
+from httpwrap import handler, read_body
 from functools import wraps
 from types import MappingProxyType
 from dacite import Config, from_dict
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 _X = TypeVar("_X")
 _RS = Response | str
 _T = TypeVar("_T", bound = Callable[..., _RS | tuple[_RS, int]])
-
-
-@dataclass(frozen = True)
-class Converter(Generic[_X]):
-    key: type[_X]
-    func: Callable[[], _X]
 
 
 def or_throw(data: _X | None) -> _X:
@@ -49,116 +43,108 @@ def identity(data: str) -> str:
 @dataclass(frozen = True)
 class WebParam(Generic[_X]):
     name: str
-    converter: Converter[_X]
-
-    @property
-    def key(self) -> type[_X]:
-        return self.converter.key
+    key: type[_X]
+    func: Callable[[], _X]
+    on_path_to_flask: bool
 
     def handle(self) -> _X:
-        return self.converter.func()
+        return self.func()
 
 
-def from_path(param_name: str) -> Converter[str]:
+def from_path(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return or_throw(or_throw(request.view_args).get(param_name))
-    return Converter(str, inner)
+    return WebParam(param_name, str, inner, True)
 
 
-def from_path_int(param_name: str) -> Converter[int]:
+def from_path_int(param_name: str) -> WebParam[int]:
     def inner() -> int:
         return parse_int(or_throw(or_throw(request.view_args).get(param_name)))
-    return Converter(int, inner)
+    return WebParam(param_name, int, inner, True)
 
 
-def from_path_float(param_name: str) -> Converter[float]:
+def from_path_float(param_name: str) -> WebParam[float]:
     def inner() -> float:
         return parse_float(or_throw(or_throw(request.view_args).get(param_name)))
-    return Converter(float, inner)
+    return WebParam(param_name, float, inner, True)
 
 
-def from_query_string(param_name: str) -> Converter[str]:
+def from_query_string(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return or_throw(request.args.get(param_name))
-    return Converter(str, inner)
+    return WebParam(param_name, str, inner, False)
 
 
-def from_query_string_multi(param_name: str) -> Converter[list[str]]:
+def from_query_string_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.args.getlist(param_name)
-    return Converter(list[str], inner)
+    return WebParam(param_name, list[str], inner, False)
 
 
-def from_file(param_name: str) -> Converter[FileStorage]:
+def from_file(param_name: str) -> WebParam[FileStorage]:
     def inner() -> FileStorage:
         return or_throw(request.files.get(param_name))
-    return Converter(FileStorage, inner)
+    return WebParam(param_name, FileStorage, inner, False)
 
 
-def from_file_multi(param_name: str) -> Converter[list[FileStorage]]:
+def from_file_multi(param_name: str) -> WebParam[list[FileStorage]]:
     def inner() -> list[FileStorage]:
         return request.files.getlist(param_name)
-    return Converter(list[FileStorage], inner)
+    return WebParam(param_name, list[FileStorage], inner, False)
 
 
-def from_header(param_name: str) -> Converter[str]:
+def from_header(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return or_throw(request.headers.get(param_name))
-    return Converter(str, inner)
+    return WebParam(param_name, str, inner, False)
 
 
-def from_header_multi(param_name: str) -> Converter[list[str]]:
+def from_header_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.headers.getlist(param_name)
-    return Converter(list[str], inner)
+    return WebParam(param_name, list[str], inner, False)
 
 
-def from_form(param_name: str) -> Converter[str]:
+def from_form(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return or_throw(request.form.get(param_name))
-    return Converter(str, inner)
+    return WebParam(param_name, str, inner, False)
 
 
-def from_form_multi(param_name: str) -> Converter[list[str]]:
+def from_form_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.form.getlist(param_name)
-    return Converter(list[str], inner)
+    return WebParam(param_name, list[str], inner, False)
 
 
-def from_cookie(param_name: str) -> Converter[str]:
+def from_cookie(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return or_throw(request.cookies.get(param_name))
-    return Converter(str, inner)
+    return WebParam(param_name, str, inner, False)
 
 
-def from_cookie_multi(param_name: str) -> Converter[list[str]]:
+def from_cookie_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.cookies.getlist(param_name)
-    return Converter(list[str], inner)
+    return WebParam(param_name, list[str], inner, False)
 
 
-def from_body_bytes() -> Converter[bytes]:
+def from_body_bytes(param_name: str) -> WebParam[bytes]:
     def inner() -> bytes:
         return request.get_data()
-    return Converter(bytes, inner)
+    return WebParam(param_name, bytes, inner, False)
 
 
-def from_body() -> Converter[str]:
+def from_body(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return request.get_data(as_text = True)
-    return Converter(str, inner)
+    return WebParam(param_name, str, inner, False)
 
 
-def from_body_json(target: type[_X]) -> Converter[_X]:
-    def inner() -> _X:
-        return from_dict(data_class = target, data = request.get_json(), config = Config(cast = [Enum]))
-    return Converter(target, inner)
-
-
-def from_body_typed(target: type[_X], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> Converter[_X]:
+def from_body_typed(param_name: str, target: type[_X], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> WebParam[_X]:
     def inner() -> _X:
         return read_body(target, json = json, urlencoded = urlencoded, multipart = multipart)
-    return Converter(target, inner)
+    return WebParam(param_name, target, inner, False)
 
 
 def to_int(wrap: Callable[[], str]) -> Callable[[], int]:
@@ -315,6 +301,7 @@ class WebSuite:
             js_stub: str = _make_js_stub(what.__name__, s.parameters, wm.params, wm.url_template, wm.http_method, False, True)
             self.__js_stubs.append(js_stub)
 
+            @handler
             @wraps(what)
             def inner() -> tuple[_RS, int]:
                 request.get_data()  # Ensure caching
@@ -326,11 +313,10 @@ class WebSuite:
                     return f, 200
                 return f
 
-            # print(t)
             t: str = "\n".join([
                 f"@app.route('{wm.url_template}', methods = ['{wm.http_method}'])",
-                f"def {what.__name__}({', '.join(s.parameters)}):",
-                f"\n    return inner()",
+                f"def {what.__name__}({', '.join([p.name for p in wm.params if p.on_path_to_flask])}):",
+                "\n    return inner()",
             ])
             app: Flask = self.__flask
             exec(t, {"inner": inner, "app": app})

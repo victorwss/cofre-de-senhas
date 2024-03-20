@@ -1,5 +1,5 @@
-from ..db_test_util import applier, applier_trans, DbTestConfig
 from ..fixtures import (
+    applier, applier_trans, DbTestConfig,
     dbs, assert_db_ok, mix,
     todas_categorias, parte_categorias, nome_longo,
     millenium_falcon, dados_millenium_falcon, nao_existe,

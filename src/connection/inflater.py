@@ -1,6 +1,6 @@
 from typing import Any, Callable, Sequence
 from typing import TypeVar  # Delete when PEP 695 is ready.
-from enum import Enum
+from enum import Enum, IntEnum
 from dacite import Config, from_dict
 
 _T = TypeVar("_T")  # Delete when PEP 695 is ready.
@@ -51,7 +51,7 @@ class ColumnNames:
 
     # def row_to_class[T](self, klass: type[T], row: tuple[Any, ...]) -> T: # PEP 695
     def row_to_class(self, klass: type[_T], row: tuple[Any, ...]) -> _T:
-        return self.row_to_class_lambda(lambda d: from_dict(data_class = klass, data = d, config = Config(cast = [Enum], strict = True)), row)
+        return self.row_to_class_lambda(lambda d: from_dict(data_class = klass, data = d, config = Config(cast = [Enum, IntEnum], strict = True)), row)
 
     # def row_to_class_lambda_opt[U, T](self, ctor: Callable[[dict[str, U]], T], row: tuple[U, ...] | None) -> T | None: # PEP 695
     def row_to_class_lambda_opt(self, ctor: Callable[[dict[str, _U]], _T], row: tuple[_U, ...] | None) -> _T | None:

@@ -1,5 +1,5 @@
-from ..db_test_util import applier, DbTestConfig
 from ..fixtures import (
+    applier, DbTestConfig,
     dbs, dbs_x, mariadb_db_x, assert_db_ok, read_all,
     todas_categorias, todos_usuarios, todos_segredos
 )

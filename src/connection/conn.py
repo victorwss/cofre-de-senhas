@@ -259,7 +259,7 @@ class SimpleConnection(ABC, Iterator[tuple[RAW_DATA, ...]]):
     @property
     def asserted_lastrowid(self) -> int:
         last: int | None = self.lastrowid
-        assert last is not None
+        assert last is not None, "Não há lastrowid."
         return last
 
     @final

@@ -97,7 +97,7 @@ class LoginUsuarioUK:
     valor: str
 
     @staticmethod
-    def para_todos(logins: set[str]) -> list["LoginUsuarioUK"]:
+    def para_todos(logins: list[str]) -> list["LoginUsuarioUK"]:
         return [LoginUsuarioUK(v) for v in logins]
 
 
@@ -107,7 +107,7 @@ class NomeCategoriaUK:
     valor: str
 
     @staticmethod
-    def para_todos(nomes: set[str]) -> list["NomeCategoriaUK"]:
+    def para_todos(nomes: list[str]) -> list["NomeCategoriaUK"]:
         return [NomeCategoriaUK(v) for v in nomes]
 
 

@@ -79,7 +79,7 @@ class Segredo:
     @property
     def _up_eager(self) -> SegredoComChave:
         permissoes: dict[str, TipoPermissao] = {} if self.usuarios is None else {k: self.usuarios[k].tipo for k in self.usuarios.keys()}
-        return self.__up.com_corpo(self.campos, set(self.categorias.keys()), permissoes)
+        return self.__up.com_corpo(self.campos, frozenset(self.categorias.keys()), permissoes)
 
     @property
     def _down(self) -> DadosSegredo:
@@ -118,9 +118,9 @@ class ServicosImpl:
             self.__dao.criar_categoria_segredo(CategoriaDeSegredo(spk.pk_segredo, categoria.pk.pk_categoria))
 
     def __salvar_dados_internos(self, s: Segredo) -> Segredo:
-        assert s.usuarios is not None
-        assert s.categorias is not None
-        assert s.campos is not None
+        assert s.usuarios is not None, "Deveriam haver usuários no segredo."
+        assert s.categorias is not None, "Deveriam haver categorias no segredo."
+        assert s.campos is not None, "Deveriam haver campos no segredo."
 
         self.__limpar(s)
         self.__criar_campos(s)
@@ -155,7 +155,7 @@ class ServicosImpl:
         permissoes: dict[str, Permissao] | _UNEE = self.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
             return permissoes
-        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(dados.categorias)
+        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(set(dados.categorias))
         if isinstance(categorias, _CNEE):
             return categorias
         c: Segredo.Cabecalho = replace(s1.cabecalho, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo)
@@ -231,7 +231,7 @@ class ServicosImpl:
         permissoes: dict[str, Permissao] | _UNEE = self.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
             return permissoes
-        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(dados.categorias)
+        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(set(dados.categorias))
         if isinstance(categorias, _CNEE):
             return categorias
 

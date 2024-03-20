@@ -119,7 +119,7 @@ class ServicosImpl:
 
     # Exportado para a classe Segredo.
     def listar_por_nomes(self, nomes: set[str]) -> dict[str, Categoria] | _CNEE:
-        dl: list[NomeCategoriaUK] = NomeCategoriaUK.para_todos(nomes)
+        dl: list[NomeCategoriaUK] = NomeCategoriaUK.para_todos(list(nomes))
         dados: list[DadosCategoria] = self.__dao.listar_por_nomes(dl)
         r: dict[str, Categoria] = Categoria._mapear_todos(dados)
 
@@ -127,7 +127,7 @@ class ServicosImpl:
             for nome in nomes:
                 if nome not in r:
                     return CategoriaNaoExisteException(nome)
-            assert False
+            assert False, "A exceção CategoriaNaoExisteException deveria ter sido lançada."
 
         return r
 

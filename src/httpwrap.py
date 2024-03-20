@@ -4,8 +4,8 @@ from flask import jsonify, request
 from flask.wrappers import Response
 from functools import wraps
 from dacite import Config, from_dict
-from enum import Enum
-from sucesso import Erro, Sucesso, RequisicaoMalFormadaException, ConteudoNaoReconhecidoException, ConteudoIncompreensivelException
+from enum import Enum, IntEnum
+from sucesso import Erro, Sucesso, RequisicaoMalFormadaException, ConteudoNaoReconhecidoException
 
 
 _RS = Response | str
@@ -65,16 +65,13 @@ def _is_json(content_type: str, json: bool) -> bool:
 
 def _get_body(content_type: str | None, json: bool, urlencoded: bool, multipart: bool) -> Any:
     if content_type is None:
-        raise RequisicaoMalFormadaException()
+        raise ConteudoNaoReconhecidoException()
 
     if _is_form(content_type, urlencoded, multipart):
         return request.form
 
     if _is_json(content_type, json):
-        try:
-            return request.json
-        except BaseException:
-            raise RequisicaoMalFormadaException()
+        return request.json
 
     raise ConteudoNaoReconhecidoException()
 
@@ -103,10 +100,7 @@ def read_body(target: type[_T], *, json: bool = True, urlencoded: bool = True, m
 
     body: Any = _get_body(content_type, json, urlencoded, multipart)
 
-    try:
-        return from_dict(data_class = target, data = body, config = Config(cast = [Enum]))
-    except BaseException:
-        raise ConteudoIncompreensivelException()
+    return from_dict(data_class = target, data = body, config = Config(cast = [IntEnum, Enum]))
 
 
 def bodyless() -> None:

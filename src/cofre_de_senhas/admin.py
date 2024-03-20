@@ -4,7 +4,7 @@ from .service_impl import ServicosImpl
 from .erro import UsuarioJaExisteException, ValorIncorretoException
 from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from connection.trans import TransactedConnection
-from .conn_factory import connect
+from connection.load import DatabaseConfig
 import getpass
 
 
@@ -16,16 +16,16 @@ class _Nao(GerenciadorLogin):
 
     @override
     def login(self, usuario: UsuarioComChave) -> None:
-        assert False
+        assert False, "Não deve haver pocesso de login."
 
     @override
     def logout(self) -> None:
-        assert False
+        assert False, "Não deve haver pocesso de login."
 
     @property
     @override
     def usuario_logado(self) -> ChaveUsuario:
-        assert False
+        assert False, "Não deve haver pocesso de login."
 
 
 class _Menu:
@@ -81,7 +81,7 @@ class _Menu:
         _Menu(cofre).__mostrar_menu()
 
 
-def admin() -> None:
-    cofre: TransactedConnection = connect()
+def admin(config_file: str) -> None:
+    cofre: TransactedConnection = DatabaseConfig.from_file(config_file).connect()
     CofreDeSenhasDAOImpl(cofre)
     _Menu.executar(cofre)

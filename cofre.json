@@ -1,5 +1,5 @@
 {
-    "database_name": "sqlite",
+    "flavor": "sqlite",
     "properties": {
         "file_name": "cofre.db"
     }

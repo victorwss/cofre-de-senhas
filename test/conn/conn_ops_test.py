@@ -4,8 +4,10 @@ from connection.trans import TransactedConnection
 from pytest import raises
 from dataclasses import dataclass
 from validator import dataclass_validate
-from ..db_test_util import applier, applier_trans, applier_trans2, DbTestConfig
-from ..fixtures import dbs_f as dbs, sqlite_db_f as sqlite_db, mysql_db_f as mysql_db, mariadb_db_f as mariadb_db
+from ..fixtures import (
+    applier, applier_trans, applier_trans2, DbTestConfig,
+    dbs_f as dbs, sqlite_db_f as sqlite_db, mysql_db_f as mysql_db, mariadb_db_f as mariadb_db
+)
 
 
 run_on_dbs: list[DbTestConfig] = []
