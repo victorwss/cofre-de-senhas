@@ -79,7 +79,7 @@ class Segredo:
     @property
     def _up_eager(self) -> SegredoComChave:
         permissoes: dict[str, TipoPermissao] = {} if self.usuarios is None else {k: self.usuarios[k].tipo for k in self.usuarios.keys()}
-        return self.__up.com_corpo(self.campos, frozenset(self.categorias.keys()), permissoes)
+        return self.__up.com_corpo(self.campos, sorted(list(self.categorias.keys())), permissoes)
 
     @property
     def _down(self) -> DadosSegredo:
@@ -146,7 +146,8 @@ class ServicosImpl:
         era_proprietario: bool = self.__tem_permissao(u1, up.sem_chave, True)
         sera_proprietario: bool = self.__tem_permissao(u1, dados.sem_chave, True)
 
-        if era_proprietario and not sera_proprietario:
+        cts: set[str] = set(dados.categorias)
+        if len(cts) != len(dados.categorias) or (era_proprietario and not sera_proprietario):
             return ValorIncorretoException()
 
         if not era_proprietario and antes != depois:
@@ -155,7 +156,7 @@ class ServicosImpl:
         permissoes: dict[str, Permissao] | _UNEE = self.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
             return permissoes
-        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(set(dados.categorias))
+        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(cts)
         if isinstance(categorias, _CNEE):
             return categorias
         c: Segredo.Cabecalho = replace(s1.cabecalho, nome = dados.nome, descricao = dados.descricao, tipo_segredo = dados.tipo)
@@ -225,13 +226,15 @@ class ServicosImpl:
         u1: Usuario | _LEE | _UBE = self.__servicos_usuario.verificar_acesso(quem_faz)
         if not isinstance(u1, Usuario):
             return u1
-        if not self.__tem_permissao(u1, dados, True):
+
+        cts: set[str] = set(dados.categorias)
+        if len(cts) != len(dados.categorias) or not self.__tem_permissao(u1, dados, True):
             return ValorIncorretoException()
 
         permissoes: dict[str, Permissao] | _UNEE = self.__mapear_permissoes(dados.usuarios)
         if isinstance(permissoes, _UNEE):
             return permissoes
-        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(set(dados.categorias))
+        categorias: dict[str, Categoria] | _CNEE = self.__servicos_categoria.listar_por_nomes(cts)
         if isinstance(categorias, _CNEE):
             return categorias
 

@@ -693,28 +693,46 @@ class ContextoOperacaoLocal(ContextoOperacao):
 
 class ContextoServicoRemoto(ContextoServico):
 
-    def __init__(self, db: DatabaseConfig, login: str | None, senha: str | None) -> None:
+    def __init__(self, db: DatabaseConfig, login: str | None, senha: str | None, modo: str) -> None:
         self.__db: DatabaseConfig = db
         self.__sair: Callable[[], None] | None = None
         self.__inner: Servicos | None = None
         self.__login: str | None = login
         self.__senha: str | None = senha
+        self.__modo: str = modo
 
     def __enter__(self) -> Self:
+        ok: bool = False
         try:
             self.__sair = servir(5000, self.__db)
             self.__inner = ServicosClient("http://127.0.0.1:5000")
             if self.__login is not None and self.__senha is not None:
+
+                if self.__modo == "UPDATE":
+                    with self.__db.connect() as t:
+                        t.execute(f"UPDATE usuario SET fk_nivel_acesso = 1 WHERE login = '{self.__login}'")
+                if self.__modo == "CREATE":
+                    with self.__db.connect() as t:
+                        t.execute(f"INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('{self.__login}', 1, '{avada_kedavra}')")
+
                 x: UsuarioComChave | BaseException = self.__inner.usuario.login(LoginComSenha(self.__login, self.__senha))
                 if isinstance(x, BaseException):
                     raise x
+
+                if self.__modo == "UPDATE":
+                    with self.__db.connect() as t:
+                        t.execute(f"UPDATE usuario SET fk_nivel_acesso = 1 WHERE login = '{self.__login}'")
+                if self.__modo == "CREATE":
+                    with self.__db.connect() as t:
+                        t.execute(f"DELETE FROM usuario WHERE login = '{self.__login}'")
+            ok = True
             return self
-        except BaseException as e:
-            if self.__sair is not None:
-                self.__sair()
-            self.__sair = None
-            self.__inner = None
-            raise e
+        finally:
+            if not ok:
+                if self.__sair is not None:
+                    self.__sair()
+                self.__sair = None
+                self.__inner = None
 
     def __exit__(
             self,
@@ -741,27 +759,27 @@ class ContextoOperacaoRemoto(ContextoOperacao):
 
     @override
     def servicos_normal(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Harry Potter", "alohomora")
+        return ContextoServicoRemoto(self.__cfg, "Harry Potter", "alohomora", "OK")
 
     @override
     def servicos_normal2(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Hermione", "expelliarmus")
+        return ContextoServicoRemoto(self.__cfg, "Hermione", "expelliarmus", "OK")
 
     @override
     def servicos_admin(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Dumbledore", "expecto patronum")
+        return ContextoServicoRemoto(self.__cfg, "Dumbledore", "expecto patronum", "OK")
 
     @override
     def servicos_banido(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Voldemort", "avada kedavra")
+        return ContextoServicoRemoto(self.__cfg, "Voldemort", "avada kedavra", "UPDATE")
 
     @override
     def servicos_usuario_nao_existe(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, lixo4, lixo4)
+        return ContextoServicoRemoto(self.__cfg, lixo4, "avada kedavra", "CREATE")
 
     @override
     def servicos_nao_logar(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, None, None)
+        return ContextoServicoRemoto(self.__cfg, None, None, "OK")
 
     @property
     @override
@@ -808,14 +826,14 @@ ctxs_local: dict[str, ContextoOperacaoLocal] = {
 }
 
 ctxs_remoto: dict[str, ContextoOperacaoRemoto] = {
-    # "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
+    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
 }
 
 ctxs: dict[str, ContextoOperacao] = {
     "sqlite" : ContextoOperacaoLocal (sqlite_db ),  # noqa: E203
     "mysql"  : ContextoOperacaoLocal (mysql_db  ),  # noqa: E203
     "mariadb": ContextoOperacaoLocal (mariadb_db),  # noqa: E203
-    # "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
+    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
 }
 
 

@@ -36,15 +36,23 @@ def star_trek_data(
         unee: int = 0,
         cnee: int = 0,
         alt: int = 0,
+        rep: int = 0,
         tipo: TipoSegredo = TipoSegredo.PUBLICO,
         harry_potter: TipoPermissao | None = TipoPermissao.PROPRIETARIO,
         hermione: TipoPermissao | None = TipoPermissao.LEITURA_E_ESCRITA
 ) -> SegredoSemChave:
-    categorias: set[str] = {"API", "Produção", "QA"}
+    categorias: list[str] = ["API", "Produção", "QA"]
     if cnee == 1:
-        categorias.add("Coisas boas feitas pela PRODAM")
+        categorias.append("Coisas boas feitas pela PRODAM")
     if cnee == 2:
-        categorias.add("aplicação")
+        categorias.append("aplicação")
+    if rep == 1:
+        categorias.append("QA")
+    if rep == 2:
+        categorias.reverse()
+    if rep == 3:
+        categorias.append("QA")
+        categorias.reverse()
     usuarios: dict[str, TipoPermissao] = {}
     if harry_potter is not None:
         usuarios["Harry Potter"] = harry_potter
@@ -57,7 +65,7 @@ def star_trek_data(
     props: dict[str, str] = {"Capitão": "Kirk", "Vulcano": "Spock"}
     if alt == 1:
         props["Nave"] = "USS Enterprise"
-    return SegredoSemChave(star_trek.nome, star_trek.descricao, tipo, props, frozenset(categorias), usuarios)
+    return SegredoSemChave(star_trek.nome, star_trek.descricao, tipo, props, categorias, usuarios)
 
 
 def criar_segredo_normal(
@@ -193,6 +201,23 @@ def test_criar_segredo_ok3(ctx: ContextoOperacao) -> None:
 
 
 @applier_ctx
+def test_criar_segredo_ok4(ctx: ContextoOperacao) -> None:
+    with ctx.servicos_admin() as r:
+        s1: Servicos = r.servicos
+        dados: SegredoSemChave = star_trek_data(rep = 2)
+        chave: ChaveSegredo = ChaveSegredo(star_trek.pk_segredo)
+        com_chave: SegredoComChave = dados.com_chave(chave)
+
+        x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
+        assert x1 == com_chave
+
+    with ctx.servicos_admin() as r:
+        s2: Servicos = r.servicos
+        x2: ResultadoPesquisaDeSegredos | BaseException = s2.segredo.listar()
+        assert x2 == tudo_com_algo_mais
+
+
+@applier_ctx
 def test_criar_segredo_VIE_1(ctx: ContextoOperacao) -> None:
     with ctx.servicos_normal() as r:
         s1: Servicos = r.servicos
@@ -212,6 +237,36 @@ def test_criar_segredo_VIE_2(ctx: ContextoOperacao) -> None:
     with ctx.servicos_normal() as r:
         s1: Servicos = r.servicos
         dados: SegredoSemChave = star_trek_data(harry_potter = None)
+
+        x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
+        assert isinstance(x1, ValorIncorretoException)
+
+    with ctx.servicos_admin() as r:
+        s2: Servicos = r.servicos
+        x2: ResultadoPesquisaDeSegredos | BaseException = s2.segredo.listar()
+        assert x2 == tudo
+
+
+@applier_ctx
+def test_criar_segredo_VIE_3(ctx: ContextoOperacao) -> None:
+    with ctx.servicos_normal() as r:
+        s1: Servicos = r.servicos
+        dados: SegredoSemChave = star_trek_data(rep = 1)
+
+        x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
+        assert isinstance(x1, ValorIncorretoException)
+
+    with ctx.servicos_admin() as r:
+        s2: Servicos = r.servicos
+        x2: ResultadoPesquisaDeSegredos | BaseException = s2.segredo.listar()
+        assert x2 == tudo
+
+
+@applier_ctx
+def test_criar_segredo_VIE_4(ctx: ContextoOperacao) -> None:
+    with ctx.servicos_normal() as r:
+        s1: Servicos = r.servicos
+        dados: SegredoSemChave = star_trek_data(rep = 3)
 
         x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
         assert isinstance(x1, ValorIncorretoException)
@@ -615,6 +670,21 @@ def test_alterar_por_chave_ok_leitura_escrita(ctx: ContextoOperacao) -> None:
 
 
 @applier_ctx
+def test_alterar_por_chave_ok_ordem(ctx: ContextoOperacao) -> None:
+    original: SegredoComChave = criar_segredo_normal(ctx)
+
+    with ctx.servicos_admin() as r:
+        s1: Servicos = r.servicos
+        dados: SegredoSemChave = star_trek_data(alt = 1, rep = 2)
+        com_chave: SegredoComChave = dados.com_chave(original.chave)
+
+        x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)
+        assert x1 is None
+
+    verificar_segredo(ctx, com_chave)
+
+
+@applier_ctx
 def test_alterar_por_chave_SNEE(ctx: ContextoOperacao) -> None:
     chave: ChaveSegredo = ChaveSegredo(9999)
 
@@ -771,6 +841,36 @@ def test_alterar_por_chave_VIE(ctx: ContextoOperacao) -> None:
     with ctx.servicos_normal() as r:
         s1: Servicos = r.servicos
         dados: SegredoSemChave = star_trek_data(harry_potter = TipoPermissao.SOMENTE_LEITURA)
+        com_chave: SegredoComChave = dados.com_chave(original.chave)
+
+        x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)
+        assert isinstance(x1, ValorIncorretoException)
+
+    verificar_segredo(ctx, original)
+
+
+@applier_ctx
+def test_alterar_por_chave_VIE_ordem_1(ctx: ContextoOperacao) -> None:
+    original: SegredoComChave = criar_segredo_normal(ctx)
+
+    with ctx.servicos_admin() as r:
+        s1: Servicos = r.servicos
+        dados: SegredoSemChave = star_trek_data(alt = 1, rep = 1)
+        com_chave: SegredoComChave = dados.com_chave(original.chave)
+
+        x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)
+        assert isinstance(x1, ValorIncorretoException)
+
+    verificar_segredo(ctx, original)
+
+
+@applier_ctx
+def test_alterar_por_chave_VIE_ordem_2(ctx: ContextoOperacao) -> None:
+    original: SegredoComChave = criar_segredo_normal(ctx)
+
+    with ctx.servicos_admin() as r:
+        s1: Servicos = r.servicos
+        dados: SegredoSemChave = star_trek_data(alt = 1, rep = 3)
         com_chave: SegredoComChave = dados.com_chave(original.chave)
 
         x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)

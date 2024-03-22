@@ -73,7 +73,7 @@ class SegredoSemChave:
     descricao: str
     tipo: TipoSegredo
     campos: dict[str, str]
-    categorias: frozenset[str]
+    categorias: list[str]
     usuarios: dict[str, TipoPermissao]
 
     def com_chave(self, chave: ChaveSegredo) -> "SegredoComChave":
@@ -88,7 +88,7 @@ class SegredoComChave:
     descricao: str
     tipo: TipoSegredo
     campos: dict[str, str]
-    categorias: frozenset[str]
+    categorias: list[str]
     usuarios: dict[str, TipoPermissao]
 
     @property
@@ -218,7 +218,7 @@ class CabecalhoSegredoComChave:
     descricao: str
     tipo: TipoSegredo
 
-    def com_corpo(self, campos: dict[str, str], categorias: frozenset[str], usuarios: dict[str, TipoPermissao]) -> SegredoComChave:
+    def com_corpo(self, campos: dict[str, str], categorias: list[str], usuarios: dict[str, TipoPermissao]) -> SegredoComChave:
         return SegredoComChave(self.chave, self.nome, self.descricao, self.tipo, campos, categorias, usuarios)
 
 
