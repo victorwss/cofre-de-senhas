@@ -38,10 +38,20 @@ class PermissaoNegadaException(Exception, Status):
 
 
 class UsuarioJaExisteException(Exception, Status):
+
+    def __init__(self) -> None:
+        self.__status: int = 409
+
+    @property
+    def precondicao_falhou(self) -> "UsuarioJaExisteException":
+        x: UsuarioJaExisteException = UsuarioJaExisteException()
+        x.__status = 412
+        return x
+
     @override
     @property
     def status(self) -> int:
-        return 409
+        return self.__status
 
 
 class UsuarioNaoExisteException(Exception, Status):
@@ -52,10 +62,20 @@ class UsuarioNaoExisteException(Exception, Status):
 
 
 class CategoriaJaExisteException(Exception, Status):
+
+    def __init__(self) -> None:
+        self.__status: int = 409
+
+    @property
+    def precondicao_falhou(self) -> "CategoriaJaExisteException":
+        x: CategoriaJaExisteException = CategoriaJaExisteException()
+        x.__status = 412
+        return x
+
     @override
     @property
     def status(self) -> int:
-        return 409
+        return self.__status
 
 
 class CategoriaNaoExisteException(Exception, Status):

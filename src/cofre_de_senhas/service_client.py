@@ -308,8 +308,8 @@ class _ServicoUsuarioClient(ServicoUsuario):
         return self.__requester.get(f"/usuarios/chave/{chave.valor}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
 
     @override
-    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE:
-        return self.__requester.get("/usuarios", ResultadoListaDeUsuarios, typed(_UNLE).join(_UBE).end)
+    def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE | _LEE:
+        return self.__requester.get("/usuarios", ResultadoListaDeUsuarios, typed(_UNLE).join(_UBE).join(_LEE).end)
 
 
 class _ServicoSegredoClient(ServicoSegredo):
@@ -331,16 +331,16 @@ class _ServicoSegredoClient(ServicoSegredo):
         )
 
     @override
-    def excluir_por_chave(self, dados: ChaveSegredo) -> None | _UNLE | _UBE | _SNEE:
-        return self.__requester.delete(f"/segredos/chave/{dados.valor}", type(None), typed(_UNLE).join(_UBE).join(_SNEE).end)
+    def excluir_por_chave(self, dados: ChaveSegredo) -> None | _UNLE | _UBE | _SNEE | _PNE | _LEE:
+        return self.__requester.delete(f"/segredos/chave/{dados.valor}", type(None), typed(_UNLE).join(_UBE).join(_SNEE).join(_PNE).join(_LEE).end)
 
     @override
-    def listar(self) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE:
-        return self.__requester.get("/segredos", ResultadoPesquisaDeSegredos, typed(_UNLE).join(_UBE).end)
+    def listar(self) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _LEE:
+        return self.__requester.get("/segredos", ResultadoPesquisaDeSegredos, typed(_UNLE).join(_UBE).join(_LEE).end)
 
     @override
-    def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE:
-        return self.__requester.get(f"/segredos/chave/{chave.valor}", SegredoComChave, typed(_UNLE).join(_UBE).join(_SNEE).end)
+    def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE | _LEE:
+        return self.__requester.get(f"/segredos/chave/{chave.valor}", SegredoComChave, typed(_UNLE).join(_UBE).join(_SNEE).join(_LEE).end)
 
     @override
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _SNEE:
@@ -365,18 +365,18 @@ class _ServicoCategoriaClient(ServicoCategoria):
         return self.__requester.put(f"/categorias/nome/{dados.nome}", _Empty(), CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
 
     @override
-    def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _CJEE | _CNEE | _VIE | _LEE:
+    def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _PNE | _CJEE | _CNEE | _VIE | _LEE:
         return self.__requester.move(
             f"/categorias/nome/{dados.antigo}",
             dados.novo,
             False,
             type(None),
-            typed(_UNLE).join(_UBE).join(_CJEE).join(_CNEE).join(_VIE).join(_LEE).end
+            typed(_UNLE).join(_UBE).join(_PNE).join(_CJEE).join(_CNEE).join(_VIE).join(_LEE).end
         )
 
     @override
-    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _CNEE | _ESCE | _LEE:
-        return self.__requester.delete(f"/categorias/nome/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).join(_LEE).end)
+    def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE | _ESCE:
+        return self.__requester.delete(f"/categorias/nome/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_PNE).join(_CNEE).join(_LEE).join(_ESCE).end)
 
     @override
     def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:

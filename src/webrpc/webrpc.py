@@ -293,10 +293,13 @@ class WebSuite:
     def js_stubs(self) -> str:
         return "".join(self.__js_stubs) + _last_skeleton
 
-    def route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
-        return self.flaskenify(WebMethod(method, url_template, [*params]))
+    def hidden_route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
+        return self.flaskenify(WebMethod(method, url_template, [*params]), True)
 
-    def flaskenify(self, wm: WebMethod) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
+    def route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
+        return self.flaskenify(WebMethod(method, url_template, [*params]), False)
+
+    def flaskenify(self, wm: WebMethod, hidden: bool) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
         def middle(what: _T) -> Callable[[], tuple[_RS, int]]:
             # args_names: tuple[str, ...] = what.__code__.co_varnames[:what.__code__.co_argcount]
 
@@ -304,8 +307,9 @@ class WebSuite:
             if len(s.parameters) != len(wm.params):
                 raise Exception(f"Function parameters and web parameters length mismatch ({s.parameters}) - ({wm.params}).")
 
-            js_stub: str = _make_js_stub(what.__name__, s.parameters, wm.params, wm.url_template, wm.http_method, False, True)
-            self.__js_stubs.append(js_stub)
+            if not hidden:
+                js_stub: str = _make_js_stub(what.__name__, s.parameters, wm.params, wm.url_template, wm.http_method, False, True)
+                self.__js_stubs.append(js_stub)
 
             @handler
             @wraps(what)

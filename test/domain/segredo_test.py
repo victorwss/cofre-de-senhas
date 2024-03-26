@@ -1,5 +1,5 @@
 from ..fixtures import (
-    applier_ctx, ContextoOperacao,
+    applier_ctx, applier_ctx_local, applier_ctx_remoto, ContextoOperacao, ContextoOperacaoLocal, ContextoOperacaoRemoto,
     segredo_m1, dbz, lotr, star_wars, oppenheimer, star_trek
 )
 from cofre_de_senhas.erro import (
@@ -14,6 +14,7 @@ from cofre_de_senhas.service import (
     ResultadoPesquisaDeSegredos, CabecalhoSegredoComChave,
     TipoSegredo, TipoPermissao
 )
+from pytest import raises
 
 
 c_m1         : CabecalhoSegredoComChave = CabecalhoSegredoComChave(ChaveSegredo(segredo_m1 .pk_segredo), segredo_m1 .nome, segredo_m1 .descricao, TipoSegredo.ENCONTRAVEL )  # noqa: E201,E202,E203,E501
@@ -206,7 +207,6 @@ def test_criar_segredo_ok4(ctx: ContextoOperacao) -> None:
         s1: Servicos = r.servicos
         dados: SegredoSemChave = star_trek_data(rep = 2)
         chave: ChaveSegredo = ChaveSegredo(star_trek.pk_segredo)
-        com_chave: SegredoComChave = dados.com_chave(chave)
 
         x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
         assert x1 == star_trek_data().com_chave(chave)
@@ -601,8 +601,8 @@ def test_buscar_por_chave_SNEE(ctx: ContextoOperacao) -> None:
 # Método buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE
 
 
-@applier_ctx
-def test_buscar_por_chave_sem_logar_ok(ctx: ContextoOperacao) -> None:
+@applier_ctx_local
+def test_buscar_por_chave_sem_logar_ok(ctx: ContextoOperacaoLocal) -> None:
     original: SegredoComChave = criar_segredo_normal(ctx)
 
     with ctx.servicos_nao_logar() as r:
@@ -611,14 +611,24 @@ def test_buscar_por_chave_sem_logar_ok(ctx: ContextoOperacao) -> None:
         assert x == original
 
 
-@applier_ctx
-def test_buscar_por_chave_sem_logar_SNEE(ctx: ContextoOperacao) -> None:
+@applier_ctx_local
+def test_buscar_por_chave_sem_logar_SNEE(ctx: ContextoOperacaoLocal) -> None:
     chave: ChaveSegredo = ChaveSegredo(9999)
 
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(chave)
         assert isinstance(x, SegredoNaoExisteException)
+
+
+@applier_ctx_remoto
+def test_buscar_por_chave_sem_logar_remoto(ctx: ContextoOperacaoRemoto) -> None:
+    original: SegredoComChave = criar_segredo_normal(ctx)
+
+    with ctx.servicos_nao_logar() as r:
+        s: Servicos = r.servicos
+        with raises(NotImplementedError):
+            s.bd.buscar_por_chave_sem_logar(original.chave)
 
 
 # Método alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE

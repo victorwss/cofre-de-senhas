@@ -826,14 +826,14 @@ ctxs_local: dict[str, ContextoOperacaoLocal] = {
 }
 
 ctxs_remoto: dict[str, ContextoOperacaoRemoto] = {
-    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
+    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E202,E203
 }
 
 ctxs: dict[str, ContextoOperacao] = {
-    "sqlite" : ContextoOperacaoLocal (sqlite_db ),  # noqa: E203
-    "mysql"  : ContextoOperacaoLocal (mysql_db  ),  # noqa: E203
-    "mariadb": ContextoOperacaoLocal (mariadb_db),  # noqa: E203
-    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E203
+    "sqlite" : ContextoOperacaoLocal (sqlite_db ),  # noqa: E202,E203,E211
+    "mysql"  : ContextoOperacaoLocal (mysql_db  ),  # noqa: E202,E203,E211
+    "mariadb": ContextoOperacaoLocal (mariadb_db),  # noqa: E202,E203,E211
+    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E202,E203,E211
 }
 
 

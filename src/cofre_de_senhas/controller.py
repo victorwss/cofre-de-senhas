@@ -4,7 +4,7 @@ from flask import Flask, redirect, session, url_for
 from werkzeug import Response
 from werkzeug.serving import BaseWSGIServer, make_server
 from httpwrap import empty_json, bodyless, jsoner, move
-from sucesso import PrecondicaoFalhouException, ConteudoIncompreensivelException
+from sucesso import ConteudoIncompreensivelException
 from webrpc import from_body_typed, from_path, from_path_int, WebSuite
 from .service import (
     Servicos,
@@ -130,7 +130,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def buscar_usuario_por_login(nome: str) -> UsuarioComChave:
         return __buscar_usuario_por_login(nome)
 
-    @ws.route("GET", "/usuarios/nome/")
+    @ws.hidden_route("GET", "/usuarios/nome/")
     @jsoner
     def buscar_usuario_por_login_branco() -> UsuarioComChave:
         return __buscar_usuario_por_login("")
@@ -147,7 +147,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def criar_usuario(nome: str, dados: DadosNovoUsuario) -> UsuarioComChave:
         return __criar_usuario(nome, dados)
 
-    @ws.route("PUT", "/usuarios/nome/", from_body_typed("dados", DadosNovoUsuario))
+    @ws.hidden_route("PUT", "/usuarios/nome/", from_body_typed("dados", DadosNovoUsuario))
     @jsoner
     def criar_usuario_branco(dados: DadosNovoUsuario) -> UsuarioComChave:
         return __criar_usuario("", dados)
@@ -169,7 +169,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def alterar_nivel(nome: str, dados: DadosNovoNivel) -> None:
         __alterar_nivel(nome, dados)
 
-    @ws.route("POST", "/usuarios/nome//alterar-nivel", from_body_typed("dados", DadosNovoNivel))
+    @ws.hidden_route("POST", "/usuarios/nome//alterar-nivel", from_body_typed("dados", DadosNovoNivel))
     @empty_json
     def alterar_nivel_branco(dados: DadosNovoNivel) -> None:
         __alterar_nivel("", dados)
@@ -179,7 +179,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         dest, overwrite = move()
         z: None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE = sx.usuario.renomear_por_login(RenomeUsuario(nome, dest))
         if isinstance(z, UsuarioJaExisteException) and not overwrite:
-            raise PrecondicaoFalhouException()
+            raise z.precondicao_falhou
         _check(z)
 
     @ws.route("MOVE", "/usuarios/nome/<nome>", from_path("nome"))
@@ -187,7 +187,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def renomear_usuario(nome: str) -> None:
         __renomear_usuario(nome)
 
-    @ws.route("MOVE", "/usuarios/nome/")
+    @ws.hidden_route("MOVE", "/usuarios/nome/")
     @jsoner
     def renomear_usuario_branco() -> None:
         __renomear_usuario("")
@@ -201,7 +201,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def resetar_senha(nome: str) -> SenhaAlterada:
         return __resetar_senha(nome)
 
-    @ws.route("POST", "/usuarios/nome//resetar-senha")
+    @ws.hidden_route("POST", "/usuarios/nome//resetar-senha")
     @jsoner
     def resetar_senha_branco() -> SenhaAlterada:
         return __resetar_senha("")
@@ -223,7 +223,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
         return __buscar_categoria_por_nome(nome)
 
-    @ws.route("GET", "/categorias/nome/")
+    @ws.hidden_route("GET", "/categorias/nome/")
     @jsoner
     def buscar_categoria_por_nome_branco() -> CategoriaComChave:
         return __buscar_categoria_por_nome("")
@@ -237,7 +237,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def criar_categoria(nome: str) -> CategoriaComChave:
         return __criar_categoria(nome)
 
-    @ws.route("PUT", "/categorias/nome/")
+    @ws.hidden_route("PUT", "/categorias/nome/")
     @jsoner
     def criar_categoria_branco() -> CategoriaComChave:
         return __criar_categoria("")
@@ -247,7 +247,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         dest, overwrite = move()
         z: None | _UNLE | _LEE | _UBE | _PNE | _VIE | _CJEE | _CNEE = sx.categoria.renomear_por_nome(RenomeCategoria(nome, dest))
         if isinstance(z, CategoriaJaExisteException) and not overwrite:
-            raise PrecondicaoFalhouException()
+            raise z.precondicao_falhou
         _check(z)
 
     @ws.route("MOVE", "/categorias/nome/<nome>", from_path("nome"))
@@ -255,7 +255,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def renomear_categoria(nome: str) -> None:
         return __renomear_categoria(nome)
 
-    @ws.route("MOVE", "/categorias/nome/")
+    @ws.hidden_route("MOVE", "/categorias/nome/")
     @empty_json
     def renomear_categoria_branco() -> None:
         return __renomear_categoria("")
@@ -275,7 +275,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def excluir_categoria(nome: str) -> None:
         return __excluir_categoria(nome)
 
-    @ws.route("DELETE", "/categorias/nome/")
+    @ws.hidden_route("DELETE", "/categorias/nome/")
     @empty_json
     def excluir_categoria_branco() -> None:
         return __excluir_categoria("")
