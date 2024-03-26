@@ -33,7 +33,7 @@ INSERT INTO enum_tipo_segredo (pk_tipo_segredo, nome, descricao) VALUES
 
 CREATE TABLE IF NOT EXISTS categoria (
     pk_categoria INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    nome         TEXT    NOT NULL UNIQUE      CHECK (LENGTH(nome) >= 1 AND LENGTH(nome) <= 50)
+    nome         TEXT    NOT NULL UNIQUE      CHECK (LENGTH(nome) >= 2 AND LENGTH(nome) <= 50)
 ) STRICT;
 
 INSERT INTO categoria (pk_categoria, nome) VALUES

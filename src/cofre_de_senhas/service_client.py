@@ -21,10 +21,8 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException, ExclusaoSemCascataException
 )
-from sucesso import (
-    Ok, Status,
-    RequisicaoMalFormadaException, PrecondicaoFalhouException, ConteudoNaoReconhecidoException, ConteudoIncompreensivelException  # noqa: F401
-)
+from sucesso import Ok, Status
+from sucesso import RequisicaoMalFormadaException, PrecondicaoFalhouException, ConteudoNaoReconhecidoException, ConteudoIncompreensivelException  # noqa: F401
 
 
 if TYPE_CHECKING:
@@ -86,13 +84,15 @@ class _ErroRemoto:
     tipo: str
     mensagem: str
 
-    # def __raise_it[X](self, j: Any, x: type[X]) -> X:  # PEP 695
-    def raise_it(self, x: type[_X]) -> _X:
-        z: Any
+    def __eval(self) -> Any:
         try:
-            z = eval(self.tipo)()
+            return eval(self.tipo)()
         except BaseException:
             raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
+
+    # def __raise_it[X](self, j: Any, x: type[X]) -> X:  # PEP 695
+    def raise_it(self, x: type[_X]) -> _X:
+        z: Any = self.__eval()
         if isinstance(z, x):
             return z
         if isinstance(z, Status) and isinstance(z, BaseException):
@@ -100,21 +100,34 @@ class _ErroRemoto:
         raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
 
 
-def dictfix(x: dict[Any, Any], recurse_guard: list[Any] | None = None) -> dict[Any, Any]:
-    if recurse_guard is None:
-        recurse_guard = []
+def _islist(e: Any) -> bool:
+    return isinstance(e, set) or isinstance(e, frozenset) or isinstance(e, tuple)
+
+
+def _is_inside(x: Any, recurse_guard: list[Any]) -> bool:
     for k in recurse_guard:
         if x is k:
-            return x
+            return True
+    return False
+
+
+def _dictfix_in(x: dict[Any, Any], recurse_guard: list[Any]) -> dict[Any, Any]:
+    if _is_inside(x, recurse_guard):
+        return x
     for i in list(x.keys()):
         e: Any = x[i]
-        if isinstance(e, set) or isinstance(e, frozenset) or isinstance(e, tuple):
+        if _islist(e):
             x[i] = list(e)
         elif isinstance(e, dict):
             recurse_guard.append(x)
-            x[i] = dictfix(e, recurse_guard)
+            x[i] = _dictfix_in(e, recurse_guard)
             recurse_guard.pop()
     return x
+
+
+def dictfix(x: dict[Any, Any]) -> dict[Any, Any]:
+    return _dictfix_in(x, [])
+
 
 class _Requester:
 
@@ -177,6 +190,7 @@ class _Requester:
     # def __unwrap[T, X](self, r: Response, t: type[T] | None, x: type[X]]) -> T | X: # PEP 695
     def __unwrap(self, r: Response, t: type[_T], x: type[_X]) -> _T | _X:
         self.__cookies = dict(r.cookies)
+        print(self.__cookies)
         j: Any = self.__json_it(r)
         erro: _ErroRemoto | None = self.__json_validate(j, r.text)
         if erro is not None:
@@ -247,7 +261,7 @@ class _ServicoUsuarioClient(ServicoUsuario):
     @override
     def criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE | _VIE:
         return self.__requester.put(
-            f"/usuarios/{dados.login}",
+            f"/usuarios/nome/{dados.login}",
             dados.internos,
             UsuarioComChave,
             typed(_UNLE).join(_UBE).join(_PNE).join(_UJEE).join(_LEE).join(_VIE).end
@@ -260,7 +274,7 @@ class _ServicoUsuarioClient(ServicoUsuario):
     @override
     def resetar_senha_por_login(self, dados: ResetLoginUsuario) -> SenhaAlterada | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         return self.__requester.post(
-            f"/usuarios/{dados.login}/resetar-senha",
+            f"/usuarios/nome/{dados.login}/resetar-senha",
             _Empty(),
             SenhaAlterada,
             typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end
@@ -269,7 +283,7 @@ class _ServicoUsuarioClient(ServicoUsuario):
     @override
     def alterar_nivel_por_login(self, dados: UsuarioComNivel) -> None | _UNLE | _UBE | _PNE | _UNEE | _LEE:
         return self.__requester.post(
-            f"/usuarios/{dados.login}/alterar-nivel",
+            f"/usuarios/nome/{dados.login}/alterar-nivel",
             dados.internos,
             type(None),
             typed(_UNLE).join(_UBE).join(_PNE).join(_UNEE).join(_LEE).end
@@ -278,7 +292,7 @@ class _ServicoUsuarioClient(ServicoUsuario):
     @override
     def renomear_por_login(self, dados: RenomeUsuario) -> None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE:
         return self.__requester.move(
-            f"/usuarios/{dados.antigo}/renomear",
+            f"/usuarios/nome/{dados.antigo}",
             dados.novo,
             False,
             type(None),
@@ -287,11 +301,11 @@ class _ServicoUsuarioClient(ServicoUsuario):
 
     @override
     def buscar_por_login(self, dados: LoginUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
-        return self.__requester.get(f"/usuarios/{dados.login}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
+        return self.__requester.get(f"/usuarios/nome/{dados.login}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
 
     @override
     def buscar_por_chave(self, chave: ChaveUsuario) -> UsuarioComChave | _UNLE | _UBE | _UNEE | _LEE:
-        return self.__requester.get(f"/usuarios/{chave.valor}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
+        return self.__requester.get(f"/usuarios/chave/{chave.valor}", UsuarioComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_LEE).end)
 
     @override
     def listar(self) -> ResultadoListaDeUsuarios | _UNLE | _UBE:
@@ -310,7 +324,7 @@ class _ServicoSegredoClient(ServicoSegredo):
     @override
     def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UBE | _UNEE | _CNEE | _SNEE | _VIE:
         return self.__requester.put(
-            f"/segredos/{dados.chave.valor}",
+            f"/segredos/chave/{dados.chave.valor}",
             dados.sem_chave,
             type(None),
             typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_SNEE).join(_VIE).end
@@ -318,7 +332,7 @@ class _ServicoSegredoClient(ServicoSegredo):
 
     @override
     def excluir_por_chave(self, dados: ChaveSegredo) -> None | _UNLE | _UBE | _SNEE:
-        return self.__requester.delete(f"/segredos/{dados.valor}", type(None), typed(_UNLE).join(_UBE).join(_SNEE).end)
+        return self.__requester.delete(f"/segredos/chave/{dados.valor}", type(None), typed(_UNLE).join(_UBE).join(_SNEE).end)
 
     @override
     def listar(self) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE:
@@ -326,7 +340,7 @@ class _ServicoSegredoClient(ServicoSegredo):
 
     @override
     def buscar_por_chave(self, chave: ChaveSegredo) -> SegredoComChave | _UNLE | _UBE | _SNEE:
-        return self.__requester.get(f"/segredos/{chave.valor}", SegredoComChave, typed(_UNLE).join(_UBE).join(_SNEE).end)
+        return self.__requester.get(f"/segredos/chave/{chave.valor}", SegredoComChave, typed(_UNLE).join(_UBE).join(_SNEE).end)
 
     @override
     def pesquisar(self, dados: PesquisaSegredos) -> ResultadoPesquisaDeSegredos | _UNLE | _UBE | _SNEE:
@@ -340,20 +354,20 @@ class _ServicoCategoriaClient(ServicoCategoria):
 
     @override
     def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
-        return self.__requester.get(f"/categorias/{dados.nome}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
+        return self.__requester.get(f"/categorias/nome/{dados.nome}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
 
     @override
     def buscar_por_chave(self, chave: ChaveCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
-        return self.__requester.get(f"/categorias/{chave.valor}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
+        return self.__requester.get(f"/categorias/chave/{chave.valor}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
 
     @override
     def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CJEE | _LEE:
-        return self.__requester.put(f"/categorias/{dados.nome}", _Empty(), CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
+        return self.__requester.put(f"/categorias/nome/{dados.nome}", _Empty(), CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
 
     @override
     def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _CJEE | _CNEE | _VIE | _LEE:
         return self.__requester.move(
-            f"/categorias/{dados.antigo}",
+            f"/categorias/nome/{dados.antigo}",
             dados.novo,
             False,
             type(None),
@@ -362,7 +376,7 @@ class _ServicoCategoriaClient(ServicoCategoria):
 
     @override
     def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _CNEE | _ESCE | _LEE:
-        return self.__requester.delete(f"/categorias/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).join(_LEE).end)
+        return self.__requester.delete(f"/categorias/nome/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_CNEE).join(_ESCE).join(_LEE).end)
 
     @override
     def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:

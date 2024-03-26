@@ -1,7 +1,7 @@
 from ..fixtures import (
     applier, applier_trans, DbTestConfig,
     dbs, assert_db_ok, mix,
-    todas_categorias, parte_categorias, nome_longo,
+    todas_categorias, parte_categorias, nome_longo, nome_muito_curto, nome_em_branco,
     millenium_falcon, dados_millenium_falcon, nao_existe,
     api, qa, aplicacao, producao, homologacao, desenvolvimento, servidor,
     lixo1, lixo2, lixo3, lixo4, lixo5, lixo6
@@ -245,14 +245,26 @@ def test_criar_categoria_nome_repetido(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_criar_categoria_nome_curto(c: TransactedConnection) -> None:
+def test_criar_categoria_sem_nome(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    dados: DadosCategoriaSemPK = DadosCategoriaSemPK("")
+    dados: DadosCategoriaSemPK = DadosCategoriaSemPK(nome_em_branco)
 
     with raises(IntegrityViolationException):
         dao.criar(dados)
 
-    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(""))
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_em_branco))
+    assert lido is None
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_categoria_nome_curto(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    dados: DadosCategoriaSemPK = DadosCategoriaSemPK(nome_muito_curto)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_muito_curto))
     assert lido is None
 
 
@@ -284,9 +296,9 @@ def test_salvar_categoria_com_pk_nome_repetido(c: TransactedConnection) -> None:
 
 
 @applier_trans(dbs, assert_db_ok)
-def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
+def test_salvar_categoria_com_pk_sem_nome(c: TransactedConnection) -> None:
     dao: CategoriaDAO = CategoriaDAOImpl(c)
-    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, "")
+    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, nome_em_branco)
 
     with raises(IntegrityViolationException):
         dao.salvar_com_pk(dados)
@@ -294,7 +306,22 @@ def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
     lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome))
     assert lido1 == qa
 
-    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(""))
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_em_branco))
+    assert lido2 is None
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_salvar_categoria_com_pk_nome_curto(c: TransactedConnection) -> None:
+    dao: CategoriaDAO = CategoriaDAOImpl(c)
+    dados: DadosCategoria = DadosCategoria(qa.pk_categoria, nome_muito_curto)
+
+    with raises(IntegrityViolationException):
+        dao.salvar_com_pk(dados)
+
+    lido1: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(qa.nome))
+    assert lido1 == qa
+
+    lido2: DadosCategoria | None = dao.buscar_por_nome(NomeCategoriaUK(nome_muito_curto))
     assert lido2 is None
 
 

@@ -29,25 +29,6 @@ tudo: ResultadoListaDeUsuarios = ResultadoListaDeUsuarios([
 # Método criar(self, dados: UsuarioNovo) -> UsuarioComChave | _UNLE | _UBE | _PNE | _UJEE | _LEE:
 
 
-# @applier_trans(dbs, assert_db_ok)
-# def test_criar_ok_supremo(c: TransactedConnection) -> None:
-#     s: Servicos = servicos_admin(c)
-#     dados: UsuarioNovo = UsuarioNovo(snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO, "sectumsempra")
-
-#     x: UsuarioComChave | BaseException = s.usuario.criar(dados)
-#     assert x == UsuarioComChave(ChaveUsuario(snape.pk_usuario), snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
-
-
-# @sqlite_db.decorator
-# def test_criar_ok_supremo_remoto() -> None:
-#     with servicos_admin_remoto() as r:
-#         s: Servicos = r.servicos
-#         dados: UsuarioNovo = UsuarioNovo(snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO, "sectumsempra")
-
-#         x: UsuarioComChave | BaseException = s.usuario.criar(dados)
-#         assert x == UsuarioComChave(ChaveUsuario(snape.pk_usuario), snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
-
-
 @applier_ctx
 def test_criar_ok_supremo(ctx: ContextoOperacao) -> None:
     with ctx.servicos_admin() as r:

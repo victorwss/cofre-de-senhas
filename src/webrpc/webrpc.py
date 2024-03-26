@@ -7,13 +7,19 @@ from sucesso import RequisicaoMalFormadaException
 from httpwrap import handler, read_body
 from functools import wraps
 from types import MappingProxyType
-from dacite import Config, from_dict
-from enum import Enum, IntEnum
+import sys
+import traceback
 
 
 _X = TypeVar("_X")
 _RS = Response | str
 _T = TypeVar("_T", bound = Callable[..., _RS | tuple[_RS, int]])
+
+
+def or_default(default: str | None, data: str | None) -> str:
+    if data is None:
+        return or_throw(default)
+    return data
 
 
 def or_throw(data: _X | None) -> _X:
@@ -51,27 +57,33 @@ class WebParam(Generic[_X]):
         return self.func()
 
 
-def from_path(param_name: str) -> WebParam[str]:
+def from_path(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
-        return or_throw(or_throw(request.view_args).get(param_name))
+        return or_throw(or_default(default, or_throw(request.view_args).get(param_name)))
     return WebParam(param_name, str, inner, True)
 
 
-def from_path_int(param_name: str) -> WebParam[int]:
+def from_path_int(param_name: str, default: int | None = None) -> WebParam[int]:
     def inner() -> int:
-        return parse_int(or_throw(or_throw(request.view_args).get(param_name)))
+        value: str | None = or_throw(request.view_args).get(param_name)
+        if value is None:
+            return or_throw(default)
+        return parse_int(value)
     return WebParam(param_name, int, inner, True)
 
 
-def from_path_float(param_name: str) -> WebParam[float]:
+def from_path_float(param_name: str, default: float | None = None) -> WebParam[float]:
     def inner() -> float:
-        return parse_float(or_throw(or_throw(request.view_args).get(param_name)))
+        value: str | None = or_throw(request.view_args).get(param_name)
+        if value is None:
+            return or_throw(default)
+        return parse_float(value)
     return WebParam(param_name, float, inner, True)
 
 
-def from_query_string(param_name: str) -> WebParam[str]:
+def from_query_string(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
-        return or_throw(request.args.get(param_name))
+        return or_throw(or_default(default, request.args.get(param_name)))
     return WebParam(param_name, str, inner, False)
 
 
@@ -93,9 +105,9 @@ def from_file_multi(param_name: str) -> WebParam[list[FileStorage]]:
     return WebParam(param_name, list[FileStorage], inner, False)
 
 
-def from_header(param_name: str) -> WebParam[str]:
+def from_header(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
-        return or_throw(request.headers.get(param_name))
+        return or_throw(or_default(default, request.headers.get(param_name)))
     return WebParam(param_name, str, inner, False)
 
 
@@ -105,9 +117,9 @@ def from_header_multi(param_name: str) -> WebParam[list[str]]:
     return WebParam(param_name, list[str], inner, False)
 
 
-def from_form(param_name: str) -> WebParam[str]:
+def from_form(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
-        return or_throw(request.form.get(param_name))
+        return or_throw(or_default(default, request.form.get(param_name)))
     return WebParam(param_name, str, inner, False)
 
 
@@ -117,9 +129,9 @@ def from_form_multi(param_name: str) -> WebParam[list[str]]:
     return WebParam(param_name, list[str], inner, False)
 
 
-def from_cookie(param_name: str) -> WebParam[str]:
+def from_cookie(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
-        return or_throw(request.cookies.get(param_name))
+        return or_throw(or_default(default, request.cookies.get(param_name)))
     return WebParam(param_name, str, inner, False)
 
 
@@ -305,13 +317,17 @@ class WebSuite:
             @wraps(what)
             def inner() -> tuple[_RS, int]:
                 request.get_data()  # Ensure caching
-                params: list[Any] = wm.handle()
-                f: _RS | tuple[_RS, int] = what(*params)
-                if isinstance(f, Response):
-                    return f, 200
-                if isinstance(f, str):
-                    return f, 200
-                return f
+                try:
+                    params: list[Any] = wm.handle()
+                    f: _RS | tuple[_RS, int] = what(*params)
+                    if isinstance(f, Response):
+                        return f, 200
+                    if isinstance(f, str):
+                        return f, 200
+                    return f
+                except BaseException as x:
+                    traceback.print_exc(file = sys.stdout)
+                    raise x
 
             t: str = "\n".join([
                 f"@app.route('{wm.url_template}', methods = ['{wm.http_method}'])",

@@ -265,6 +265,9 @@ expelliarmus    : str = "VPJWqamYPZTUKxsxe79b2fdd41d88c308f2be7c92432d68c9d55ecc
 
 nome_curto: str = "ABC"
 nome_longo: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy"
+nome_em_branco: str = ""
+nome_muito_curto: str = "Z"
+nome_longo_demais: str = alohomora + alohomora + alohomora + alohomora
 
 harry_potter: DadosUsuario = DadosUsuario(1, "Harry Potter", 1, alohomora       )  # noqa: E202,E203
 voldemort   : DadosUsuario = DadosUsuario(2, "Voldemort"   , 0, avada_kedavra   )  # noqa: E202,E203
@@ -290,9 +293,6 @@ millenium_falcon: DadosCategoria = DadosCategoria(10, "Millenium Falcon"        
 nao_existe      : DadosCategoria = DadosCategoria(88, "Coisas feitas com boa qualidade pela Prodam")  # noqa: E201,E202,E203
 
 dados_millenium_falcon: DadosCategoriaSemPK = DadosCategoriaSemPK("Millenium Falcon")
-
-nome_em_branco: str = ""
-nome_longo_demais: str = alohomora + alohomora + alohomora + alohomora
 
 todas_categorias: list[DadosCategoria] = [banco_de_dados, aplicacao, servidor, api, producao, homologacao, desenvolvimento, qa, integracao]
 parte_categorias: list[DadosCategoria] = [api, producao, homologacao]
@@ -710,10 +710,10 @@ class ContextoServicoRemoto(ContextoServico):
 
                 if self.__modo == "UPDATE":
                     with self.__db.connect() as t:
-                        t.execute(f"UPDATE usuario SET fk_nivel_acesso = 1 WHERE login = '{self.__login}'")
+                        t.execute("UPDATE usuario SET fk_nivel_acesso = 1 WHERE login = ?", [self.__login])
                 if self.__modo == "CREATE":
                     with self.__db.connect() as t:
-                        t.execute(f"INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES ('{self.__login}', 1, '{avada_kedavra}')")
+                        t.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, 1, ?)", [self.__login, avada_kedavra])
 
                 x: UsuarioComChave | BaseException = self.__inner.usuario.login(LoginComSenha(self.__login, self.__senha))
                 if isinstance(x, BaseException):
@@ -721,10 +721,10 @@ class ContextoServicoRemoto(ContextoServico):
 
                 if self.__modo == "UPDATE":
                     with self.__db.connect() as t:
-                        t.execute(f"UPDATE usuario SET fk_nivel_acesso = 1 WHERE login = '{self.__login}'")
+                        t.execute("UPDATE usuario SET fk_nivel_acesso = 0 WHERE login = ?", [self.__login])
                 if self.__modo == "CREATE":
                     with self.__db.connect() as t:
-                        t.execute(f"DELETE FROM usuario WHERE login = '{self.__login}'")
+                        t.execute("DELETE FROM usuario WHERE login = ?", [self.__login])
             ok = True
             return self
         finally:
@@ -839,6 +839,10 @@ ctxs: dict[str, ContextoOperacao] = {
 
 def assert_db_ok(db: DbTestConfig) -> None:
     assert db in dbs.values(), f"Database connector failed to load. {len(dbs)}"
+
+
+def assert_dbf_ok(db: DbTestConfig) -> None:
+    assert db in dbs_f.values(), f"Database connector failed to load. {len(dbs)}"
 
 
 def _do_nothing(which: DbTestConfig) -> None:

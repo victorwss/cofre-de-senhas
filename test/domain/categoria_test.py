@@ -1,7 +1,7 @@
 from ..fixtures import (
     applier_ctx, applier_ctx_local, ContextoOperacao, ContextoOperacaoLocal,
     banco_de_dados, aplicacao, servidor, api, producao, homologacao, desenvolvimento, qa, integracao,
-    millenium_falcon, lixo2, lixo4, nome_em_branco, nome_longo_demais, nao_existe
+    millenium_falcon, lixo2, lixo4, nome_muito_curto, nome_em_branco, nome_longo_demais, nao_existe
 )
 from cofre_de_senhas.erro import (
     PermissaoNegadaException, UsuarioBanidoException, LoginExpiradoException, UsuarioNaoLogadoException,
@@ -220,10 +220,23 @@ def test_criar_categoria_UBE(ctx: ContextoOperacao) -> None:
 
 
 @applier_ctx
-def test_criar_categoria_VIE_nome_curto(ctx: ContextoOperacao) -> None:
+def test_criar_categoria_VIE_sem_nome(ctx: ContextoOperacao) -> None:
     with ctx.servicos_admin() as r:
         s: Servicos = r.servicos
         dados: NomeCategoria = NomeCategoria(nome_em_branco)
+
+        x: CategoriaComChave | BaseException = s.categoria.criar(dados)
+        assert isinstance(x, ValorIncorretoException)
+
+        y: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(dados)
+        assert isinstance(y, CategoriaNaoExisteException)
+
+
+@applier_ctx
+def test_criar_categoria_VIE_nome_curto(ctx: ContextoOperacao) -> None:
+    with ctx.servicos_admin() as r:
+        s: Servicos = r.servicos
+        dados: NomeCategoria = NomeCategoria(nome_muito_curto)
 
         x: CategoriaComChave | BaseException = s.categoria.criar(dados)
         assert isinstance(x, ValorIncorretoException)
@@ -397,7 +410,7 @@ def test_renomear_categoria_CNEE_antes_de_CJEE(ctx: ContextoOperacao) -> None:
 
 
 @applier_ctx
-def test_renomear_categoria_VIE_nome_curto(ctx: ContextoOperacao) -> None:
+def test_renomear_categoria_VIE_sem_nome(ctx: ContextoOperacao) -> None:
     with ctx.servicos_admin() as r:
         s: Servicos = r.servicos
         dados: RenomeCategoria = RenomeCategoria(qa.nome, nome_em_branco)
@@ -409,6 +422,22 @@ def test_renomear_categoria_VIE_nome_curto(ctx: ContextoOperacao) -> None:
         assert y1 == CategoriaComChave(ChaveCategoria(qa.pk_categoria), qa.nome)
 
         y2: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(NomeCategoria(nome_em_branco))
+        assert isinstance(y2, CategoriaNaoExisteException)
+
+
+@applier_ctx
+def test_renomear_categoria_VIE_nome_curto(ctx: ContextoOperacao) -> None:
+    with ctx.servicos_admin() as r:
+        s: Servicos = r.servicos
+        dados: RenomeCategoria = RenomeCategoria(qa.nome, nome_muito_curto)
+
+        x: None | BaseException = s.categoria.renomear_por_nome(dados)
+        assert isinstance(x, ValorIncorretoException)
+
+        y1: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(NomeCategoria(qa.nome))
+        assert y1 == CategoriaComChave(ChaveCategoria(qa.pk_categoria), qa.nome)
+
+        y2: CategoriaComChave | BaseException = s.categoria.buscar_por_nome(NomeCategoria(nome_muito_curto))
         assert isinstance(y2, CategoriaNaoExisteException)
 
 

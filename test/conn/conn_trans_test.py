@@ -2,26 +2,18 @@ from typing import Sequence
 from connection.conn import RAW_DATA, IntegrityViolationException, TransactionNotActiveException
 from connection.trans import TransactedConnection
 from pytest import raises
-from ..fixtures import applier, DbTestConfig, dbs_f as dbs, sqlite_db_f as sqlite_db, mysql_db_f as mysql_db, mariadb_db_f as mariadb_db
+from ..fixtures import assert_dbf_ok, dbs_f, applier, DbTestConfig
 
 
 run_on_dbs: list[DbTestConfig] = []
 
 
-@applier(dbs)
+@applier(dbs_f)
 def test_dbs(db: DbTestConfig) -> None:
     run_on_dbs.append(db)
 
 
-def test_run_oks() -> None:
-    assert run_on_dbs == [sqlite_db, mysql_db, mariadb_db]
-
-
-def assert_db_ok(db: DbTestConfig) -> None:
-    assert db in run_on_dbs, "Database connector failed to load."
-
-
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_implicit_commit(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -34,7 +26,7 @@ def test_implicit_commit(db: DbTestConfig) -> None:
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_explicit_rollback(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -48,7 +40,7 @@ def test_explicit_rollback(db: DbTestConfig) -> None:
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_implicit_rollback(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -66,7 +58,7 @@ def test_implicit_rollback(db: DbTestConfig) -> None:
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_transact_1(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -81,7 +73,7 @@ def test_transact_1(db: DbTestConfig) -> None:
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_transact_2(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -97,7 +89,7 @@ def test_transact_2(db: DbTestConfig) -> None:
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon"), (4, "grape")]
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_transact_rollback(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -115,7 +107,7 @@ def test_transact_rollback(db: DbTestConfig) -> None:
         assert all == [(1, "orange"), (2, "strawberry"), (3, "lemon")]
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_no_transaction(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -123,7 +115,7 @@ def test_no_transaction(db: DbTestConfig) -> None:
         conn.execute("INSERT INTO fruit (name) VALUES ('grape')")
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_transaction_nesting_counting(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -143,7 +135,7 @@ def test_transaction_nesting_counting(db: DbTestConfig) -> None:
     assert not conn.is_active
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_transaction_nesting_inheritance(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
 
@@ -155,7 +147,7 @@ def test_transaction_nesting_inheritance(db: DbTestConfig) -> None:
         assert t == (4, "melon")
 
 
-@applier(dbs, assert_db_ok)
+@applier(dbs_f, assert_dbf_ok)
 def test_autocommit(db: DbTestConfig) -> None:
     conn: TransactedConnection = db.conn
     assert not conn.autocommit

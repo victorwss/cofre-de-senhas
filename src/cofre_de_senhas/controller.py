@@ -8,7 +8,7 @@ from sucesso import PrecondicaoFalhouException, ConteudoIncompreensivelException
 from webrpc import from_body_typed, from_path, from_path_int, WebSuite
 from .service import (
     Servicos,
-    GerenciadorLogin, UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel,
+    GerenciadorLogin, UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel, DadosNovoNivel,
     UsuarioNovo, DadosNovoUsuario, RenomeUsuario, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
     NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias,
     SegredoComChave, SegredoSemChave, ChaveSegredo, ResultadoPesquisaDeSegredos
@@ -115,19 +115,19 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         bodyless()
         return _thrower(ResultadoListaDeUsuarios, sx.usuario.listar())
 
-    @ws.route("GET", "/usuarios/<pk_usuario>", from_path_int("pk_usuario"))
+    @ws.route("GET", "/usuarios/chave/<pk_usuario>", from_path_int("pk_usuario"))
     @jsoner
     def buscar_usuario_por_chave(pk_usuario: int) -> UsuarioComChave:
         bodyless()
         return _thrower(UsuarioComChave, sx.usuario.buscar_por_chave(ChaveUsuario(pk_usuario)))
 
-    @ws.route("GET", "/usuarios/<nome>", from_path("nome"))
+    @ws.route("GET", "/usuarios/nome/<nome>", from_path("nome", ""))
     @jsoner
     def buscar_usuario_por_login(nome: str) -> UsuarioComChave:
         bodyless()
         return _thrower(UsuarioComChave, sx.usuario.buscar_por_login(LoginUsuario(nome)))
 
-    @ws.route("PUT", "/usuarios/<nome>", from_path("nome"), from_body_typed("dados", DadosNovoUsuario))
+    @ws.route("PUT", "/usuarios/nome/<nome>", from_path("nome", ""), from_body_typed("dados", DadosNovoUsuario))
     @jsoner
     def criar_usuario(nome: str, dados: DadosNovoUsuario) -> UsuarioComChave:
         try:
@@ -141,16 +141,16 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def trocar_senha(dados: TrocaSenha) -> None:
         _check(sx.usuario.trocar_senha_por_chave(dados))
 
-    @ws.route("POST", "/usuarios/<nome>/alterar-nivel", from_path("nome"), from_body_typed("dados", DadosNovoUsuario))
+    @ws.route("POST", "/usuarios/nome/<nome>/alterar-nivel", from_path("nome", ""), from_body_typed("dados", DadosNovoNivel))
     @empty_json
-    def alterar_nivel(nome: str, dados: DadosNovoUsuario) -> None:
+    def alterar_nivel(nome: str, dados: DadosNovoNivel) -> None:
         try:
-            p: NivelAcesso = dados.nivel
-        except TypeError:
+            p: NivelAcesso = NivelAcesso.valued(dados.nivel_acesso)
+        except KeyError:
             raise ConteudoIncompreensivelException()
         _check(sx.usuario.alterar_nivel_por_login(UsuarioComNivel(nome, p)))
 
-    @ws.route("MOVE", "/usuarios/<nome>", from_path("nome"))
+    @ws.route("MOVE", "/usuarios/nome/<nome>", from_path("nome", ""))
     @jsoner
     def renomear_usuario(nome: str) -> None:
         bodyless()
@@ -160,7 +160,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
             raise PrecondicaoFalhouException()
         _check(z)
 
-    @ws.route("POST", "/usuarios/<nome>/resetar-senha", from_path("nome"))
+    @ws.route("POST", "/usuarios/nome/<nome>/resetar-senha", from_path("nome", ""))
     @jsoner
     def resetar_senha(nome: str) -> SenhaAlterada:
         bodyless()
@@ -168,25 +168,26 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
 
     # Categorias
 
-    @ws.route("GET", "/categorias/<pk_categoria>", from_path_int("pk_categoria"))
+    @ws.route("GET", "/categorias/chave/<pk_categoria>", from_path_int("pk_categoria"))
     @jsoner
     def buscar_categoria_por_chave(pk_categoria: int) -> CategoriaComChave:
         bodyless()
         return _thrower(CategoriaComChave, sx.categoria.buscar_por_chave(ChaveCategoria(pk_categoria)))
 
-    @ws.route("GET", "/categorias/<nome>", from_path("nome"))
+    @ws.route("GET", "/categorias/nome/<nome>", from_path("nome", ""))
     @jsoner
     def buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
+        print("oi")
         bodyless()
         return _thrower(CategoriaComChave, sx.categoria.buscar_por_nome(NomeCategoria(nome)))
 
-    @ws.route("PUT", "/categorias/<nome>", from_path("nome"))
+    @ws.route("PUT", "/categorias/nome/<nome>", from_path("nome", ""))
     @jsoner
     def criar_categoria(nome: str) -> CategoriaComChave:
         bodyless()
         return _thrower(CategoriaComChave, sx.categoria.criar(NomeCategoria(nome)))
 
-    @ws.route("MOVE", "/categorias/<nome>", from_path("nome"))
+    @ws.route("MOVE", "/categorias/nome/<nome>", from_path("nome", ""))
     @empty_json
     def renomear_categoria(nome: str) -> None:
         bodyless()
@@ -202,7 +203,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         bodyless()
         return _thrower(ResultadoListaDeCategorias, sx.categoria.listar())
 
-    @ws.route("DELETE", "/categorias/<nome>", from_path("nome"))
+    @ws.route("DELETE", "/categorias/nome/<nome>", from_path("nome", ""))
     @empty_json
     def excluir_categoria(nome: str) -> None:
         bodyless()
@@ -215,20 +216,20 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def criar_segredo(dados: SegredoSemChave) -> SegredoComChave:
         return _thrower(SegredoComChave, sx.segredo.criar(dados))
 
-    @ws.route("PUT", "/segredos/<pk_segredo>", from_path_int("pk_segredo"), from_body_typed("dados", SegredoSemChave))
+    @ws.route("PUT", "/segredos/chave/<pk_segredo>", from_path_int("pk_segredo"), from_body_typed("dados", SegredoSemChave))
     @jsoner
     def alterar_segredo(pk_segredo: int, dados: SegredoSemChave) -> SegredoComChave:
         com_chave: SegredoComChave = dados.com_chave(ChaveSegredo(pk_segredo))
         sx.segredo.alterar_por_chave(com_chave)
         return com_chave
 
-    @ws.route("DELETE", "/segredos/<pk_segredo>", from_path_int("pk_segredo"))
+    @ws.route("DELETE", "/segredos/chave/<pk_segredo>", from_path_int("pk_segredo"))
     @empty_json
     def excluir_segredo(pk_segredo: int) -> None:
         bodyless()
         _check(sx.segredo.excluir_por_chave(ChaveSegredo(pk_segredo)))
 
-    @ws.route("GET", "/segredos/<pk_segredo>", from_path_int("pk_segredo"))
+    @ws.route("GET", "/segredos/chave/<pk_segredo>", from_path_int("pk_segredo"))
     @jsoner
     def buscar_segredo_por_chave(pk_segredo: int) -> SegredoComChave:
         bodyless()

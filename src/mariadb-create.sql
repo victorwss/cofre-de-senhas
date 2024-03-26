@@ -46,7 +46,7 @@ INSERT INTO enum_tipo_segredo (pk_tipo_segredo, nome, descricao) VALUES
 CREATE TABLE IF NOT EXISTS categoria (
     pk_categoria INTEGER       NOT NULL PRIMARY KEY AUTO_INCREMENT,
     nome         VARCHAR(50)   NOT NULL UNIQUE,
-    CONSTRAINT nome_min_length CHECK (LENGTH(nome) >= 1)
+    CONSTRAINT nome_min_length CHECK (LENGTH(nome) >= 2)
 ) ENGINE = INNODB;
 
 INSERT INTO categoria (pk_categoria, nome) VALUES

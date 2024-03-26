@@ -1,7 +1,7 @@
 from ..fixtures import (
     applier, applier_trans, DbTestConfig,
     dbs, assert_db_ok,
-    todos_usuarios, parte_usuarios, nome_curto, nome_longo,
+    todos_usuarios, parte_usuarios, nome_em_branco, nome_curto, nome_longo,
     harry_potter, dumbledore,
     snape, snape_sem_pk, sectumsempra, voldemort,
     lixo1, lixo2, lixo3, lixo4, lixo5, lixo6
@@ -227,6 +227,18 @@ def test_criar_usuario_login_repetido(c: TransactedConnection) -> None:
 
     lido: DadosUsuario | None = dao.buscar_por_login(LoginUsuarioUK(harry_potter.login))
     assert lido == harry_potter
+
+
+@applier_trans(dbs, assert_db_ok)
+def test_criar_usuario_login_branco(c: TransactedConnection) -> None:
+    dao: UsuarioDAO = UsuarioDAOImpl(c)
+    dados: DadosUsuarioSemPK = DadosUsuarioSemPK(nome_em_branco, 0, sectumsempra)
+
+    with raises(IntegrityViolationException):
+        dao.criar(dados)
+
+    lido: DadosUsuario | None = dao.buscar_por_login(LoginUsuarioUK(nome_em_branco))
+    assert lido is None
 
 
 @applier_trans(dbs, assert_db_ok)

@@ -65,7 +65,7 @@ class ServicosImpl:
 
     def __renomear(self, c0: Categoria, novo_nome: str) -> Categoria | _VIE | _CJEE:
         t: int = len(novo_nome)
-        if t < 1 or t > 50:
+        if t < 2 or t > 50:
             return ValorIncorretoException()
         c1: None | _CJEE = self.__nao_existente_por_nome(novo_nome)
         if c1 is not None:
@@ -158,7 +158,7 @@ class ServicosImpl:
             return u1
         nome: str = dados.nome
         t: int = len(nome)
-        if t < 1 or t > 50:
+        if t < 2 or t > 50:
             return ValorIncorretoException()
         c1: None | _CJEE = self.__nao_existente_por_nome(nome)
         if c1 is not None:
