@@ -121,38 +121,60 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         bodyless()
         return _thrower(UsuarioComChave, sx.usuario.buscar_por_chave(ChaveUsuario(pk_usuario)))
 
-    @ws.route("GET", "/usuarios/nome/<nome>", from_path("nome", ""))
-    @jsoner
-    def buscar_usuario_por_login(nome: str) -> UsuarioComChave:
+    def __buscar_usuario_por_login(nome: str) -> UsuarioComChave:
         bodyless()
         return _thrower(UsuarioComChave, sx.usuario.buscar_por_login(LoginUsuario(nome)))
 
-    @ws.route("PUT", "/usuarios/nome/<nome>", from_path("nome", ""), from_body_typed("dados", DadosNovoUsuario))
+    @ws.route("GET", "/usuarios/nome/<nome>", from_path("nome"))
     @jsoner
-    def criar_usuario(nome: str, dados: DadosNovoUsuario) -> UsuarioComChave:
+    def buscar_usuario_por_login(nome: str) -> UsuarioComChave:
+        return __buscar_usuario_por_login(nome)
+
+    @ws.route("GET", "/usuarios/nome/")
+    @jsoner
+    def buscar_usuario_por_login_branco() -> UsuarioComChave:
+        return __buscar_usuario_por_login("")
+
+    def __criar_usuario(nome: str, dados: DadosNovoUsuario) -> UsuarioComChave:
         try:
             p: NivelAcesso = dados.nivel
         except TypeError:
             raise ConteudoIncompreensivelException()
         return _thrower(UsuarioComChave, sx.usuario.criar(UsuarioNovo(nome, p, dados.senha)))
 
+    @ws.route("PUT", "/usuarios/nome/<nome>", from_path("nome"), from_body_typed("dados", DadosNovoUsuario))
+    @jsoner
+    def criar_usuario(nome: str, dados: DadosNovoUsuario) -> UsuarioComChave:
+        return __criar_usuario(nome, dados)
+
+    @ws.route("PUT", "/usuarios/nome/", from_body_typed("dados", DadosNovoUsuario))
+    @jsoner
+    def criar_usuario_branco(dados: DadosNovoUsuario) -> UsuarioComChave:
+        return __criar_usuario("", dados)
+
     @ws.route("POST", "/trocar-senha", from_body_typed("dados", TrocaSenha))
     @empty_json
     def trocar_senha(dados: TrocaSenha) -> None:
         _check(sx.usuario.trocar_senha_por_chave(dados))
 
-    @ws.route("POST", "/usuarios/nome/<nome>/alterar-nivel", from_path("nome", ""), from_body_typed("dados", DadosNovoNivel))
-    @empty_json
-    def alterar_nivel(nome: str, dados: DadosNovoNivel) -> None:
+    def __alterar_nivel(nome: str, dados: DadosNovoNivel) -> None:
         try:
             p: NivelAcesso = NivelAcesso.valued(dados.nivel_acesso)
         except KeyError:
             raise ConteudoIncompreensivelException()
         _check(sx.usuario.alterar_nivel_por_login(UsuarioComNivel(nome, p)))
 
-    @ws.route("MOVE", "/usuarios/nome/<nome>", from_path("nome", ""))
-    @jsoner
-    def renomear_usuario(nome: str) -> None:
+    @ws.route("POST", "/usuarios/nome/<nome>/alterar-nivel", from_path("nome"), from_body_typed("dados", DadosNovoNivel))
+    @empty_json
+    def alterar_nivel(nome: str, dados: DadosNovoNivel) -> None:
+        __alterar_nivel(nome, dados)
+
+    @ws.route("POST", "/usuarios/nome//alterar-nivel", from_body_typed("dados", DadosNovoNivel))
+    @empty_json
+    def alterar_nivel_branco(dados: DadosNovoNivel) -> None:
+        __alterar_nivel("", dados)
+
+    def __renomear_usuario(nome: str) -> None:
         bodyless()
         dest, overwrite = move()
         z: None | _UNLE | _UNEE | _UJEE | _UBE | _PNE | _LEE | _VIE = sx.usuario.renomear_por_login(RenomeUsuario(nome, dest))
@@ -160,11 +182,29 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
             raise PrecondicaoFalhouException()
         _check(z)
 
-    @ws.route("POST", "/usuarios/nome/<nome>/resetar-senha", from_path("nome", ""))
+    @ws.route("MOVE", "/usuarios/nome/<nome>", from_path("nome"))
     @jsoner
-    def resetar_senha(nome: str) -> SenhaAlterada:
+    def renomear_usuario(nome: str) -> None:
+        __renomear_usuario(nome)
+
+    @ws.route("MOVE", "/usuarios/nome/")
+    @jsoner
+    def renomear_usuario_branco() -> None:
+        __renomear_usuario("")
+
+    def __resetar_senha(nome: str) -> SenhaAlterada:
         bodyless()
         return _thrower(SenhaAlterada, sx.usuario.resetar_senha_por_login(ResetLoginUsuario(nome)))
+
+    @ws.route("POST", "/usuarios/nome/<nome>/resetar-senha", from_path("nome"))
+    @jsoner
+    def resetar_senha(nome: str) -> SenhaAlterada:
+        return __resetar_senha(nome)
+
+    @ws.route("POST", "/usuarios/nome//resetar-senha")
+    @jsoner
+    def resetar_senha_branco() -> SenhaAlterada:
+        return __resetar_senha("")
 
     # Categorias
 
@@ -174,22 +214,35 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         bodyless()
         return _thrower(CategoriaComChave, sx.categoria.buscar_por_chave(ChaveCategoria(pk_categoria)))
 
-    @ws.route("GET", "/categorias/nome/<nome>", from_path("nome", ""))
-    @jsoner
-    def buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
-        print("oi")
+    def __buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
         bodyless()
         return _thrower(CategoriaComChave, sx.categoria.buscar_por_nome(NomeCategoria(nome)))
 
-    @ws.route("PUT", "/categorias/nome/<nome>", from_path("nome", ""))
+    @ws.route("GET", "/categorias/nome/<nome>", from_path("nome"))
     @jsoner
-    def criar_categoria(nome: str) -> CategoriaComChave:
+    def buscar_categoria_por_nome(nome: str) -> CategoriaComChave:
+        return __buscar_categoria_por_nome(nome)
+
+    @ws.route("GET", "/categorias/nome/")
+    @jsoner
+    def buscar_categoria_por_nome_branco() -> CategoriaComChave:
+        return __buscar_categoria_por_nome("")
+
+    def __criar_categoria(nome: str) -> CategoriaComChave:
         bodyless()
         return _thrower(CategoriaComChave, sx.categoria.criar(NomeCategoria(nome)))
 
-    @ws.route("MOVE", "/categorias/nome/<nome>", from_path("nome", ""))
-    @empty_json
-    def renomear_categoria(nome: str) -> None:
+    @ws.route("PUT", "/categorias/nome/<nome>", from_path("nome"))
+    @jsoner
+    def criar_categoria(nome: str) -> CategoriaComChave:
+        return __criar_categoria(nome)
+
+    @ws.route("PUT", "/categorias/nome/")
+    @jsoner
+    def criar_categoria_branco() -> CategoriaComChave:
+        return __criar_categoria("")
+
+    def __renomear_categoria(nome: str) -> None:
         bodyless()
         dest, overwrite = move()
         z: None | _UNLE | _LEE | _UBE | _PNE | _VIE | _CJEE | _CNEE = sx.categoria.renomear_por_nome(RenomeCategoria(nome, dest))
@@ -197,17 +250,35 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
             raise PrecondicaoFalhouException()
         _check(z)
 
+    @ws.route("MOVE", "/categorias/nome/<nome>", from_path("nome"))
+    @empty_json
+    def renomear_categoria(nome: str) -> None:
+        return __renomear_categoria(nome)
+
+    @ws.route("MOVE", "/categorias/nome/")
+    @empty_json
+    def renomear_categoria_branco() -> None:
+        return __renomear_categoria("")
+
     @ws.route("GET", "/categorias")
     @jsoner
     def listar_categorias() -> ResultadoListaDeCategorias:
         bodyless()
         return _thrower(ResultadoListaDeCategorias, sx.categoria.listar())
 
-    @ws.route("DELETE", "/categorias/nome/<nome>", from_path("nome", ""))
-    @empty_json
-    def excluir_categoria(nome: str) -> None:
+    def __excluir_categoria(nome: str) -> None:
         bodyless()
         _check(sx.categoria.excluir_por_nome(NomeCategoria(nome)))
+
+    @ws.route("DELETE", "/categorias/nome/<nome>", from_path("nome"))
+    @empty_json
+    def excluir_categoria(nome: str) -> None:
+        return __excluir_categoria(nome)
+
+    @ws.route("DELETE", "/categorias/nome/")
+    @empty_json
+    def excluir_categoria_branco() -> None:
+        return __excluir_categoria("")
 
     # Segredos
 

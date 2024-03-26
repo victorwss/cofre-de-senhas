@@ -209,7 +209,7 @@ def test_criar_segredo_ok4(ctx: ContextoOperacao) -> None:
         com_chave: SegredoComChave = dados.com_chave(chave)
 
         x1: SegredoComChave | BaseException = s1.segredo.criar(dados)
-        assert x1 == com_chave
+        assert x1 == star_trek_data().com_chave(chave)
 
     with ctx.servicos_admin() as r:
         s2: Servicos = r.servicos
@@ -681,7 +681,7 @@ def test_alterar_por_chave_ok_ordem(ctx: ContextoOperacao) -> None:
         x1: None | BaseException = s1.segredo.alterar_por_chave(com_chave)
         assert x1 is None
 
-    verificar_segredo(ctx, com_chave)
+    verificar_segredo(ctx, star_trek_data(alt = 1).com_chave(original.chave))
 
 
 @applier_ctx

@@ -57,27 +57,21 @@ class WebParam(Generic[_X]):
         return self.func()
 
 
-def from_path(param_name: str, default: str | None = None) -> WebParam[str]:
+def from_path(param_name: str) -> WebParam[str]:
     def inner() -> str:
-        return or_throw(or_default(default, or_throw(request.view_args).get(param_name)))
+        return or_throw(or_throw(request.view_args).get(param_name))
     return WebParam(param_name, str, inner, True)
 
 
-def from_path_int(param_name: str, default: int | None = None) -> WebParam[int]:
+def from_path_int(param_name: str) -> WebParam[int]:
     def inner() -> int:
-        value: str | None = or_throw(request.view_args).get(param_name)
-        if value is None:
-            return or_throw(default)
-        return parse_int(value)
+        return parse_int(or_throw(or_throw(request.view_args).get(param_name)))
     return WebParam(param_name, int, inner, True)
 
 
-def from_path_float(param_name: str, default: float | None = None) -> WebParam[float]:
+def from_path_float(param_name: str,) -> WebParam[float]:
     def inner() -> float:
-        value: str | None = or_throw(request.view_args).get(param_name)
-        if value is None:
-            return or_throw(default)
-        return parse_float(value)
+        return parse_float(or_throw(or_throw(request.view_args).get(param_name)))
     return WebParam(param_name, float, inner, True)
 
 
