@@ -3,7 +3,7 @@ from threading import Thread
 from flask import Flask, redirect, session, url_for
 from werkzeug import Response
 from werkzeug.serving import BaseWSGIServer, make_server
-from httpwrap import empty_json, bodyless, jsoner, move
+from httpwrap import empty_json, bodyless, dummy_body, jsoner, move
 from sucesso import ConteudoIncompreensivelException
 from webrpc import from_body_typed, from_path, from_path_int, WebSuite
 from .service import (
@@ -193,7 +193,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         __renomear_usuario("")
 
     def __resetar_senha(nome: str) -> SenhaAlterada:
-        bodyless()
+        dummy_body()
         return _thrower(SenhaAlterada, sx.usuario.resetar_senha_por_login(ResetLoginUsuario(nome)))
 
     @ws.route("POST", "/usuarios/nome/<nome>/resetar-senha", from_path("nome"))
@@ -229,7 +229,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
         return __buscar_categoria_por_nome("")
 
     def __criar_categoria(nome: str) -> CategoriaComChave:
-        bodyless()
+        dummy_body()
         return _thrower(CategoriaComChave, sx.categoria.criar(NomeCategoria(nome)))
 
     @ws.route("PUT", "/categorias/nome/<nome>", from_path("nome"))
@@ -291,7 +291,7 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     @jsoner
     def alterar_segredo(pk_segredo: int, dados: SegredoSemChave) -> SegredoComChave:
         com_chave: SegredoComChave = dados.com_chave(ChaveSegredo(pk_segredo))
-        sx.segredo.alterar_por_chave(com_chave)
+        _check(sx.segredo.alterar_por_chave(com_chave))
         return com_chave
 
     @ws.route("DELETE", "/segredos/chave/<pk_segredo>", from_path_int("pk_segredo"))

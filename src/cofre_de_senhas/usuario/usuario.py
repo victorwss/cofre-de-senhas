@@ -182,7 +182,7 @@ class ServicosImpl:
             return u1
         login: str = dados.login
         t: int = len(login)
-        if t < 4 or t > 50:
+        if not (4 <= t <= 50):
             return ValorIncorretoException()
         hash_com_sal: str = hasher.criar_hash(dados.senha)
         pk: UsuarioPK = self.__dao.criar(DadosUsuarioSemPK(dados.login, dados.nivel_acesso.value, hash_com_sal))
@@ -235,7 +235,7 @@ class ServicosImpl:
         if not isinstance(u2, Usuario):
             return u2
         t: int = len(dados.novo)
-        if t < 4 or t > 50:
+        if not (4 <= t <= 50):
             return ValorIncorretoException()
         u3: None | _UJEE = self.__nao_existente_por_login(dados.novo)
         if u3 is not None:

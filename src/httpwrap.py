@@ -5,6 +5,8 @@ from flask.wrappers import Response
 from functools import wraps
 from dacite import Config, from_dict
 from enum import Enum, IntEnum
+from validator import dataclass_validate
+from dataclasses import dataclass
 from sucesso import Erro, Sucesso, RequisicaoMalFormadaException, ConteudoNaoReconhecidoException
 
 
@@ -111,6 +113,22 @@ def bodyless() -> None:
     content_type: str | None = request.headers.get("Content-Type")
     if content_type is not None:
         raise RequisicaoMalFormadaException()
+
+
+@dataclass_validate
+@dataclass(frozen = True)
+class _Empty:
+    pass
+
+
+def dummy_body() -> None:
+    content_type: str | None = request.headers.get("Content-Type")
+    if content_type is not None:
+        body: Any = _get_body(content_type, True, True, True)
+        try:
+            from_dict(data_class = _Empty, data = body, config = Config(cast = [IntEnum, Enum]))
+        except BaseException:
+            raise RequisicaoMalFormadaException()
 
 
 def move() -> tuple[str, bool]:

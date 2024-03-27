@@ -322,12 +322,12 @@ class _ServicoSegredoClient(ServicoSegredo):
         return self.__requester.put("/segredos", dados, SegredoComChave, typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_LEE).join(_VIE).end)
 
     @override
-    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UBE | _UNEE | _CNEE | _SNEE | _VIE:
+    def alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE | _VIE:
         return self.__requester.put(
             f"/segredos/chave/{dados.chave.valor}",
             dados.sem_chave,
             type(None),
-            typed(_UNLE).join(_UBE).join(_UNEE).join(_CNEE).join(_SNEE).join(_VIE).end
+            typed(_UNLE).join(_UNEE).join(_UBE).join(_SNEE).join(_PNE).join(_CNEE).join(_LEE).join(_VIE).end
         )
 
     @override
@@ -361,8 +361,13 @@ class _ServicoCategoriaClient(ServicoCategoria):
         return self.__requester.get(f"/categorias/chave/{chave.valor}", CategoriaComChave, typed(_UNLE).join(_UBE).join(_CNEE).join(_LEE).end)
 
     @override
-    def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CJEE | _LEE:
-        return self.__requester.put(f"/categorias/nome/{dados.nome}", _Empty(), CategoriaComChave, typed(_UNLE).join(_UBE).join(_CJEE).join(_LEE).end)
+    def criar(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _LEE | _UBE | _PNE | _CJEE | _VIE:
+        return self.__requester.put(
+            f"/categorias/nome/{dados.nome}",
+            _Empty(),
+            CategoriaComChave,
+            typed(_UNLE).join(_LEE).join(_UBE).join(_PNE).join(_CJEE).join(_VIE).end
+        )
 
     @override
     def renomear_por_nome(self, dados: RenomeCategoria) -> None | _UNLE | _UBE | _PNE | _CJEE | _CNEE | _VIE | _LEE:
