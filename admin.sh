@@ -1,2 +1,2 @@
 python -m venv pyenv
-./pyenv/Scripts/python src/admin.py
+./pyenv/bin/python src/admin.py
