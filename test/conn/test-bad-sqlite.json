@@ -1,0 +1,6 @@
+{
+    "flavor": "sqlite",
+    "properties": {
+        "pokemon": "pikachu"
+    }
+}

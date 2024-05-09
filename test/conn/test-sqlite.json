@@ -1,0 +1,6 @@
+{
+    "flavor": "sqlite",
+    "properties": {
+        "file_name": "test/empty.db"
+    }
+}

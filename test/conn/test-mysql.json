@@ -1,0 +1,10 @@
+{
+    "flavor": "mysql",
+    "properties": {
+        "user": "root",
+        "password": "root",
+        "host": "mariadb",
+        "port": 3306,
+        "database": "test_fruits"
+    }
+}

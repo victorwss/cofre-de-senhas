@@ -1,5 +1,6 @@
 from typing import Any, Callable
 from dataclasses import dataclass
+from validator import dataclass_validate
 import json
 from dacite import Config, from_dict
 from .sqlite3conn import SqliteConnectionData
@@ -19,6 +20,7 @@ def _read_all(fn: str) -> str:
         return f.read()
 
 
+@dataclass_validate
 @dataclass(frozen = True)
 class DatabaseConfig:
     flavor: str
@@ -34,7 +36,12 @@ class DatabaseConfig:
             "mariadb": b,  # noqa: E203
             "mysql"  : c   # noqa: E203
         }
-        cd: ConnectionData = d.get(self.flavor, x)()
+
+        cd: ConnectionData
+        try:
+            cd = d.get(self.flavor, x)()
+        except TypeError:
+            raise BadDatabaseConfigException("Bad properties for " + self.flavor)
         return cd.connect()
 
     @staticmethod

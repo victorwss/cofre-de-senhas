@@ -1,0 +1,10 @@
+{
+    "flavor": "mysql",
+    "properties": {
+        "foo": "root",
+        "bar": "root",
+        "munge": "mariadb",
+        "gaga": 3306,
+        "blah": "test_fruits"
+    }
+}

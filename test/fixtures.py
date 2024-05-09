@@ -16,7 +16,7 @@ from connection.trans import TransactedConnection
 from connection.load import DatabaseConfig
 import os
 import shutil
-import pytest
+from pytest import mark
 
 
 _P = ParamSpec("_P")
@@ -859,7 +859,7 @@ _E: TypeAlias = dict[str, DbTestConfig]
 
 def applier(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_A], _D]:
     def outer(applied: _A) -> _D:
-        @pytest.mark.parametrize("db", appliances.keys())
+        @mark.parametrize("db", appliances.keys())
         @wraps(applied)
         def middle(db: str) -> None:
             dbc: DbTestConfig = appliances[db]
@@ -901,7 +901,7 @@ def applier_trans2(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_C], 
 
 
 def applier_ctx_tipo(t: dict[str, _CO], applied: Callable[[_CO], None]) -> _D:
-    @pytest.mark.parametrize("co", t.keys())
+    @mark.parametrize("co", t.keys())
     def inner(co: str) -> None:
         op: _CO = t[co]
 
