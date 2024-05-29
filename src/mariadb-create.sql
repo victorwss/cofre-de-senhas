@@ -8,10 +8,6 @@ DROP TABLE IF EXISTS enum_nivel_acesso;
 DROP TABLE IF EXISTS enum_tipo_permissao;
 DROP TABLE IF EXISTS enum_tipo_segredo;
 
--- DROP DATABASE IF EXISTS $$$$;
--- CREATE DATABASE $$$$ /*!40100 COLLATE 'utf8mb4_general_ci' */;
--- USE $$$$;
-
 CREATE TABLE IF NOT EXISTS enum_nivel_acesso (
     pk_nivel_acesso INTEGER     NOT NULL PRIMARY KEY,
     descricao       VARCHAR(21) NOT NULL UNIQUE
@@ -34,7 +30,7 @@ INSERT INTO enum_tipo_permissao (pk_tipo_permissao, descricao) VALUES
 
 CREATE TABLE IF NOT EXISTS enum_tipo_segredo (
     pk_tipo_segredo INTEGER      NOT NULL PRIMARY KEY,
-    nome            VARCHAR( 22) NOT NULL UNIQUE,
+    nome            VARCHAR( 12) NOT NULL UNIQUE,
     descricao       VARCHAR(105) NOT NULL
 ) ENGINE = INNODB;
 
@@ -109,4 +105,5 @@ CREATE TABLE IF NOT EXISTS permissao (
 
 INSERT INTO segredo (pk_segredo, nome, descricao, fk_tipo_segredo) VALUES (-1, 'Cofre de senhas', 'Segredos acerca do guardador de segredos.', 2);
 INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (-1, 'Chave da sessão', HEX(RANDOM_BYTES(256)));
+INSERT INTO campo_segredo (pfk_segredo, pk_nome, valor) VALUES (-1, 'Cofre aberto', 1);
 INSERT INTO categoria_segredo (pfk_segredo, pfk_categoria) VALUES (-1, 2);

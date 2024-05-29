@@ -8,10 +8,6 @@ DROP TABLE IF EXISTS enum_nivel_acesso;
 DROP TABLE IF EXISTS enum_tipo_permissao;
 DROP TABLE IF EXISTS enum_tipo_segredo;
 
--- DROP DATABASE IF EXISTS $$$$;
--- CREATE DATABASE $$$$ /*!40100 COLLATE 'utf8mb4_general_ci' */;
--- USE $$$$;
-
 CREATE TABLE IF NOT EXISTS enum_nivel_acesso (
     pk_nivel_acesso INTEGER     NOT NULL PRIMARY KEY,
     descricao       VARCHAR(21) NOT NULL UNIQUE
@@ -34,7 +30,7 @@ INSERT INTO enum_tipo_permissao (pk_tipo_permissao, descricao) VALUES
 
 CREATE TABLE IF NOT EXISTS enum_tipo_segredo (
     pk_tipo_segredo INTEGER      NOT NULL PRIMARY KEY,
-    nome            VARCHAR( 22) NOT NULL UNIQUE,
+    nome            VARCHAR( 12) NOT NULL UNIQUE,
     descricao       VARCHAR(105) NOT NULL
 ) ENGINE = INNODB;
 
