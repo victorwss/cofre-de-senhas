@@ -51,12 +51,10 @@ class GerenciadorLoginImpl(GerenciadorLogin):
 
     @override
     def login(self, usuario: UsuarioComChave) -> None:
-        print(f"Login {usuario}")
         session["chave"] = usuario.chave
 
     @override
     def logout(self) -> None:
-        print("Logout")
         session.pop("chave", None)
 
     @property

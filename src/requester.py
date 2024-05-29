@@ -140,7 +140,6 @@ class Requester:
     # def __unwrap[T, X](self, r: Response, t: type[T] | None, x: type[X]]) -> T | X: # PEP 695
     def __unwrap(self, r: Response, t: type[_T], x: type[_X]) -> _T | _X:
         self.__cookies = dict(r.cookies)
-        print(self.__cookies)
         j: Any = self.__json_it(r)
         erro: ErrorData | None = self.__json_validate(j, r.text)
         if erro is not None:
