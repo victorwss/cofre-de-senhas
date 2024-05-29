@@ -604,15 +604,15 @@ def test_listar_categorias_UNLE(ctx: ContextoOperacao) -> None:
 @applier_ctx_local
 def test_criar_bd_ok(ctx: ContextoOperacaoLocal) -> None:
     with ctx.conn as z:
-        z.execute("DROP TABLE permissao")
-        z.execute("DROP TABLE categoria_segredo")
-        z.execute("DROP TABLE campo_segredo")
-        z.execute("DROP TABLE segredo")
-        z.execute("DROP TABLE categoria")
-        z.execute("DROP TABLE usuario")
-        z.execute("DROP TABLE enum_nivel_acesso")
-        z.execute("DROP TABLE enum_tipo_permissao")
-        z.execute("DROP TABLE enum_tipo_segredo")
+        z.execute("DROP TABLE IF EXISTS permissao")
+        z.execute("DROP TABLE IF EXISTS categoria_segredo")
+        z.execute("DROP TABLE IF EXISTS campo_segredo")
+        z.execute("DROP TABLE IF EXISTS segredo")
+        z.execute("DROP TABLE IF EXISTS categoria")
+        z.execute("DROP TABLE IF EXISTS usuario")
+        z.execute("DROP TABLE IF EXISTS enum_nivel_acesso")
+        z.execute("DROP TABLE IF EXISTS enum_tipo_permissao")
+        z.execute("DROP TABLE IF EXISTS enum_tipo_segredo")
 
     with ctx.servicos_nao_logar() as r:
         s0: Servicos = r.servicos

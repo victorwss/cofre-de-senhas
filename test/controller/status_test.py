@@ -7,7 +7,8 @@ from cofre_de_senhas.erro import (
 )
 from sucesso import (
     Sucesso, Erro, Status, Ok,
-    RequisicaoMalFormadaException, PrecondicaoFalhouException, ConteudoNaoReconhecidoException, ConteudoIncompreensivelException
+    RequisicaoMalFormadaException, PrecondicaoFalhouException,
+    ConteudoNaoReconhecidoException, ConteudoIncompreensivelException, ConteudoBloqueadoException
 )
 
 
@@ -85,66 +86,70 @@ def test_sucesso_5() -> None:
     assert s.status == 234
 
 
-def verificar_excecao(x: Status, s: int) -> None:
+def _verificar_excecao(x: Status, s: int) -> None:
     assert isinstance(x, Exception)
     assert x.status == s
 
 
 def test_erro_400() -> None:
-    verificar_excecao(RequisicaoMalFormadaException(), 400)
+    _verificar_excecao(RequisicaoMalFormadaException(), 400)
 
 
 def test_erro_412() -> None:
-    verificar_excecao(PrecondicaoFalhouException(), 412)
+    _verificar_excecao(PrecondicaoFalhouException(), 412)
 
 
 def test_erro_415() -> None:
-    verificar_excecao(ConteudoNaoReconhecidoException(), 415)
+    _verificar_excecao(ConteudoNaoReconhecidoException(), 415)
 
 
-def test_erro_422a() -> None:
-    verificar_excecao(ConteudoIncompreensivelException(), 422)
+def test_erro_422() -> None:
+    _verificar_excecao(ConteudoIncompreensivelException(), 422)
+
+
+def test_erro_423() -> None:
+    _verificar_excecao(ConteudoBloqueadoException(), 423)
 
 
 def test_senha_errada() -> None:
-    verificar_excecao(SenhaErradaException(), 401)
+    _verificar_excecao(SenhaErradaException(), 401)
 
 
 def test_usuario_nao_logado() -> None:
-    verificar_excecao(UsuarioNaoLogadoException(), 401)
+    _verificar_excecao(UsuarioNaoLogadoException(), 401)
 
 
 def test_usuario_banido() -> None:
-    verificar_excecao(UsuarioBanidoException(), 403)
+    _verificar_excecao(UsuarioBanidoException(), 403)
 
 
 def test_permissao_negada() -> None:
-    verificar_excecao(PermissaoNegadaException(), 403)
+    _verificar_excecao(PermissaoNegadaException(), 403)
 
 
 def test_usuario_ja_existe() -> None:
-    verificar_excecao(UsuarioJaExisteException(), 409)
+    _verificar_excecao(UsuarioJaExisteException(), 409)
 
 
 def test_usuario_nao_existe() -> None:
-    verificar_excecao(UsuarioNaoExisteException(), 404)
+    _verificar_excecao(UsuarioNaoExisteException(), 404)
 
 
 def test_categoria_ja_existe() -> None:
-    verificar_excecao(CategoriaJaExisteException(), 409)
+    _verificar_excecao(CategoriaJaExisteException(), 409)
 
 
 def test_categoria_nao_existe() -> None:
-    verificar_excecao(CategoriaNaoExisteException(), 404)
+    _verificar_excecao(CategoriaNaoExisteException(), 404)
 
 
 def test_segredo_nao_existe() -> None:
-    verificar_excecao(SegredoNaoExisteException(), 404)
+    _verificar_excecao(SegredoNaoExisteException(), 404)
 
 
 def test_valor_incorreto() -> None:
-    verificar_excecao(ValorIncorretoException(), 422)
+    _verificar_excecao(ValorIncorretoException(), 422)
 
 
 def test_exclusao_sem_cascata() -> None:
-    verificar_excecao(ExclusaoSemCascataException(), 409)
+    _verificar_excecao(ExclusaoSemCascataException(), 409)

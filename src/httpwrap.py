@@ -1,7 +1,7 @@
 from typing import Any, Callable
-from typing import TypeVar  # Delete when PEP 695 is ready.
-from flask import jsonify, request
-from flask.wrappers import Response
+from typing import ParamSpec, TypeVar  # Delete when PEP 695 is ready.
+from flask import jsonify, make_response, request
+from werkzeug import Response
 from functools import wraps
 from dacite import Config, from_dict
 from enum import Enum, IntEnum
@@ -10,20 +10,25 @@ from dataclasses import dataclass
 from sucesso import Erro, Sucesso, RequisicaoMalFormadaException, ConteudoNaoReconhecidoException
 
 
-_RS = Response | str
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+_T = TypeVar("_T")  # Delete when PEP 696 is ready.
+_RI = tuple[Response, int]
 
-_T = TypeVar("_T")  # Delete when PEP 695 is ready.
 
-
-def handler(decorate: Callable[..., _RS | tuple[_RS, int]]) -> Callable[..., tuple[_RS, int]]:
+def handler(decorate: Callable[_P, str] | Callable[_P, Response] | Callable[_P, tuple[str, int]] | Callable[_P, _RI]) -> Callable[_P, _RI]:
     @wraps(decorate)
-    def decorator(*args: Any, **kwargs: Any) -> tuple[_RS, int]:
+    def decorator(*args: _P.args, **kwargs: _P.kwargs) -> _RI:
         try:
-            f: _RS | tuple[_RS, int] = decorate(*args, **kwargs)
+            f: str | Response | tuple[str, int] | _RI = decorate(*args, **kwargs)
             if isinstance(f, Response):
                 return f, 200
             if isinstance(f, str):
-                return f, 200
+                r1: Response = make_response(f)
+                return r1, 200
+            if isinstance(f[0], str):
+                r2: Response = make_response(f[0])
+                return r2, f[1]
             return f
         except BaseException as e:
             erro: Erro = Erro.criar(e)
@@ -31,9 +36,9 @@ def handler(decorate: Callable[..., _RS | tuple[_RS, int]]) -> Callable[..., tup
     return decorator
 
 
-def jsoner(decorate: Callable[..., Any]) -> Callable[..., tuple[Response, int]]:
+def jsoner(decorate: Callable[_P, Any]) -> Callable[_P, _RI]:
     @wraps(decorate)
-    def decorator(*args: Any, **kwargs: Any) -> tuple[Response, int]:
+    def decorator(*args: _P.args, **kwargs: _P.kwargs) -> _RI:
         try:
             output: Any = decorate(*args, **kwargs)
             return jsonify(Sucesso.criar(output)), 200
@@ -43,9 +48,9 @@ def jsoner(decorate: Callable[..., Any]) -> Callable[..., tuple[Response, int]]:
     return decorator
 
 
-def empty_json(decorate: Callable[..., None]) -> Callable[..., tuple[Response, int]]:
+def empty_json(decorate: Callable[_P, None]) -> Callable[_P, _RI]:
     @wraps(decorate)
-    def decorator(*args: Any, **kwargs: Any) -> tuple[Response, int]:
+    def decorator(*args: _P.args, **kwargs: _P.kwargs) -> _RI:
         try:
             decorate(*args, **kwargs)
             return jsonify(Sucesso.ok()), 200

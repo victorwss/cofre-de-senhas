@@ -15,6 +15,7 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException, ExclusaoSemCascataException
 )
+from sucesso import ConteudoBloqueadoException
 from .dao import CofreDeSenhasDAO
 from .categoria.categoria import ServicosImpl as CategoriaServicoInternoImpl
 from .usuario.usuario import ServicosImpl as UsuarioServicoInternoImpl
@@ -38,6 +39,7 @@ _SEE: TypeAlias = SenhaErradaException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
 _ESCE: TypeAlias = ExclusaoSemCascataException
+_CBE: TypeAlias = ConteudoBloqueadoException
 
 
 class ServicosImpl(Servicos):
@@ -59,6 +61,14 @@ class ServicosImpl(Servicos):
         us: UsuarioServicoInternoImpl = UsuarioServicoInternoImpl(udao)
         cs: CategoriaServicoInternoImpl = CategoriaServicoInternoImpl(cdao, us)
         ss: SegredoServicoInternoImpl = SegredoServicoInternoImpl(sdao, us, cs)
+
+        self.__ss: SegredoServicoInternoImpl = ss
+
+        @for_all_methods(_log.trace)
+        @for_all_methods(self.__trans.transact)
+        class Interna0(_Secreta):
+            def __init__(self) -> None:
+                super().__init__(ss)
 
         @for_all_methods(_log.trace)
         @for_all_methods(self.__trans.transact)
@@ -84,6 +94,7 @@ class ServicosImpl(Servicos):
             def __init__(self) -> None:
                 super().__init__(gl, ss)
 
+        self.__sec: _Secreta = Interna0()
         self.__bd: ServicoBD = Interna1()
         self.__usuario: ServicoUsuario = Interna2()
         self.__categoria: ServicoCategoria = Interna3()
@@ -109,6 +120,24 @@ class ServicosImpl(Servicos):
     def segredo(self) -> ServicoSegredo:
         return self.__segredo
 
+    @property
+    def chave_secreta(self) -> str | _CBE:
+        return self.__sec.chave_secreta
+
+
+class _Secreta:
+
+    def __init__(self, ss: SegredoServicoInternoImpl) -> None:
+        self.__ss: SegredoServicoInternoImpl = ss
+
+    @property
+    def chave_secreta(self) -> str | _CBE:
+        key: str = "Chave da sessão"
+        segredo_chave: SegredoComChave | _SNEE = self.__ss.buscar_por_chave_sem_logar(ChaveSegredo(-1))
+        if not isinstance(segredo_chave, SegredoComChave) or key not in segredo_chave.campos:
+            return ConteudoBloqueadoException("O banco de dados não está devidamente preparado.")
+        return segredo_chave.campos[key]
+
 
 class _ServicoBDImpl(ServicoBD):
 
@@ -118,16 +147,15 @@ class _ServicoBDImpl(ServicoBD):
         self.__ss: SegredoServicoInternoImpl = ss
 
     @override
-    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE | _CBE:
+        if self.__dao.aplicacao_aberta:
+            return ConteudoBloqueadoException("Já existe admin criado.")
         return self.__us.criar_admin(dados)
 
     @override
     def criar_bd(self) -> None:
         self.__dao.criar_bd()
-
-    @override
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
-        return self.__ss.buscar_por_chave_sem_logar(chave)
+        return None
 
 
 class _ServicoUsuarioImpl(ServicoUsuario):

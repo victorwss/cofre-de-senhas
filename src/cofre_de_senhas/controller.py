@@ -1,17 +1,16 @@
 from typing import Any, Callable, override, TypeAlias, TypeVar
 from threading import Thread
-from flask import Flask, redirect, session, url_for
-from werkzeug import Response
+from flask import Flask, render_template, session
 from werkzeug.serving import BaseWSGIServer, make_server
 from httpwrap import empty_json, bodyless, dummy_body, jsoner, move
 from sucesso import ConteudoIncompreensivelException
 from webrpc import from_body_typed, from_path, from_path_int, WebSuite
 from .service import (
-    Servicos,
     GerenciadorLogin, UsuarioComChave, ChaveUsuario, NivelAcesso, UsuarioComNivel, DadosNovoNivel,
-    UsuarioNovo, DadosNovoUsuario, RenomeUsuario, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, ResetLoginUsuario, ResultadoListaDeUsuarios,
-    NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria, ResultadoListaDeCategorias,
-    SegredoComChave, SegredoSemChave, ChaveSegredo, ResultadoPesquisaDeSegredos
+    UsuarioNovo, DadosNovoUsuario, RenomeUsuario, LoginComSenha, LoginUsuario, TrocaSenha, SenhaAlterada, SenhaUsuario, ResetLoginUsuario,
+    NomeCategoria, CategoriaComChave, ChaveCategoria, RenomeCategoria,
+    SegredoComChave, SegredoSemChave, ChaveSegredo,
+    ResultadoListaDeUsuarios, ResultadoListaDeCategorias, ResultadoPesquisaDeSegredos
 )
 from .erro import (
     UsuarioNaoLogadoException, UsuarioBanidoException, PermissaoNegadaException, SenhaErradaException, LoginExpiradoException,
@@ -20,6 +19,8 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException
 )
+
+from sucesso import ConteudoBloqueadoException
 from .service_impl import ServicosImpl
 from .bd.bd_dao_impl import CofreDeSenhasDAOImpl
 from .categoria.categoria_dao_impl import CategoriaDAOImpl
@@ -41,6 +42,9 @@ _SNEE: TypeAlias = SegredoNaoExisteException
 _SEE: TypeAlias = SenhaErradaException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
+_CBE: TypeAlias = ConteudoBloqueadoException
+
+_X = TypeVar("_X")
 
 
 class GerenciadorLoginImpl(GerenciadorLogin):
@@ -63,7 +67,20 @@ class GerenciadorLoginImpl(GerenciadorLogin):
         return from_dict(data_class = ChaveUsuario, data = session["chave"])
 
 
-_X = TypeVar("_X")
+class _Nao(GerenciadorLogin):
+
+    @override
+    def login(self, usuario: UsuarioComChave) -> None:
+        assert False, "Não deve haver pocesso de login."
+
+    @override
+    def logout(self) -> None:
+        assert False, "Não deve haver pocesso de login."
+
+    @property
+    @override
+    def usuario_logado(self) -> ChaveUsuario:
+        assert False, "Não deve haver pocesso de login."
 
 
 def _check(a: Any) -> None:
@@ -83,18 +100,19 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     ws: WebSuite = WebSuite(app, "/map")
 
     gl: GerenciadorLogin = GerenciadorLoginImpl()
+    nao: GerenciadorLogin = _Nao()
     cofre: TransactedConnection = config.connect()
 
     CategoriaDAOImpl(cofre)
     CofreDeSenhasDAOImpl(cofre)
     SegredoDAOImpl(cofre)
     UsuarioDAOImpl(cofre)
-    sx: Servicos = ServicosImpl(gl, cofre)
+    sx: ServicosImpl = ServicosImpl(gl, cofre)
+    sn: ServicosImpl = ServicosImpl(nao, cofre)
 
-    segredo_chave: SegredoComChave | _SNEE = sx.bd.buscar_por_chave_sem_logar(ChaveSegredo(-1))
-    if not isinstance(segredo_chave, SegredoComChave):
-        raise segredo_chave
-    app.secret_key = segredo_chave.campos["Chave da sessão"]
+    segredo_chave: str | _CBE = sn.chave_secreta
+    if isinstance(segredo_chave, str):
+        app.secret_key = segredo_chave
 
     # Usuários
 
@@ -322,12 +340,29 @@ def servir(porta: int, config: DatabaseConfig) -> Callable[[], None]:
     def health_check() -> None:
         bodyless()
 
+    # admin
+
+    @ws.route("PUT", "/admin/nome/<nome>", from_path("nome"), from_body_typed("dados", SenhaUsuario))
+    @jsoner
+    def criar_admin(nome: str, dados: SenhaUsuario) -> UsuarioComChave:
+        return _thrower(UsuarioComChave, sn.bd.criar_admin(LoginComSenha(nome, dados.senha)))
+
+    @ws.hidden_route("PUT", "/admin/nome/", from_body_typed("dados", SenhaUsuario))
+    @jsoner
+    def criar_admin_branco(dados: SenhaUsuario) -> UsuarioComChave:
+        return _thrower(UsuarioComChave, sn.bd.criar_admin(LoginComSenha("", dados.senha)))
+
+    # @ws.route("POST", "/nuke")
+    # @empty_json
+    # def criar_bd(nome: str, dados: LoginComSenha) -> UsuarioComChave:
+    #     sn.bd.criar_bd()
+
     # Front-end
 
     @app.route("/")
-    def index() -> Response:
+    def index() -> str:
         bodyless()
-        return redirect(url_for("static", filename = "index.html"))
+        return render_template("index.html")
 
     # E aqui, a mágica acontece...
 

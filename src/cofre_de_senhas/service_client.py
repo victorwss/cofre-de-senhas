@@ -1,11 +1,9 @@
-import requests
-from typing import Any, Literal, override, TypeAlias, TYPE_CHECKING
-from typing import Generic, TypeVar  # Delete when PEP 695 is ready.
+from typing import Any, Literal, override, TypeAlias
+from typing import TypeVar  # Delete when PEP 695 is ready.
 from dacite import Config, from_dict
 from enum import Enum, IntEnum
 from validator import dataclass_validate
-from dataclasses import asdict, dataclass
-from requests.models import Response
+from dataclasses import dataclass
 # from requests.cookies import RequestsCookieJar
 from .service import (
     ServicoBD, ServicoUsuario, ServicoCategoria, ServicoSegredo, Servicos,
@@ -21,18 +19,15 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException, ExclusaoSemCascataException
 )
-from sucesso import Ok, Status
+from sucesso import ConteudoBloqueadoException
+from sucesso import Ok
 from sucesso import RequisicaoMalFormadaException, PrecondicaoFalhouException, ConteudoNaoReconhecidoException, ConteudoIncompreensivelException  # noqa: F401
+from requester import Requester, RequesterStrategy, ErrorData
+from typeor import typed
 
-
-if TYPE_CHECKING:
-    from _typeshed import DataclassInstance
-    _D = TypeVar("_D", bound = DataclassInstance)
-else:
-    _D = TypeVar("_D")
 
 _T = TypeVar("_T")  # Delete when PEP 695 is ready.
-_X = TypeVar("_X")  # Delete when PEP 695 is ready.
+_X = TypeVar("_X", bound = BaseException)  # Delete when PEP 695 is ready.
 
 _UNLE: TypeAlias = UsuarioNaoLogadoException
 _UBE: TypeAlias = UsuarioBanidoException
@@ -46,28 +41,17 @@ _SEE: TypeAlias = SenhaErradaException
 _VIE: TypeAlias = ValorIncorretoException
 _LEE: TypeAlias = LoginExpiradoException
 _ESCE: TypeAlias = ExclusaoSemCascataException
+_CBE: TypeAlias = ConteudoBloqueadoException
 
-
-class OngoingTyping(Generic[_X]):
-
-    def __init__(self, x: type[_X]) -> None:
-        self.__x: type[_X] = x
-
-    def join(self, t: type[_T]) -> "OngoingTyping[_X | _T]":
-        return OngoingTyping(self.__x | t)   # type: ignore
-
-    @property
-    def end(self) -> type[_X]:
-        return self.__x
-
-
-def typed(x: type[_X]) -> OngoingTyping[_X]:
-    return OngoingTyping(x)
-
-
-class _ErroDesconhecido(Exception):
-    def __init__(self, dados: Any):
-        super(_ErroDesconhecido, self).__init__(dados)
+_exceptions: list[type[BaseException]] = [
+    UsuarioNaoLogadoException, UsuarioBanidoException, PermissaoNegadaException, SenhaErradaException, LoginExpiradoException,
+    UsuarioNaoExisteException, UsuarioJaExisteException,
+    CategoriaNaoExisteException, CategoriaJaExisteException,
+    SegredoNaoExisteException,
+    ValorIncorretoException, ExclusaoSemCascataException,
+    ConteudoBloqueadoException
+]
+_exceptions_names: dict[str, type[BaseException]] = {x.__name__: x for x in _exceptions}
 
 
 @dataclass_validate
@@ -84,127 +68,34 @@ class _ErroRemoto:
     tipo: str
     mensagem: str
 
-    def __eval(self) -> Any:
-        try:
-            return eval(self.tipo)()
-        except BaseException:
-            raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
-
-    # def __raise_it[X](self, j: Any, x: type[X]) -> X:  # PEP 695
-    def raise_it(self, x: type[_X]) -> _X:
-        z: Any = self.__eval()
-        if isinstance(z, x):
-            return z
-        if isinstance(z, Status) and isinstance(z, BaseException):
-            raise z
-        raise _ErroDesconhecido(f"[{self.tipo}] {self.mensagem}")
+    @property
+    def error_data(self) -> ErrorData:
+        return ErrorData(self.interno, self.tipo, self.mensagem)
 
 
-def _islist(e: Any) -> bool:
-    return isinstance(e, set) or isinstance(e, frozenset) or isinstance(e, tuple)
+def _sucesso(j: Any) -> bool:
+    return "sucesso" in j and j["sucesso"] is True and "conteudo" in j
 
 
-def _is_inside(x: Any, recurse_guard: list[Any]) -> bool:
-    for k in recurse_guard:
-        if x is k:
-            return True
-    return False
+def _error_maker(j: Any) -> ErrorData:
+    return from_dict(data_class = _ErroRemoto, data = j, config = Config(cast = [Enum, IntEnum])).error_data
 
 
-def _dictfix_in(x: dict[Any, Any], recurse_guard: list[Any]) -> dict[Any, Any]:
-    if _is_inside(x, recurse_guard):
-        return x
-    for i in list(x.keys()):
-        e: Any = x[i]
-        if _islist(e):
-            x[i] = list(e)
-        elif isinstance(e, dict):
-            recurse_guard.append(x)
-            x[i] = _dictfix_in(e, recurse_guard)
-            recurse_guard.pop()
-    return x
+def _result_maker(j: Any, t: type[_T]) -> _T:
+    return from_dict(data_class = t, data = j["conteudo"], config = Config(cast = [Enum, IntEnum]))
 
 
-def dictfix(x: dict[Any, Any]) -> dict[Any, Any]:
-    return _dictfix_in(x, [])
-
-
-class _Requester:
-
-    def __init__(self, url: str) -> None:
-        self.__base_url: str = url
-        self.__session: requests.Session = requests.Session()
-        self.__cookies: dict[str, str] = {}
-        self.__session.trust_env = False
-
-    # def get[T, X](self, path: str, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def get(self, path: str, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = self.__session.get(self.__base_url + path, cookies = self.__cookies)
-        return self.__unwrap(r, t, x)
-
-    # def post[T, X](self, path: str, data: _D, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def post(self, path: str, data: _D, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = self.__session.post(self.__base_url + path, json = dictfix(asdict(data)), cookies = self.__cookies)
-        return self.__unwrap(r, t, x)
-
-    # def put[T, X](self, path: str, data: _D, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def put(self, path: str, data: _D, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = self.__session.put(self.__base_url + path, json = dictfix(asdict(data)), cookies = self.__cookies)
-        return self.__unwrap(r, t, x)
-
-    # def delete[T, X](self, path: str, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def delete(self, path: str, t: type[_T], x: type[_X]) -> _T | _X:
-        r: Response = self.__session.delete(self.__base_url + path, cookies = self.__cookies)
-        return self.__unwrap(r, t, x)
-
-    # def move[T, X](self, path: str, to: str, overwrite: bool, t: type[T], x: type[X]) -> T | X: # PEP 695
-    def move(self, path: str, to: str, overwrite: bool, t: type[_T], x: type[_X]) -> _T | _X:
-        h: dict[str, str] = {
-            "Destination": to,
-            "Overwrite": "T" if overwrite else "F"
-        }
-        r: Response = self.__session.request("MOVE", self.__base_url + path, cookies = self.__cookies, headers = h)
-        return self.__unwrap(r, t, x)
-
-    @staticmethod
-    def __sucesso(j: Any) -> bool:
-        return "sucesso" in j and j["sucesso"] is True and "conteudo" in j
-
-    def __json_validate(self, j: Any, rt: str) -> _ErroRemoto | None:
-        if _Requester.__sucesso(j):
-            return None
-        try:
-            remoto: _ErroRemoto = from_dict(data_class = _ErroRemoto, data = j, config = Config(cast = [Enum, IntEnum]))
-            if remoto.interno:
-                raise _ErroDesconhecido(f"[{remoto.tipo}] {remoto.mensagem}")
-            return remoto
-        except BaseException:
-            raise _ErroDesconhecido(rt)
-
-    def __json_it(self, r: Response) -> Any:
-        try:
-            return r.json()
-        except BaseException:
-            raise _ErroDesconhecido(r.text)
-
-    # def __unwrap[T, X](self, r: Response, t: type[T] | None, x: type[X]]) -> T | X: # PEP 695
-    def __unwrap(self, r: Response, t: type[_T], x: type[_X]) -> _T | _X:
-        self.__cookies = dict(r.cookies)
-        print(self.__cookies)
-        j: Any = self.__json_it(r)
-        erro: _ErroRemoto | None = self.__json_validate(j, r.text)
-        if erro is not None:
-            return erro.raise_it(x)
-        if t is type(None):
-            from_dict(data_class = Ok, data = j["conteudo"], config = Config(cast = [Enum, IntEnum]))
-            return None  # type: ignore
-        return from_dict(data_class = t, data = j["conteudo"], config = Config(cast = [Enum, IntEnum]))
+def _eval(error_type: str, error_message: str) -> Any:
+    if error_type not in _exceptions_names:
+        raise NameError(error_type)
+    return _exceptions_names[error_type]()
 
 
 class ServicosClient(Servicos):
 
     def __init__(self, url: str) -> None:
-        self.__requester: _Requester = _Requester(url)
+        stt: RequesterStrategy = RequesterStrategy(_sucesso, _error_maker, Ok, _result_maker, _eval)
+        self.__requester: Requester = Requester(url, stt)
 
     @property
     @override
@@ -229,26 +120,27 @@ class ServicosClient(Servicos):
 
 class _ServicoBDClient(ServicoBD):
 
-    def __init__(self, requester: _Requester) -> None:
-        self.__requester: _Requester = requester
-
-    @override
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
-        raise NotImplementedError("Não implementado")
+    def __init__(self, requester: Requester) -> None:
+        self.__requester: Requester = requester
 
     @override
     def criar_bd(self) -> None:
         raise NotImplementedError("Não implementado")
 
     @override
-    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
-        raise NotImplementedError("Não implementado")
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE | _CBE:
+        return self.__requester.put(
+            f"/admin/nome/{dados.login}",
+            dados.internos,
+            UsuarioComChave,
+            typed(_VIE).join(_UJEE).join(_CBE).end
+        )
 
 
 class _ServicoUsuarioClient(ServicoUsuario):
 
-    def __init__(self, requester: _Requester) -> None:
-        self.__requester: _Requester = requester
+    def __init__(self, requester: Requester) -> None:
+        self.__requester: Requester = requester
 
     @override
     def login(self, quem_faz: LoginComSenha) -> UsuarioComChave | _UBE | _SEE:
@@ -314,8 +206,8 @@ class _ServicoUsuarioClient(ServicoUsuario):
 
 class _ServicoSegredoClient(ServicoSegredo):
 
-    def __init__(self, requester: _Requester) -> None:
-        self.__requester: _Requester = requester
+    def __init__(self, requester: Requester) -> None:
+        self.__requester: Requester = requester
 
     @override
     def criar(self, dados: SegredoSemChave) -> SegredoComChave | _UNLE | _UBE | _UNEE | _CNEE | _LEE | _VIE:
@@ -349,8 +241,8 @@ class _ServicoSegredoClient(ServicoSegredo):
 
 class _ServicoCategoriaClient(ServicoCategoria):
 
-    def __init__(self, requester: _Requester) -> None:
-        self.__requester: _Requester = requester
+    def __init__(self, requester: Requester) -> None:
+        self.__requester: Requester = requester
 
     @override
     def buscar_por_nome(self, dados: NomeCategoria) -> CategoriaComChave | _UNLE | _UBE | _CNEE | _LEE:
@@ -381,7 +273,11 @@ class _ServicoCategoriaClient(ServicoCategoria):
 
     @override
     def excluir_por_nome(self, dados: NomeCategoria) -> None | _UNLE | _UBE | _PNE | _CNEE | _LEE | _ESCE:
-        return self.__requester.delete(f"/categorias/nome/{dados.nome}", type(None), typed(_UNLE).join(_UBE).join(_PNE).join(_CNEE).join(_LEE).join(_ESCE).end)
+        return self.__requester.delete(
+            f"/categorias/nome/{dados.nome}",
+            type(None),
+            typed(_UNLE).join(_UBE).join(_PNE).join(_CNEE).join(_LEE).join(_ESCE).end
+        )
 
     @override
     def listar(self) -> ResultadoListaDeCategorias | _UNLE | _UBE | _LEE:

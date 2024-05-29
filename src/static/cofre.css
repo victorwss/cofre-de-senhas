@@ -1,0 +1,60 @@
+.mensagem, .erro {
+    font-weight: bold;
+    padding: 10px;
+    margin: 10px;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.mensagem {
+    color: #008000;
+    background-color: #80ff80;
+    border-color: #008000;
+}
+
+.erro {
+    color: #800000;
+    background-color: #ff8080;
+    border-color: #800000;
+}
+
+a, button, input[type='button'], .upload {
+    color: blue;
+    background-color: cyan;
+    border-style: solid;
+    border-width: 1px;
+    border-color: blue;
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.upload {
+    position: relative;
+}
+
+input[type='file'] {
+    position: absolute;
+    left: 0;
+    opacity: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    cursor: pointer;
+}
+
+header {
+    color: black;
+    background-color: yellow;
+    padding: 15px;
+    font-weight: bold;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+}

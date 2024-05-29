@@ -329,17 +329,58 @@ _R = TypeVar("_R")
 
 
 def test_with_paramspec() -> None:
+    z: str = "A"
+
     def foo(what: Callable[_P, _R]) -> Callable[_P, _R]:
         def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
-            assert False
+            nonlocal z
+            assert z == "A"
+            out: _R = what(*args, **kwargs)
+            assert z == "B"
+            z = "C"
+            return out
         return inner
 
-    def bar() -> None:
-        assert False
+    def bar(x: str, y: int) -> None:
+        nonlocal z
+        assert x == "X"
+        assert y == 7
+        z = "B"
 
     @dataclass_validate
     @dataclass(frozen = True)
     class WithParamSpec:
         jj: Callable[..., Any]
 
-    WithParamSpec(foo(bar))
+    t1: WithParamSpec = WithParamSpec(foo(bar))
+    assert z == "A"
+    t1.jj("X", 7)
+    assert z == "C"
+
+
+def test_with_generic_type_param() -> None:
+    z: str = "A"
+
+    @dataclass_validate
+    @dataclass(frozen = True)
+    class HasCallableTyped:
+        u: Callable[[type[_R]], _R]
+
+    def foo(x: type[_R]) -> _R:
+        nonlocal z
+        if x == str:
+            assert z == "A"
+            z = "B"
+            return "Y"  # type: ignore
+        if x == int:
+            assert z == "B"
+            z = "C"
+            return 42  # type: ignore
+        assert False
+
+    t1: HasCallableTyped = HasCallableTyped(foo)
+    assert z == "A"
+    assert t1.u(str) == "Y"
+    assert z == "B"
+    assert t1.u(int) == 42
+    assert z == "C"

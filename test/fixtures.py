@@ -41,7 +41,7 @@ class DbTestConfig(ABC):
 
     @property
     @abstractmethod
-    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    def local_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
         pass
 
     @property
@@ -50,15 +50,10 @@ class DbTestConfig(ABC):
         pass
 
     @property
-    @abstractmethod
-    def config(self) -> DatabaseConfig:
-        pass
-
-    @property
     def transacted(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
         def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
-            @self.decorator
+            @self.local_decorator
             def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
                 @self.conn.transact
                 def innermost() -> _R:
@@ -108,11 +103,10 @@ class SqliteTestConfig(DbTestConfig):
         super().__init__("?", "Sqlite", sandbox, inner)
         self.__pristine: str = pristine
         self.__sandbox: str = sandbox
-        self.__cfg: DatabaseConfig = DatabaseConfig("sqlite", {"file_name": sandbox})
 
     @property
     @override
-    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    def local_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
         def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
             def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
@@ -146,18 +140,19 @@ class SqliteTestConfig(DbTestConfig):
 
                 shutil.copy2(self.__pristine, self.__sandbox)
 
+                # self._set_conn(self._maker())
                 try:
                     return call_this(*args, **kwargs)
                 finally:
+                    # self._del_conn()
                     os.remove(self.__sandbox)
 
             return inner
         return middle
 
     @property
-    @override
-    def config(self) -> DatabaseConfig:
-        return self.__cfg
+    def sandbox(self) -> str:
+        return self.__sandbox
 
 
 class MariaDbTestConfig(DbTestConfig):
@@ -172,7 +167,7 @@ class MariaDbTestConfig(DbTestConfig):
 
     @property
     @override
-    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    def local_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
         def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
             def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
@@ -191,11 +186,6 @@ class MariaDbTestConfig(DbTestConfig):
     @property
     @override
     def remote_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
-        assert False
-
-    @property
-    @override
-    def config(self) -> DatabaseConfig:
         assert False
 
 
@@ -211,7 +201,7 @@ class MysqlTestConfig(DbTestConfig):
 
     @property
     @override
-    def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    def local_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
         def middle(call_this: Callable[_P, _R]) -> Callable[_P, _R]:
             @wraps(call_this)
             def inner(*args: _P.args, **kwargs: _P.kwargs) -> _R:
@@ -230,11 +220,6 @@ class MysqlTestConfig(DbTestConfig):
     @property
     @override
     def remote_decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
-        assert False
-
-    @property
-    @override
-    def config(self) -> DatabaseConfig:
         assert False
 
 
@@ -569,15 +554,24 @@ class ContextoServico:
     def servicos(self) -> Servicos:
         pass
 
+    @abstractmethod
+    def local_connect(self) -> TransactedConnection:
+        pass
+
 
 class ContextoServicoLocal(ContextoServico):
 
-    def __init__(self, serv: Servicos) -> None:
+    def __init__(self, serv: Servicos, conn: TransactedConnection) -> None:
         self.__serv: Servicos = serv
+        self.__conn: TransactedConnection = conn
 
     @property
     def servicos(self) -> Servicos:
         return self.__serv
+
+    @override
+    def local_connect(self) -> TransactedConnection:
+        return self.__conn
 
 
 class ContextoOperacao(ABC):
@@ -624,7 +618,7 @@ class ContextoOperacaoLocal(ContextoOperacao):
 
     @property
     def conn(self) -> TransactedConnection:
-        return self.__db.conn
+        return self.db.conn
 
     @override
     def servicos_normal(self) -> ContextoServicoLocal:
@@ -679,7 +673,7 @@ class ContextoOperacaoLocal(ContextoOperacao):
     @property
     def __make(self) -> ContextoServicoLocal:
         assert self.__gl is not None
-        return ContextoServicoLocal(ServicosImpl(self.__gl, self.conn))
+        return ContextoServicoLocal(ServicosImpl(self.__gl, self.conn), self.conn)
 
     def verificar(self) -> None:
         assert isinstance(self.__gl, GerenciadorFazLogin) or isinstance(self.__gl, GerenciadorLogout)
@@ -688,13 +682,13 @@ class ContextoOperacaoLocal(ContextoOperacao):
     @property
     @override
     def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
-        return self.__db.decorator
+        return self.db.local_decorator
 
 
 class ContextoServicoRemoto(ContextoServico):
 
-    def __init__(self, db: DatabaseConfig, login: str | None, senha: str | None, modo: str) -> None:
-        self.__db: DatabaseConfig = db
+    def __init__(self, dbtcfg: SqliteTestConfig, login: str | None, senha: str | None, modo: str) -> None:
+        self.__cfg: DatabaseConfig = DatabaseConfig("sqlite", {"file_name": dbtcfg.sandbox})
         self.__sair: Callable[[], None] | None = None
         self.__inner: Servicos | None = None
         self.__login: str | None = login
@@ -704,15 +698,15 @@ class ContextoServicoRemoto(ContextoServico):
     def __enter__(self) -> Self:
         ok: bool = False
         try:
-            self.__sair = servir(5000, self.__db)
+            self.__sair = servir(5000, self.__cfg)
             self.__inner = ServicosClient("http://127.0.0.1:5000")
             if self.__login is not None and self.__senha is not None:
 
                 if self.__modo == "UPDATE":
-                    with self.__db.connect() as t:
+                    with self.local_connect() as t:
                         t.execute("UPDATE usuario SET fk_nivel_acesso = 1 WHERE login = ?", [self.__login])
                 if self.__modo == "CREATE":
-                    with self.__db.connect() as t:
+                    with self.local_connect() as t:
                         t.execute("INSERT INTO usuario (login, fk_nivel_acesso, hash_com_sal) VALUES (?, 1, ?)", [self.__login, avada_kedavra])
 
                 x: UsuarioComChave | BaseException = self.__inner.usuario.login(LoginComSenha(self.__login, self.__senha))
@@ -720,10 +714,10 @@ class ContextoServicoRemoto(ContextoServico):
                     raise x
 
                 if self.__modo == "UPDATE":
-                    with self.__db.connect() as t:
+                    with self.local_connect() as t:
                         t.execute("UPDATE usuario SET fk_nivel_acesso = 0 WHERE login = ?", [self.__login])
                 if self.__modo == "CREATE":
-                    with self.__db.connect() as t:
+                    with self.local_connect() as t:
                         t.execute("DELETE FROM usuario WHERE login = ?", [self.__login])
             ok = True
             return self
@@ -750,44 +744,47 @@ class ContextoServicoRemoto(ContextoServico):
         assert self.__inner is not None
         return self.__inner
 
+    @override
+    def local_connect(self) -> TransactedConnection:
+        return self.__cfg.connect()
+
 
 class ContextoOperacaoRemoto(ContextoOperacao):
 
-    def __init__(self, db: DbTestConfig) -> None:
-        self.__db: DbTestConfig = db
-        self.__cfg: DatabaseConfig = db.config
+    def __init__(self, dbtcfg: SqliteTestConfig) -> None:
+        self.__dbtcfg: SqliteTestConfig = dbtcfg
 
     @override
     def servicos_normal(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Harry Potter", "alohomora", "OK")
+        return ContextoServicoRemoto(self.__dbtcfg, "Harry Potter", "alohomora", "OK")
 
     @override
     def servicos_normal2(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Hermione", "expelliarmus", "OK")
+        return ContextoServicoRemoto(self.__dbtcfg, "Hermione", "expelliarmus", "OK")
 
     @override
     def servicos_admin(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Dumbledore", "expecto patronum", "OK")
+        return ContextoServicoRemoto(self.__dbtcfg, "Dumbledore", "expecto patronum", "OK")
 
     @override
     def servicos_banido(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, "Voldemort", "avada kedavra", "UPDATE")
+        return ContextoServicoRemoto(self.__dbtcfg, "Voldemort", "avada kedavra", "UPDATE")
 
     @override
     def servicos_usuario_nao_existe(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, lixo4, "avada kedavra", "CREATE")
+        return ContextoServicoRemoto(self.__dbtcfg, lixo4, "avada kedavra", "CREATE")
 
     @override
     def servicos_nao_logar(self) -> ContextoServico:
-        return ContextoServicoRemoto(self.__cfg, None, None, "OK")
+        return ContextoServicoRemoto(self.__dbtcfg, None, None, "OK")
 
     @property
     @override
     def decorator(self) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
-        return self.__db.remote_decorator
+        return self.__dbtcfg.remote_decorator
 
 
-mysql_clear: str = read_all("src/mariadb-create.sql").replace("$$$$", "test_cofre") + "\n" + read_all("test/test-mass.sql")
+mysql_clear: str = read_all("src/mariadb-create.sql") + "\n" + read_all("test/test-mass.sql")
 mysql_reset: str = read_all("test/create-fruits-mysql.sql")
 sqlite_create: str = read_all("test/create-fruits-sqlite.sql")
 
@@ -829,12 +826,9 @@ ctxs_remoto: dict[str, ContextoOperacaoRemoto] = {
     "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E202,E203
 }
 
-ctxs: dict[str, ContextoOperacao] = {
-    "sqlite" : ContextoOperacaoLocal (sqlite_db ),  # noqa: E202,E203,E211
-    "mysql"  : ContextoOperacaoLocal (mysql_db  ),  # noqa: E202,E203,E211
-    "mariadb": ContextoOperacaoLocal (mariadb_db),  # noqa: E202,E203,E211
-    "remoto" : ContextoOperacaoRemoto(sqlite_db )   # noqa: E202,E203,E211
-}
+ctxs: dict[str, ContextoOperacao] = {}
+ctxs.update(ctxs_local)
+ctxs.update(ctxs_remoto)
 
 
 def assert_db_ok(db: DbTestConfig) -> None:
@@ -866,7 +860,7 @@ def applier(appliances: _E, pretest: _A = _do_nothing) -> Callable[[_A], _D]:
             pretest(dbc)
 
             @wraps(applied)
-            @dbc.decorator
+            @dbc.local_decorator
             def call() -> None:
                 applied(dbc)
 

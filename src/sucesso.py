@@ -75,3 +75,10 @@ class ConteudoIncompreensivelException(Exception, Status):
     @property
     def status(self) -> int:
         return 422
+
+
+class ConteudoBloqueadoException(Exception, Status):
+    @override
+    @property
+    def status(self) -> int:
+        return 423

@@ -70,10 +70,6 @@ class Segredo:
                 return SegredoNaoExisteException()
             return PermissaoNegadaException()
 
-    # @property
-    # def __chave(self) -> ChaveSegredo:
-    #     return ChaveSegredo(self.pk_segredo)
-
     @property
     def _pk(self) -> SegredoPK:
         return self.cabecalho.pk

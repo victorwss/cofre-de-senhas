@@ -1,5 +1,5 @@
 from ..fixtures import (
-    applier_ctx, applier_ctx_local, applier_ctx_remoto, ContextoOperacao, ContextoOperacaoLocal, ContextoOperacaoRemoto,
+    applier_ctx, applier_ctx_local, ContextoOperacao, ContextoOperacaoLocal,
     harry_potter, voldemort, dumbledore, hermione, snape,
     lixo4,
     GerenciadorLogout, no_transaction
@@ -14,8 +14,8 @@ from cofre_de_senhas.erro import (
     UsuarioNaoExisteException, UsuarioJaExisteException,
     ValorIncorretoException
 )
+from sucesso import ConteudoBloqueadoException
 from cofre_de_senhas.service_impl import ServicosImpl
-from pytest import raises
 
 
 tudo: ResultadoListaDeUsuarios = ResultadoListaDeUsuarios([
@@ -751,8 +751,16 @@ def test_alterar_nivel_por_login_UNEE(ctx: ContextoOperacao) -> None:
 # Método criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
 
 
-@applier_ctx_local
-def test_criar_admin_ok(ctx: ContextoOperacaoLocal) -> None:
+def fechar_cofre(ctx: ContextoOperacao) -> None:
+    with ctx.servicos_nao_logar() as s:
+        with s.local_connect() as t:
+            sql: str = "UPDATE usuario SET fk_nivel_acesso = 0"
+            t.execute(sql)
+
+
+@applier_ctx
+def test_criar_admin_ok(ctx: ContextoOperacao) -> None:
+    fechar_cofre(ctx)
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         dados: LoginComSenha = LoginComSenha(snape.login, "sectumsempra")
@@ -761,8 +769,9 @@ def test_criar_admin_ok(ctx: ContextoOperacaoLocal) -> None:
         assert x == UsuarioComChave(ChaveUsuario(snape.pk_usuario), snape.login, NivelAcesso.CHAVEIRO_DEUS_SUPREMO)
 
 
-@applier_ctx_local
-def test_criar_admin_UJEE(ctx: ContextoOperacaoLocal) -> None:
+@applier_ctx
+def test_criar_admin_UJEE(ctx: ContextoOperacao) -> None:
+    fechar_cofre(ctx)
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         dados: LoginComSenha = LoginComSenha(dumbledore.login, "xxx")
@@ -771,8 +780,9 @@ def test_criar_admin_UJEE(ctx: ContextoOperacaoLocal) -> None:
         assert isinstance(x, UsuarioJaExisteException)
 
 
-@applier_ctx_local
-def test_criar_admin_VIE_vazio(ctx: ContextoOperacaoLocal) -> None:
+@applier_ctx
+def test_criar_admin_VIE_vazio(ctx: ContextoOperacao) -> None:
+    fechar_cofre(ctx)
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         dados: LoginComSenha = LoginComSenha("", "xxx")
@@ -781,8 +791,9 @@ def test_criar_admin_VIE_vazio(ctx: ContextoOperacaoLocal) -> None:
         assert isinstance(x, ValorIncorretoException)
 
 
-@applier_ctx_local
-def test_criar_admin_VIE_curto(ctx: ContextoOperacaoLocal) -> None:
+@applier_ctx
+def test_criar_admin_VIE_curto(ctx: ContextoOperacao) -> None:
+    fechar_cofre(ctx)
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         dados: LoginComSenha = LoginComSenha("abc", "xxx")
@@ -791,8 +802,9 @@ def test_criar_admin_VIE_curto(ctx: ContextoOperacaoLocal) -> None:
         assert isinstance(x, ValorIncorretoException)
 
 
-@applier_ctx_local
-def test_criar_admin_VIE_longo(ctx: ContextoOperacaoLocal) -> None:
+@applier_ctx
+def test_criar_admin_VIE_longo(ctx: ContextoOperacao) -> None:
+    fechar_cofre(ctx)
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         dados: LoginComSenha = LoginComSenha("1234567890" * 5 + "1", "xxx")
@@ -801,11 +813,11 @@ def test_criar_admin_VIE_longo(ctx: ContextoOperacaoLocal) -> None:
         assert isinstance(x, ValorIncorretoException)
 
 
-@applier_ctx_remoto
-def test_criar_admin_remoto(ctx: ContextoOperacaoRemoto) -> None:
+@applier_ctx
+def test_criar_admin_CBE(ctx: ContextoOperacao) -> None:
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
         dados: LoginComSenha = LoginComSenha(snape.login, "sectumsempra")
 
-        with raises(NotImplementedError):
-            s.bd.criar_admin(dados)
+        x: UsuarioComChave | BaseException = s.bd.criar_admin(dados)
+        assert isinstance(x, ConteudoBloqueadoException)

@@ -10,6 +10,21 @@ from .erro import (
     SegredoNaoExisteException,
     ValorIncorretoException, ExclusaoSemCascataException
 )
+from sucesso import ConteudoBloqueadoException
+
+_UNLE: TypeAlias = UsuarioNaoLogadoException
+_UBE: TypeAlias = UsuarioBanidoException
+_PNE: TypeAlias = PermissaoNegadaException
+_UNEE: TypeAlias = UsuarioNaoExisteException
+_UJEE: TypeAlias = UsuarioJaExisteException
+_CNEE: TypeAlias = CategoriaNaoExisteException
+_CJEE: TypeAlias = CategoriaJaExisteException
+_SNEE: TypeAlias = SegredoNaoExisteException
+_SEE: TypeAlias = SenhaErradaException
+_VIE: TypeAlias = ValorIncorretoException
+_LEE: TypeAlias = LoginExpiradoException
+_ESCE: TypeAlias = ExclusaoSemCascataException
+_CBE: TypeAlias = ConteudoBloqueadoException
 
 
 class NivelAcesso(IntEnum):
@@ -123,6 +138,18 @@ class RenomeUsuario:
 
 @dataclass_validate
 @dataclass(frozen = True)
+class LoginUsuario:
+    login: str
+
+
+@dataclass_validate
+@dataclass(frozen = True)
+class SenhaUsuario:
+    senha: str
+
+
+@dataclass_validate
+@dataclass(frozen = True)
 class LoginComSenha:
     login: str
     senha: str
@@ -130,11 +157,9 @@ class LoginComSenha:
     def com_nivel(self, nivel_acesso: NivelAcesso) -> "UsuarioNovo":
         return UsuarioNovo(self.login, nivel_acesso, self.senha)
 
-
-@dataclass_validate
-@dataclass(frozen = True)
-class LoginUsuario:
-    login: str
+    @property
+    def internos(self) -> SenhaUsuario:
+        return SenhaUsuario(self.senha)
 
 
 @dataclass_validate
@@ -254,20 +279,6 @@ class PesquisaSegredos:
     categorias: list[str]
 
 
-_UNLE: TypeAlias = UsuarioNaoLogadoException
-_UBE: TypeAlias = UsuarioBanidoException
-_PNE: TypeAlias = PermissaoNegadaException
-_UNEE: TypeAlias = UsuarioNaoExisteException
-_UJEE: TypeAlias = UsuarioJaExisteException
-_CNEE: TypeAlias = CategoriaNaoExisteException
-_CJEE: TypeAlias = CategoriaJaExisteException
-_SNEE: TypeAlias = SegredoNaoExisteException
-_SEE: TypeAlias = SenhaErradaException
-_VIE: TypeAlias = ValorIncorretoException
-_LEE: TypeAlias = LoginExpiradoException
-_ESCE: TypeAlias = ExclusaoSemCascataException
-
-
 class GerenciadorLogin(ABC):
 
     @abstractmethod
@@ -287,15 +298,11 @@ class GerenciadorLogin(ABC):
 class ServicoBD(ABC):
 
     @abstractmethod
-    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE:
+    def criar_admin(self, dados: LoginComSenha) -> UsuarioComChave | _VIE | _UJEE | _CBE:
         pass
 
     @abstractmethod
     def criar_bd(self) -> None:
-        pass
-
-    @abstractmethod
-    def buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE:
         pass
 
 

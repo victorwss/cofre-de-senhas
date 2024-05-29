@@ -165,6 +165,11 @@ class CofreDeSenhasDAO(DAO):
     def criar_bd(self) -> None:
         pass
 
+    @property
+    @abstractmethod
+    def aplicacao_aberta(self) -> bool:
+        pass
+
 
 class SegredoDAO(DAO):
 

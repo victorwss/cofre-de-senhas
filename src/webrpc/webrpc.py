@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from flask import Flask, make_response, request, Response
-from typing import Any, Callable, Generic, TypeVar
+from flask import Flask, make_response, request
+from typing import Any, Callable, Generic, ParamSpec, TypeVar
 from inspect import signature, Signature, Parameter
 from werkzeug.datastructures.file_storage import FileStorage
+from werkzeug import Response
 from sucesso import RequisicaoMalFormadaException
 from httpwrap import handler, read_body
 from functools import wraps
@@ -11,9 +12,10 @@ import sys
 import traceback
 
 
+_P = ParamSpec("_P")
 _X = TypeVar("_X")
-_RS = Response | str
-_T = TypeVar("_T", bound = Callable[..., _RS | tuple[_RS, int]])
+_C = Callable[_P, tuple[Response, int]]
+_D = Callable[[], tuple[Response, int]]
 
 
 def or_default(default: str | None, data: str | None) -> str:
@@ -69,7 +71,7 @@ def from_path_int(param_name: str) -> WebParam[int]:
     return WebParam(param_name, int, inner, True)
 
 
-def from_path_float(param_name: str,) -> WebParam[float]:
+def from_path_float(param_name: str) -> WebParam[float]:
     def inner() -> float:
         return parse_float(or_throw(or_throw(request.view_args).get(param_name)))
     return WebParam(param_name, float, inner, True)
@@ -293,16 +295,14 @@ class WebSuite:
     def js_stubs(self) -> str:
         return "".join(self.__js_stubs) + _last_skeleton
 
-    def hidden_route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
+    def hidden_route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_C[Any]], _D]:
         return self.flaskenify(WebMethod(method, url_template, [*params]), True)
 
-    def route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
+    def route(self, method: str, url_template: str, *params: WebParam[Any]) -> Callable[[_C[Any]], _D]:
         return self.flaskenify(WebMethod(method, url_template, [*params]), False)
 
-    def flaskenify(self, wm: WebMethod, hidden: bool) -> Callable[[_T], Callable[[], tuple[_RS, int]]]:
-        def middle(what: _T) -> Callable[[], tuple[_RS, int]]:
-            # args_names: tuple[str, ...] = what.__code__.co_varnames[:what.__code__.co_argcount]
-
+    def flaskenify(self, wm: WebMethod, hidden: bool) -> Callable[[_C[Any]], _D]:
+        def middle(what: _C[Any]) -> _D:
             s: Signature = signature(what)
             if len(s.parameters) != len(wm.params):
                 raise Exception(f"Function parameters and web parameters length mismatch ({s.parameters}) - ({wm.params}).")
@@ -313,16 +313,11 @@ class WebSuite:
 
             @handler
             @wraps(what)
-            def inner() -> tuple[_RS, int]:
+            def inner() -> tuple[Response, int]:
                 request.get_data()  # Ensure caching
                 try:
                     params: list[Any] = wm.handle()
-                    f: _RS | tuple[_RS, int] = what(*params)
-                    if isinstance(f, Response):
-                        return f, 200
-                    if isinstance(f, str):
-                        return f, 200
-                    return f
+                    return what(*params)
                 except BaseException as x:
                     traceback.print_exc(file = sys.stdout)
                     raise x

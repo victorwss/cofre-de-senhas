@@ -1,3 +1,4 @@
+from typing import cast
 from ..fixtures import (
     applier_ctx, applier_ctx_local, applier_ctx_remoto, ContextoOperacao, ContextoOperacaoLocal, ContextoOperacaoRemoto,
     segredo_m1, dbz, lotr, star_wars, oppenheimer, star_trek
@@ -14,6 +15,8 @@ from cofre_de_senhas.service import (
     ResultadoPesquisaDeSegredos, CabecalhoSegredoComChave,
     TipoSegredo, TipoPermissao
 )
+from sucesso import ConteudoBloqueadoException
+from cofre_de_senhas.service_impl import ServicosImpl
 from pytest import raises
 
 
@@ -24,7 +27,6 @@ c_star_wars  : CabecalhoSegredoComChave = CabecalhoSegredoComChave(ChaveSegredo(
 c_oppenheimer: CabecalhoSegredoComChave = CabecalhoSegredoComChave(ChaveSegredo(oppenheimer.pk_segredo), oppenheimer.nome, oppenheimer.descricao, TipoSegredo.CONFIDENCIAL)  # noqa: E201,E202,E203,E501
 c_star_trek  : CabecalhoSegredoComChave = CabecalhoSegredoComChave(ChaveSegredo(star_trek  .pk_segredo), star_trek  .nome, star_trek  .descricao, TipoSegredo.PUBLICO     )  # noqa: E201,E202,E203,E501
 c_star_trek_2: CabecalhoSegredoComChave = CabecalhoSegredoComChave(ChaveSegredo(star_trek  .pk_segredo), star_trek  .nome, star_trek  .descricao, TipoSegredo.CONFIDENCIAL)  # noqa: E201,E202,E203,E501
-
 
 tudo                : ResultadoPesquisaDeSegredos = ResultadoPesquisaDeSegredos([c_m1, c_dbz, c_lotr, c_star_wars, c_oppenheimer               ])  # noqa: E202,E203,E501
 nem_tudo            : ResultadoPesquisaDeSegredos = ResultadoPesquisaDeSegredos([c_m1, c_dbz, c_lotr, c_star_wars                              ])  # noqa: E202,E203,E501
@@ -598,37 +600,60 @@ def test_buscar_por_chave_SNEE(ctx: ContextoOperacao) -> None:
         assert isinstance(x, SegredoNaoExisteException)
 
 
-# Método buscar_por_chave_sem_logar(self, chave: ChaveSegredo) -> SegredoComChave | _SNEE
+# Propriedade chave_secreta -> str | _CBE
 
 
 @applier_ctx_local
-def test_buscar_por_chave_sem_logar_ok(ctx: ContextoOperacaoLocal) -> None:
-    original: SegredoComChave = criar_segredo_normal(ctx)
-
+def test_buscar_chave_secreta_ok(ctx: ContextoOperacaoLocal) -> None:
     with ctx.servicos_nao_logar() as r:
-        s: Servicos = r.servicos
-        x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(original.chave)
-        assert x == original
+        s: ServicosImpl = cast(ServicosImpl, r.servicos)
+        x: str | BaseException = s.chave_secreta
+        assert x == "0123456789ABCDEFFEDCBA9876543210"
 
 
 @applier_ctx_local
-def test_buscar_por_chave_sem_logar_SNEE(ctx: ContextoOperacaoLocal) -> None:
-    chave: ChaveSegredo = ChaveSegredo(9999)
+def test_buscar_chave_secreta_CBE_1(ctx: ContextoOperacaoLocal) -> None:
+    with ctx.servicos_nao_logar() as r1:
+        with r1.local_connect() as t:
+            t.execute("DELETE FROM campo_segredo WHERE pfk_segredo = -1")
 
-    with ctx.servicos_nao_logar() as r:
-        s: Servicos = r.servicos
-        x: SegredoComChave | BaseException = s.bd.buscar_por_chave_sem_logar(chave)
-        assert isinstance(x, SegredoNaoExisteException)
+    with ctx.servicos_nao_logar() as r2:
+        s: ServicosImpl = cast(ServicosImpl, r2.servicos)
+        x: str | BaseException = s.chave_secreta
+        assert isinstance(x, ConteudoBloqueadoException)
+
+
+@applier_ctx_local
+def test_buscar_chave_secreta_CBE_2(ctx: ContextoOperacaoLocal) -> None:
+    with ctx.servicos_nao_logar() as r1:
+        with r1.local_connect() as t:
+            t.execute("DELETE FROM campo_segredo WHERE pfk_segredo = -1")
+            t.execute("DELETE FROM segredo WHERE pk_segredo = -1")
+
+    with ctx.servicos_nao_logar() as r2:
+        s: ServicosImpl = cast(ServicosImpl, r2.servicos)
+        x: str | BaseException = s.chave_secreta
+        assert isinstance(x, ConteudoBloqueadoException)
+
+
+@applier_ctx_local
+def test_buscar_chave_secreta_CBE_3(ctx: ContextoOperacaoLocal) -> None:
+    with ctx.servicos_nao_logar() as r1:
+        with r1.local_connect() as t:
+            t.execute("UPDATE campo_segredo SET pk_nome = 'wtf zoado wtf' WHERE pk_nome = 'Chave da sessão'")
+
+    with ctx.servicos_nao_logar() as r2:
+        s: ServicosImpl = cast(ServicosImpl, r2.servicos)
+        x: str | BaseException = s.chave_secreta
+        assert isinstance(x, ConteudoBloqueadoException)
 
 
 @applier_ctx_remoto
-def test_buscar_por_chave_sem_logar_remoto(ctx: ContextoOperacaoRemoto) -> None:
-    original: SegredoComChave = criar_segredo_normal(ctx)
-
+def test_buscar_chave_secreta_remoto(ctx: ContextoOperacaoRemoto) -> None:
     with ctx.servicos_nao_logar() as r:
         s: Servicos = r.servicos
-        with raises(NotImplementedError):
-            s.bd.buscar_por_chave_sem_logar(original.chave)
+        with raises(AttributeError):
+            s.chave_secreta  # type: ignore
 
 
 # Método alterar_por_chave(self, dados: SegredoComChave) -> None | _UNLE | _UNEE | _UBE | _SNEE | _PNE | _CNEE | _LEE
