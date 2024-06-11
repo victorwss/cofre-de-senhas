@@ -53,7 +53,10 @@ class WebParam(Generic[_X]):
     name: str
     key: type[_X]
     func: Callable[[], _X]
+    js_snippet: str
     on_path_to_flask: bool
+    full_body: bool
+    body_type: str
 
     def handle(self) -> _X:
         return self.func()
@@ -62,97 +65,106 @@ class WebParam(Generic[_X]):
 def from_path(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return or_throw(or_throw(request.view_args).get(param_name))
-    return WebParam(param_name, str, inner, True)
+    return WebParam(param_name, str, inner, "", True, False, "")
 
 
 def from_path_int(param_name: str) -> WebParam[int]:
     def inner() -> int:
         return parse_int(or_throw(or_throw(request.view_args).get(param_name)))
-    return WebParam(param_name, int, inner, True)
+    return WebParam(param_name, int, inner, "", True, False, "")
 
 
 def from_path_float(param_name: str) -> WebParam[float]:
     def inner() -> float:
         return parse_float(or_throw(or_throw(request.view_args).get(param_name)))
-    return WebParam(param_name, float, inner, True)
+    return WebParam(param_name, float, inner, "", True, False, "")
 
 
 def from_query_string(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
         return or_throw(or_default(default, request.args.get(param_name)))
-    return WebParam(param_name, str, inner, False)
+    js: str = f'__qs.push(["${param_name}", [${param_name}]]);'
+    return WebParam(param_name, str, inner, js, False, False, "")
 
 
 def from_query_string_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.args.getlist(param_name)
-    return WebParam(param_name, list[str], inner, False)
+    js: str = f'__qs.push(["${param_name}", ${param_name}]);'
+    return WebParam(param_name, list[str], inner, js, False, False, "")
 
 
 def from_file(param_name: str) -> WebParam[FileStorage]:
     def inner() -> FileStorage:
         return or_throw(request.files.get(param_name))
-    return WebParam(param_name, FileStorage, inner, False)
+    return WebParam(param_name, FileStorage, inner, "", False, False, "multipart")
 
 
 def from_file_multi(param_name: str) -> WebParam[list[FileStorage]]:
     def inner() -> list[FileStorage]:
         return request.files.getlist(param_name)
-    return WebParam(param_name, list[FileStorage], inner, False)
+    return WebParam(param_name, list[FileStorage], inner, "", False, False, "multipart")
 
 
 def from_header(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
         return or_throw(or_default(default, request.headers.get(param_name)))
-    return WebParam(param_name, str, inner, False)
+    js: str = f'__hs.push(["${param_name}", [${param_name}]]);'
+    return WebParam(param_name, str, inner, js, False, False, "")
 
 
 def from_header_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.headers.getlist(param_name)
-    return WebParam(param_name, list[str], inner, False)
+    js: str = f'__hs.push(["${param_name}", ${param_name}]);'
+    return WebParam(param_name, list[str], inner, js, False, False, "")
 
 
 def from_form(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
         return or_throw(or_default(default, request.form.get(param_name)))
-    return WebParam(param_name, str, inner, False)
+    js: str = f'__body.body.push(["${param_name}", [${param_name}]]);'
+    return WebParam(param_name, str, inner, js, False, False, "multipart")
 
 
 def from_form_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.form.getlist(param_name)
-    return WebParam(param_name, list[str], inner, False)
+    js: str = f'__body.body.push(["${param_name}", ${param_name}]);'
+    return WebParam(param_name, list[str], inner, js, False, False, "multipart")
 
 
 def from_cookie(param_name: str, default: str | None = None) -> WebParam[str]:
     def inner() -> str:
         return or_throw(or_default(default, request.cookies.get(param_name)))
-    return WebParam(param_name, str, inner, False)
+    return WebParam(param_name, str, inner, "", False, False, "")
 
 
 def from_cookie_multi(param_name: str) -> WebParam[list[str]]:
     def inner() -> list[str]:
         return request.cookies.getlist(param_name)
-    return WebParam(param_name, list[str], inner, False)
+    return WebParam(param_name, list[str], inner, "", False, False, "")
 
 
 def from_body_bytes(param_name: str) -> WebParam[bytes]:
     def inner() -> bytes:
         return request.get_data()
-    return WebParam(param_name, bytes, inner, False)
+    js: str = f'__body.body = {param_name};'
+    return WebParam(param_name, bytes, inner, js, False, True, "")
 
 
 def from_body(param_name: str) -> WebParam[str]:
     def inner() -> str:
         return request.get_data(as_text = True)
-    return WebParam(param_name, str, inner, False)
+    js: str = f'__body.body = {param_name};'
+    return WebParam(param_name, str, inner, js, False, True, "")
 
 
 def from_body_typed(param_name: str, target: type[_X], *, json: bool = True, urlencoded: bool = True, multipart: bool = True) -> WebParam[_X]:
     def inner() -> _X:
         return read_body(target, json = json, urlencoded = urlencoded, multipart = multipart)
-    return WebParam(param_name, target, inner, False)
+    js: str = f'__body.body = {param_name};'
+    return WebParam(param_name, target, inner, js, False, True, "json")
 
 
 def to_int(wrap: Callable[[], str]) -> Callable[[], int]:
@@ -194,7 +206,7 @@ _first_skeleton: str = "\n".join([
     '    const __NO_RESPONSE   = 0, __JSON_RESPONSE = 1, __BLOB_RESPONSE = 2;',
     '    const __EMPTY_REQUEST = 0, __JSON_REQUEST  = 1, __PLAIN_REQUEST = 2;',
     '',
-    '    async function __call(url, method, data, headers, has_response_body) {',
+    '    async function __call(url, method, data, queryString, headers, has_response_body) {',
     '        if (!("Content-Type" in headers)) {',
     '            headers["Content-Type"] = "application/json";',
     '        }',
@@ -221,7 +233,7 @@ _first_skeleton: str = "\n".join([
     '',
     '        const response = await fetch(url, options);',
     '        if (!response.ok) {',
-    '            throw new Error(`Ops, status was ${response.status}`);',
+    '            throw new Error(`Ops, status was ${response.status}.`);',
     '        }',
     '',
     '        switch (has_response_body) {',
@@ -238,8 +250,11 @@ _first_skeleton: str = "\n".join([
 
 _func_skeleton: str = "\n".join([
     '',
-    '        FUNC_NAME: async function FUNC_NAME(PARAMS) {',
-    '            return await __call(`URL`, "METHOD", BODY, {}, HRB);',
+    '        =FUNC_NAME=: async function =FUNC_NAME=(=PARAMS=) {',
+    '            const __qs = {};',
+    '            const __hs = {};',
+    '            const __body = =BODY=;=INJECT_JS=',
+    '            return await __call(`=URL=`, "=METHOD=", __body, __qs, __hs, =HRB=);',
     '        },',
     '',
 ])
@@ -254,28 +269,68 @@ _last_skeleton: str = "\n".join([
 ])
 
 
+def _fix_up_url(url: str) -> str:
+    iters: int = 0
+    while iters < 1000:
+        p1: int = url.find("<")
+        if p1 < 0:
+            return url
+        p2: int = url.find(">")
+        if p2 < 0:
+            raise ValueError(f"Malformed URL {url}")
+        part: str = url[p1 + 1 : p2]
+        colon: int = part.find(":")
+        url = url[:p1] + "${" + url[p1 + colon + 2 : p2] + "}" + url[p2 + 1:]
+        iters += 1
+    raise ValueError("Too many iterations")
+
+
 def _make_js_stub(
         func_name: str,
         param_names: MappingProxyType[str, Parameter],
         param_specs: list[WebParam[Any]],
         url: str,
-        method: str,
-        has_request_body: bool,
-        has_response_body: bool
+        method: str
 ) -> str:
 
-    request_body: str = "{type: __EMPTY_REQUEST}"
+    has_request_body: bool = False
+    has_response_body: bool = True
 
-    if has_request_body:
-        request_body = "{type: __JSON_REQUEST, body: '???'}"
+    full_body: WebParam[Any] | None = None
+    for p in param_specs:
+        if p.full_body:
+            if full_body is None:
+                full_body = p
+            else:
+                raise Error("Two or more full-body parameters")
+
+    body_type: str = ""
+    for p in param_specs:
+        if p.body_type != "":
+            if body_type == "":
+                body_type = p.body_type
+            elif body_type != p.body_type:
+                raise Error("Two or more different body types")
+
+    body_js: str = "{type: __EMPTY_REQUEST}"
+    if body_type == "json":
+        body_js = "{type: __JSON_REQUEST, body: []}"
+    if body_type == "multipart":
+        body_js = "{type: __PLAIN_REQUEST, body: []}"
+
+    js: str = ""
+    for p in param_specs:
+        if p.js_snippet != "":
+            js += "\n            " + p.js_snippet
 
     return _func_skeleton \
-        .replace("FUNC_NAME", func_name) \
-        .replace("PARAMS", ", ".join(param_names)) \
-        .replace("URL", url.replace("<", "${").replace(">", "}")) \
-        .replace("METHOD", method) \
-        .replace("BODY", request_body) \
-        .replace("HRB", "__JSON_RESPONSE" if has_response_body else "__NO_RESPONSE")
+        .replace("=FUNC_NAME=", func_name) \
+        .replace("=PARAMS=", ", ".join(param_names)) \
+        .replace("=URL=", _fix_up_url(url)) \
+        .replace("=METHOD=", method) \
+        .replace("=BODY=", body_js) \
+        .replace("=INJECT_JS=", js) \
+        .replace("=HRB=", "__JSON_RESPONSE" if has_response_body else "__NO_RESPONSE")
 
 
 class WebSuite:
@@ -308,7 +363,7 @@ class WebSuite:
                 raise Exception(f"Function parameters and web parameters length mismatch ({s.parameters}) - ({wm.params}).")
 
             if not hidden:
-                js_stub: str = _make_js_stub(what.__name__, s.parameters, wm.params, wm.url_template, wm.http_method, False, True)
+                js_stub: str = _make_js_stub(what.__name__, s.parameters, wm.params, wm.url_template, wm.http_method)
                 self.__js_stubs.append(js_stub)
 
             @handler

@@ -528,7 +528,6 @@ def test_dunders_privates() -> None:
     assert which == ["__new__", "__init__"]
 
     assert "abcd" == f.work()
-    print(which)
     assert [i for i in which if i != "__getattribute__"] == ["__new__", "__init__", "__test1", "__test2__", "__test3", "__test4__", "work"]
 
 
