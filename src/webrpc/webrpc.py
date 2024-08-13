@@ -302,7 +302,7 @@ def _make_js_stub(
             if full_body is None:
                 full_body = p
             else:
-                raise Error("Two or more full-body parameters")
+                raise TypeError("Two or more full-body parameters")
 
     body_type: str = ""
     for p in param_specs:
@@ -310,7 +310,7 @@ def _make_js_stub(
             if body_type == "":
                 body_type = p.body_type
             elif body_type != p.body_type:
-                raise Error("Two or more different body types")
+                raise TypeError("Two or more different body types")
 
     body_js: str = "{type: __EMPTY_REQUEST}"
     if body_type == "json":

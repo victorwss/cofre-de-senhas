@@ -1,0 +1,12 @@
+{
+    "mariadb": {
+        "cofre-teste": {"user": "root", "password": "root": "host": "mariadb", "port": 3306, "database": "test_cofre"       },
+        "cofre-empty": {"user": "root", "password": "root": "host": "mariadb", "port": 3306, "database": "test_cofre_empty" },
+        "fruits"     : {"user": "root", "password": "root": "host": "mariadb", "port": 3306, "database": "test_fruits"      }
+    },
+    "mysql": {
+        "cofre-teste": {"user": "root", "password": "root": "host": "mariadb", "port": 3306, "database": "test_cofre"       },
+        "cofre-empty": {"user": "root", "password": "root": "host": "mariadb", "port": 3306, "database": "test_cofre_empty" },
+        "fruits"     : {"user": "root", "password": "root": "host": "mariadb", "port": 3306, "database": "test_fruits"      }
+    }
+}
